@@ -6,6 +6,7 @@
   # stuff I'm probably never going to change
   system.stateVersion = "21.05"; # https://nixos.wiki/wiki/FAQ/When_do_I_update_stateVersion
   i18n.defaultLocale = "en_GB.UTF-8";
+  time.timeZone = "Europe/London";
   boot.loader.grub.enable = false;
   boot.loader.generic-extlinux-compatible.enable = true;
   fileSystems."/" = {
