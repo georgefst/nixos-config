@@ -69,6 +69,7 @@ in
     pkgs.autoPatchelfHook #TODO somehow this doesn't expose the `autoPatchelf` command, even though `nix-shell -p` does
     pkgs.file
     pkgs.git
+    pkgs.libgpiod
     pkgs.tree
   ];
 }
