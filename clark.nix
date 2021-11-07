@@ -38,6 +38,12 @@ in
   ];
   hardware.firmware = [ pkgs.wireless-regdb ];
 
+  # gpio
+  users.groups.gpio = { };
+  services.udev.extraRules = ''
+    SUBSYSTEM=="gpio", KERNEL=="gpiochip*", GROUP="gpio", MODE="0660"
+  '';
+
   # users
   users.users = {
     root = { };
@@ -46,6 +52,7 @@ in
       createHome = true;
       home = "/home/gthomas";
       extraGroups = [
+        "gpio"
         "wheel"
       ];
       hashedPassword = "$6$jgaC/YaKr634BoKQ$KIv3VvRRaYShRibX5O3lAaqZ2qE3XRcYQEd0EF6YP61a9YBYUcPtljpDPE8.wEnMDNeUw9/ePBjsrK9JUv5i5/";
