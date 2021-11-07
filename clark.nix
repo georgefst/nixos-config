@@ -6,6 +6,11 @@ let
   secrets = import ./secrets.nix;
 in
 {
+  imports =
+    [
+      ./hardware-configuration.nix
+    ];
+
   networking.hostName = "clark";
 
   # stuff I'm probably never going to change
@@ -15,10 +20,9 @@ in
   boot.loader.grub.enable = false;
   boot.loader.generic-extlinux-compatible.enable = true;
   hardware.enableRedistributableFirmware = true;
-  fileSystems."/" = {
-    device = "/dev/disk/by-label/NIXOS_SD";
-    fsType = "ext4";
-  };
+  networking.useDHCP = false;
+  networking.interfaces.eth0.useDHCP = true;
+  networking.interfaces.wlan0.useDHCP = true;
 
   # Pi3-specific workaround: https://nixos.wiki/wiki/NixOS_on_ARM/Raspberry_Pi_3 ("WiFi / WLAN" section)
   # fixed in unstable: https://github.com/NixOS/nixpkgs/issues/101963#issuecomment-899319231
