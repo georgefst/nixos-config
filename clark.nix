@@ -66,7 +66,7 @@ in
   networking.wireless.networks = secrets.wifi;
 
   environment.systemPackages = [
-    pkgs.autoPatchelfHook #TODO somehow this doesn't expose the `autoPatchelf` command, even though `nix-shell -p` does
+    pkgs.autoPatchelfHook
     pkgs.file
     pkgs.git
     pkgs.libgpiod
