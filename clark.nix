@@ -1,4 +1,6 @@
 # https://nixos.org/manual/nixos/stable/options.html
+# https://nixos.wiki/wiki/NixOS_on_ARM
+# https://nixos.wiki/wiki/NixOS_on_ARM/Raspberry_Pi_3
 { config, pkgs, lib, ... }:
 let
   secrets = import ./secrets.nix;
@@ -17,7 +19,11 @@ in
     device = "/dev/disk/by-label/NIXOS_SD";
     fsType = "ext4";
   };
+  # this made `/sys/class/gpio` to exist
+  # but it required a reboot - shouldn't that never be necessary with NixOS
+  # boot.kernelPackages = pkgs.linuxPackages_4_19;
 
+  #TODO still unreliable - maybe try disabling bluetooth?
   # Pi3-specific workaround: https://nixos.wiki/wiki/NixOS_on_ARM/Raspberry_Pi_3 ("WiFi / WLAN" section)
   # fixed in unstable: https://github.com/NixOS/nixpkgs/issues/101963#issuecomment-899319231
   nixpkgs.overlays = [
@@ -36,6 +42,8 @@ in
   ];
   hardware.firmware = [ pkgs.wireless-regdb ];
 
+  # these are from Pi 4 instructions: https://nixos.wiki/wiki/NixOS_on_ARM/Raspberry_Pi_4
+  # I think the issue may be that NixOS 21.05 just doesn't support the sysfs interface at all, which the rust crate uses
   # gpio
   users.groups.gpio = { };
   services.udev.extraRules = ''
@@ -76,6 +84,7 @@ in
     pkgs.autoPatchelfHook #TODO somehow this doesn't expose the `autoPatchelf` command, even though `nix-shell -p` does
     pkgs.file
     pkgs.git
+    pkgs.libgpiod
     pkgs.tree
   ];
 }
