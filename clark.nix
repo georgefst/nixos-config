@@ -11,9 +11,8 @@ in
       ./hardware-configuration.nix
     ];
 
-  networking.hostName = "clark";
-
   # stuff I'm probably never going to change
+  networking.hostName = "clark";
   system.stateVersion = "21.05"; # https://nixos.wiki/wiki/FAQ/When_do_I_update_stateVersion
   i18n.defaultLocale = "en_GB.UTF-8";
   time.timeZone = "Europe/London";
