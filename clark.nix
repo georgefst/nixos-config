@@ -82,4 +82,13 @@ in
     pkgs.libgpiod
     pkgs.tree
   ];
+
+  systemd.services = {
+    clark-gpio = {
+      script = "/home/gthomas/clark-gpio";
+      description = "Bespoke device-specific GPIO handling";
+      path = [ pkgs.libgpiod ]; #TODO remove once we've ported to a proper GPIO library, instead of process wrapping
+      wantedBy = [ "multi-user.target" ];
+    };
+  };
 }
