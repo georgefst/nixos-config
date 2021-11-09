@@ -85,7 +85,9 @@ in
 
   systemd.services = {
     clark = {
-      script = "/home/gthomas/clark";
+      script = ''
+        /home/gthomas/clark
+      '';
       description = "clark script";
       path = [ pkgs.libgpiod ]; #TODO remove once we've ported to a proper GPIO library, instead of process wrapping
       wantedBy = [ "multi-user.target" ];
