@@ -18,7 +18,7 @@ main :: IO ()
 main = do
     sock <- socket AF_INET Datagram defaultProtocol
     bind sock $ SockAddrInet 56710 0
-    void . forkIO . runLifxForever $ forever do
+    void . forkIO . runLifxUntilSuccess $ forever do
         bs <- liftIO $ recv sock 1
         withSGR' Blue $ BS.putStrLn $ "Received UDP message: " <> bs
         toggleLight
@@ -31,7 +31,7 @@ main = do
                 }
     putStrLn "Done!"
 
-    handle (\(e :: IOException) -> print e >> cleanupProcess hs) . runLifxForever $
+    handle (\(e :: IOException) -> print e >> cleanupProcess hs) . runLifxUntilSuccess $
         liftIO getCurrentTime >>= iterateM_ \t0 -> do
             line <- liftIO $ hGetLine gpiomonStdout
             t1 <- liftIO getCurrentTime
@@ -65,6 +65,6 @@ withSGR sgr x = do
     setSGR [Reset]
     pure r
 
--- | Run the action repeatedly. If it fails then just print the error and go again.
-runLifxForever :: Lifx () -> IO a
-runLifxForever = forever . (either print pure <=< runLifxT 5_000_000)
+-- | Run the action. If it fails then just print the error and go again.
+runLifxUntilSuccess :: Lifx a -> IO a
+runLifxUntilSuccess x = either (\e -> print e >> runLifxUntilSuccess x) pure =<< runLifxT 5_000_000 x
