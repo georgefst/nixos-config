@@ -72,9 +72,10 @@ main = do
                     putStrLn line
                     pure t1
 
-    let worker = runLifxUntilSuccess $ forever do
-            liftIO (takeMVar mvar) >>= \case
-                ToggleLight -> toggleLight light
+    let worker =
+            runLifxUntilSuccess . forever $
+                liftIO (takeMVar mvar) >>= \case
+                    ToggleLight -> toggleLight light
 
     worker `concurrently_` listenOnNetwork `concurrently_` listenForButton
 
