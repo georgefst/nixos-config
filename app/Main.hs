@@ -18,12 +18,18 @@ import System.Console.ANSI
 import System.IO
 import System.Process.Extra
 
---TODO rename fields when we have OverloadedRecordDot (GHC 9.2)
+--TODO rename fields when we have OverloadedRecordDot (GHC 9.2), and thus simplify the `ParseRecord` instance
 data Opts = Opts
     { optButtonDebounce :: Double
     , optLightName :: Text
     }
-    deriving (Show, Generic, ParseRecord)
+    deriving (Show, Generic)
+instance ParseRecord Opts where
+    parseRecord =
+        parseRecordWithModifiers
+            defaultModifiers
+                { fieldNameModifier = fieldNameModifier lispCaseModifiers . drop 3
+                }
 
 main :: IO ()
 main = do
