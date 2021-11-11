@@ -1,5 +1,6 @@
 module Main (main) where
 
+import Control.Concurrent
 import Control.Concurrent.Async
 import Control.Exception
 import Control.Monad
@@ -31,6 +32,9 @@ instance ParseRecord Opts where
                 { fieldNameModifier = fieldNameModifier lispCaseModifiers . drop 3
                 }
 
+data Action
+    = ToggleLight
+
 main :: IO ()
 main = do
     Opts{..} <- getRecord "Clark"
@@ -38,13 +42,14 @@ main = do
         devs <- discoverDevices Nothing
         devNames <- traverse (\d -> (d,) <$> sendMessage d GetColor) devs
         pure $ fst <$> find ((== encodeUtf8 optLightName) . label . snd) devNames
+    mvar <- newEmptyMVar
 
-    let listenOnNetwork = runLifxUntilSuccess $ forever do
-            sock <- liftIO $ socket AF_INET Datagram defaultProtocol
-            liftIO $ bind sock $ SockAddrInet 56710 0
-            bs <- liftIO $ recv sock 1
+    let listenOnNetwork = forever do
+            sock <- socket AF_INET Datagram defaultProtocol
+            bind sock $ SockAddrInet 56710 0
+            bs <- recv sock 1
             withSGR' Blue $ BS.putStrLn $ "Received UDP message: " <> bs
-            toggleLight light
+            putMVar mvar ToggleLight
 
     let listenForButton = do
             putStrLn "Starting gpiomon process..."
@@ -55,19 +60,23 @@ main = do
                         }
             putStrLn "Done!"
 
-            handle (\(e :: IOException) -> print e >> cleanupProcess hs) . runLifxUntilSuccess $
-                liftIO getCurrentTime >>= iterateM_ \t0 -> do
-                    line <- liftIO $ hGetLine gpiomonStdout
-                    t1 <- liftIO getCurrentTime
+            handle (\(e :: IOException) -> print e >> cleanupProcess hs) $
+                getCurrentTime >>= iterateM_ \t0 -> do
+                    line <- hGetLine gpiomonStdout
+                    t1 <- getCurrentTime
                     if diffUTCTime t1 t0 < realToFrac optButtonDebounce
                         then withSGR' Red $ putStr "Ignoring: "
                         else do
                             withSGR' Green $ putStr "Ok: "
-                            toggleLight light
-                    liftIO $ putStrLn line
+                            putMVar mvar ToggleLight
+                    putStrLn line
                     pure t1
 
-    listenOnNetwork `concurrently_` listenForButton
+    let worker = runLifxUntilSuccess $ forever do
+            liftIO (takeMVar mvar) >>= \case
+                ToggleLight -> toggleLight light
+
+    worker `concurrently_` listenOnNetwork `concurrently_` listenForButton
 
 toggleLight :: MonadLifx m => Device -> m ()
 toggleLight light = sendMessage light . SetPower . not . statePowerToBool =<< sendMessage light GetPower

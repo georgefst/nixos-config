@@ -12,6 +12,7 @@ executable clark
         BlockArguments
         DeriveAnyClass
         DeriveGeneric
+        LambdaCase
         NoMonomorphismRestriction
         NumericUnderscores
         OverloadedStrings
