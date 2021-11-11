@@ -39,9 +39,9 @@ main = do
         devNames <- traverse (\d -> (d,) <$> sendMessage d GetColor) devs
         pure $ fst <$> find ((== encodeUtf8 optLightName) . label . snd) devNames
 
-    sock <- socket AF_INET Datagram defaultProtocol
-    bind sock $ SockAddrInet 56710 0
     void . forkIO . runLifxUntilSuccess $ forever do
+        sock <- liftIO $ socket AF_INET Datagram defaultProtocol
+        liftIO $ bind sock $ SockAddrInet 56710 0
         bs <- liftIO $ recv sock 1
         withSGR' Blue $ BS.putStrLn $ "Received UDP message: " <> bs
         toggleLight light
