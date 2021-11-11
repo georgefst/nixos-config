@@ -76,10 +76,6 @@ toggleLight light = sendMessage light . SetPower . not . statePowerToBool =<< se
 statePowerToBool :: StatePower -> Bool
 statePowerToBool = (/= StatePower 0)
 
--- | A special case of 'withSGR'.
-withSGR' :: MonadIO m => Color -> IO a -> m a
-withSGR' x = liftIO . withSGR [SetColor Foreground Vivid x, SetConsoleIntensity BoldIntensity]
-
 --TODO upstream? not the first time I've defined this
 withSGR :: [SGR] -> IO a -> IO a
 withSGR sgr x = do
@@ -87,6 +83,10 @@ withSGR sgr x = do
     r <- x
     setSGR [Reset]
     pure r
+
+-- A special case of 'withSGR'
+withSGR' :: MonadIO m => Color -> IO a -> m a
+withSGR' x = liftIO . withSGR [SetColor Foreground Vivid x, SetConsoleIntensity BoldIntensity]
 
 -- | Run the action. If it fails then just print the error and go again.
 runLifxUntilSuccess :: Lifx a -> IO a
