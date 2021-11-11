@@ -5,7 +5,6 @@ import Control.Exception
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Loops
-import Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as BS
 import Data.List
 import Data.Text ()
@@ -14,16 +13,25 @@ import Data.Time
 import Lifx.Lan hiding (SetColor)
 import Network.Socket
 import Network.Socket.ByteString
+import Options.Generic
 import System.Console.ANSI
 import System.IO
 import System.Process.Extra
 
+--TODO rename fields when we have OverloadedRecordDot (GHC 9.2)
+data Opts = Opts
+    { optButtonDebounce :: Double
+    , optLightName :: Text
+    }
+    deriving (Show, Generic, ParseRecord)
+
 main :: IO ()
 main = do
+    Opts{..} <- getRecord "Clark"
     Just light <- runLifxUntilSuccess do
         devs <- discoverDevices Nothing
         devNames <- traverse (\d -> (d,) <$> sendMessage d GetColor) devs
-        pure $ fst <$> find ((== lightName) . label . snd) devNames
+        pure $ fst <$> find ((== encodeUtf8 optLightName) . label . snd) devNames
 
     sock <- socket AF_INET Datagram defaultProtocol
     bind sock $ SockAddrInet 56710 0
@@ -44,16 +52,13 @@ main = do
         liftIO getCurrentTime >>= iterateM_ \t0 -> do
             line <- liftIO $ hGetLine gpiomonStdout
             t1 <- liftIO getCurrentTime
-            if diffUTCTime t1 t0 < 0.5
+            if diffUTCTime t1 t0 < realToFrac optButtonDebounce
                 then withSGR' Red $ putStr "Ignoring: "
                 else do
                     withSGR' Green $ putStr "Ok: "
                     toggleLight light
             liftIO $ putStrLn line
             pure t1
-
-lightName :: ByteString
-lightName = encodeUtf8 "Ceiling"
 
 toggleLight :: MonadLifx m => Device -> m ()
 toggleLight light = sendMessage light . SetPower . not . statePowerToBool =<< sendMessage light GetPower
