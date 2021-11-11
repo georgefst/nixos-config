@@ -1,6 +1,6 @@
 module Main (main) where
 
-import Control.Concurrent.Extra
+import Control.Concurrent.Async
 import Control.Exception
 import Control.Monad
 import Control.Monad.IO.Class
@@ -67,8 +67,7 @@ main = do
                     liftIO $ putStrLn line
                     pure t1
 
-    void $ forkIO listenOnNetwork
-    listenForButton
+    listenOnNetwork `concurrently_` listenForButton
 
 toggleLight :: MonadLifx m => Device -> m ()
 toggleLight light = sendMessage light . SetPower . not . statePowerToBool =<< sendMessage light GetPower

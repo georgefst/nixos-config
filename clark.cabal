@@ -23,6 +23,7 @@ executable clark
     build-depends:
         base >= 4.14,
         ansi-terminal >= 0.11,
+        async >= 2.2.4,
         bytestring >= 0.10.12,
         extra >= 1.7.10,
         time >= 1.9.3,
