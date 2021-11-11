@@ -15,6 +15,7 @@ executable clark
         OverloadedStrings
         PartialTypeSignatures
         ScopedTypeVariables
+        TupleSections
     build-depends:
         base >= 4.14,
         ansi-terminal >= 0.11,

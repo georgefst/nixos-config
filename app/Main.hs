@@ -5,7 +5,11 @@ import Control.Exception
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Loops
+import Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as BS
+import Data.List
+import Data.Text ()
+import Data.Text.Encoding
 import Data.Time
 import Lifx.Lan hiding (SetColor)
 import Network.Socket
@@ -16,12 +20,17 @@ import System.Process.Extra
 
 main :: IO ()
 main = do
+    Just light <- runLifxUntilSuccess do
+        devs <- discoverDevices Nothing
+        devNames <- traverse (\d -> (d,) <$> sendMessage d GetColor) devs
+        pure $ fst <$> find ((== lightName) . label . snd) devNames
+
     sock <- socket AF_INET Datagram defaultProtocol
     bind sock $ SockAddrInet 56710 0
     void . forkIO . runLifxUntilSuccess $ forever do
         bs <- liftIO $ recv sock 1
         withSGR' Blue $ BS.putStrLn $ "Received UDP message: " <> bs
-        toggleLight
+        toggleLight light
 
     putStrLn "Starting gpiomon process..."
     hs@(_, Just gpiomonStdout, _, _) <-
@@ -39,15 +48,15 @@ main = do
                 then withSGR' Red $ putStr "Ignoring: "
                 else do
                     withSGR' Green $ putStr "Ok: "
-                    toggleLight
+                    toggleLight light
             liftIO $ putStrLn line
             pure t1
 
-light :: Device
-light = deviceFromAddress (192, 168, 1, 190)
+lightName :: ByteString
+lightName = encodeUtf8 "Ceiling"
 
-toggleLight :: MonadLifx m => m ()
-toggleLight = sendMessage light . SetPower . not . statePowerToBool =<< sendMessage light GetPower
+toggleLight :: MonadLifx m => Device -> m ()
+toggleLight light = sendMessage light . SetPower . not . statePowerToBool =<< sendMessage light GetPower
 
 --TODO upstream?
 statePowerToBool :: StatePower -> Bool
