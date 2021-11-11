@@ -39,32 +39,36 @@ main = do
         devNames <- traverse (\d -> (d,) <$> sendMessage d GetColor) devs
         pure $ fst <$> find ((== encodeUtf8 optLightName) . label . snd) devNames
 
-    void . forkIO . runLifxUntilSuccess $ forever do
-        sock <- liftIO $ socket AF_INET Datagram defaultProtocol
-        liftIO $ bind sock $ SockAddrInet 56710 0
-        bs <- liftIO $ recv sock 1
-        withSGR' Blue $ BS.putStrLn $ "Received UDP message: " <> bs
-        toggleLight light
+    let listenOnNetwork = runLifxUntilSuccess $ forever do
+            sock <- liftIO $ socket AF_INET Datagram defaultProtocol
+            liftIO $ bind sock $ SockAddrInet 56710 0
+            bs <- liftIO $ recv sock 1
+            withSGR' Blue $ BS.putStrLn $ "Received UDP message: " <> bs
+            toggleLight light
 
-    putStrLn "Starting gpiomon process..."
-    hs@(_, Just gpiomonStdout, _, _) <-
-        createProcess
-            (proc "gpiomon" ["-b", "-f", "gpiochip0", "5"])
-                { std_out = CreatePipe
-                }
-    putStrLn "Done!"
+    let listenForButton = do
+            putStrLn "Starting gpiomon process..."
+            hs@(_, Just gpiomonStdout, _, _) <-
+                createProcess
+                    (proc "gpiomon" ["-b", "-f", "gpiochip0", "5"])
+                        { std_out = CreatePipe
+                        }
+            putStrLn "Done!"
 
-    handle (\(e :: IOException) -> print e >> cleanupProcess hs) . runLifxUntilSuccess $
-        liftIO getCurrentTime >>= iterateM_ \t0 -> do
-            line <- liftIO $ hGetLine gpiomonStdout
-            t1 <- liftIO getCurrentTime
-            if diffUTCTime t1 t0 < realToFrac optButtonDebounce
-                then withSGR' Red $ putStr "Ignoring: "
-                else do
-                    withSGR' Green $ putStr "Ok: "
-                    toggleLight light
-            liftIO $ putStrLn line
-            pure t1
+            handle (\(e :: IOException) -> print e >> cleanupProcess hs) . runLifxUntilSuccess $
+                liftIO getCurrentTime >>= iterateM_ \t0 -> do
+                    line <- liftIO $ hGetLine gpiomonStdout
+                    t1 <- liftIO getCurrentTime
+                    if diffUTCTime t1 t0 < realToFrac optButtonDebounce
+                        then withSGR' Red $ putStr "Ignoring: "
+                        else do
+                            withSGR' Green $ putStr "Ok: "
+                            toggleLight light
+                    liftIO $ putStrLn line
+                    pure t1
+
+    void $ forkIO listenOnNetwork
+    listenForButton
 
 toggleLight :: MonadLifx m => Device -> m ()
 toggleLight light = sendMessage light . SetPower . not . statePowerToBool =<< sendMessage light GetPower
