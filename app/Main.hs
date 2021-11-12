@@ -45,12 +45,13 @@ main = do
     Opts{..} <- getRecord "Clark"
     mvar <- newEmptyMVar
 
-    let listenOnNetwork = forever do
+    let listenOnNetwork = do
             sock <- socket AF_INET Datagram defaultProtocol
             bind sock $ SockAddrInet (fromIntegral optReceivePort) 0
-            bs <- recv sock 1
-            withSGR' Blue $ BS.putStrLn $ "Received UDP message: " <> bs
-            putMVar mvar ToggleLight
+            forever do
+                bs <- recv sock 1
+                withSGR' Blue $ BS.putStrLn $ "Received UDP message: " <> bs
+                putMVar mvar ToggleLight
 
     let listenForButton = do
             putStrLn "Starting gpiomon process..."
