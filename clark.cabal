@@ -33,6 +33,7 @@ executable clark
         monad-loops >= 0.4.3,
         network >= 3.1.2,
         optparse-generic >= 1.4.6,
+        pretty-simple >= 4.0.0,
         text >= 1.2.4,
     hs-source-dirs: app
     default-language: Haskell2010

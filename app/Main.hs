@@ -18,6 +18,7 @@ import Options.Generic
 import System.Console.ANSI
 import System.IO
 import System.Process.Extra
+import Text.Pretty.Simple hiding (Blue, Color, Green, Red, Vivid)
 
 --TODO rename fields when we have OverloadedRecordDot (GHC 9.2), and thus simplify the `ParseRecord` instance
 data Opts = Opts
@@ -38,10 +39,6 @@ data Action
 main :: IO ()
 main = do
     Opts{..} <- getRecord "Clark"
-    Just light <- runLifxUntilSuccess do
-        devs <- discoverDevices Nothing
-        devNames <- traverse (\d -> (d,) <$> sendMessage d GetColor) devs
-        pure $ fst <$> find ((== encodeUtf8 optLightName) . label . snd) devNames
     mvar <- newEmptyMVar
 
     let listenOnNetwork = forever do
@@ -72,10 +69,17 @@ main = do
                     putStrLn line
                     pure t1
 
-    let worker =
-            runLifxUntilSuccess . forever $
-                liftIO (takeMVar mvar) >>= \case
-                    ToggleLight -> toggleLight light
+    let worker = runLifxUntilSuccess do
+            devs <- discoverDevices Nothing
+            devNames <- traverse (\d -> (d,) <$> sendMessage d GetColor) devs
+            case find ((== encodeUtf8 optLightName) . label . snd) devNames of
+                Nothing -> do
+                    liftIO $ putStrLn "Couldn't find ceiling light, only:"
+                    pPrintOpt CheckColorTty defaultOutputOptionsDarkBg{outputOptionsInitialIndent = 4} devNames
+                Just (light, _) ->
+                    forever $
+                        liftIO (takeMVar mvar) >>= \case
+                            ToggleLight -> toggleLight light
 
     worker `concurrently_` listenOnNetwork `concurrently_` listenForButton
 
