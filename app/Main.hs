@@ -11,6 +11,7 @@ import Data.List
 import Data.Text ()
 import Data.Text.Encoding
 import Data.Time
+import Data.Word
 import Lifx.Lan hiding (SetColor)
 import Network.Socket
 import Network.Socket.ByteString
@@ -23,7 +24,10 @@ import Text.Pretty.Simple hiding (Blue, Color, Green, Red, Vivid)
 --TODO rename fields when we have OverloadedRecordDot (GHC 9.2), and thus simplify the `ParseRecord` instance
 data Opts = Opts
     { optButtonDebounce :: Double
+    , optButtonPin :: Int
     , optLightName :: Text
+    , optLifxTimeout :: Double
+    , optReceivePort :: Word16
     }
     deriving (Show, Generic)
 instance ParseRecord Opts where
@@ -43,7 +47,7 @@ main = do
 
     let listenOnNetwork = forever do
             sock <- socket AF_INET Datagram defaultProtocol
-            bind sock $ SockAddrInet 56710 0
+            bind sock $ SockAddrInet (fromIntegral optReceivePort) 0
             bs <- recv sock 1
             withSGR' Blue $ BS.putStrLn $ "Received UDP message: " <> bs
             putMVar mvar ToggleLight
@@ -52,7 +56,7 @@ main = do
             putStrLn "Starting gpiomon process..."
             hs@(_, Just gpiomonStdout, _, _) <-
                 createProcess
-                    (proc "gpiomon" ["-b", "-f", "gpiochip0", "5"])
+                    (proc "gpiomon" ["-b", "-f", "gpiochip0", show optButtonPin])
                         { std_out = CreatePipe
                         }
             putStrLn "Done!"
@@ -69,7 +73,7 @@ main = do
                     putStrLn line
                     pure t1
 
-    listenOnNetwork `concurrently_` listenForButton `concurrently_` runLifxUntilSuccess do
+    listenOnNetwork `concurrently_` listenForButton `concurrently_` runLifxUntilSuccess (lifxTime optLifxTimeout) do
         devs <- discoverDevices Nothing
         devStates <- traverse (\d -> (d,) <$> sendMessage d GetColor) devs
         case find ((== encodeUtf8 optLightName) . label . snd) devStates of
@@ -87,6 +91,10 @@ toggleLight light = sendMessage light . SetPower . not . statePowerToBool =<< se
 statePowerToBool :: StatePower -> Bool
 statePowerToBool = (/= StatePower 0)
 
+--TODO lifx-lan should probably use a time library type, rather than Int
+lifxTime :: Double -> Int
+lifxTime = round . (* 1_000_000)
+
 --TODO upstream? not the first time I've defined this
 withSGR :: [SGR] -> IO a -> IO a
 withSGR sgr x = do
@@ -100,5 +108,5 @@ withSGR' :: MonadIO m => Color -> IO a -> m a
 withSGR' x = liftIO . withSGR [SetColor Foreground Vivid x, SetConsoleIntensity BoldIntensity]
 
 -- | Run the action. If it fails then just print the error and go again.
-runLifxUntilSuccess :: Lifx a -> IO a
-runLifxUntilSuccess x = either (\e -> print e >> runLifxUntilSuccess x) pure =<< runLifxT 5_000_000 x
+runLifxUntilSuccess :: Int -> Lifx a -> IO a
+runLifxUntilSuccess t x = either (\e -> print e >> runLifxUntilSuccess t x) pure =<< runLifxT t x
