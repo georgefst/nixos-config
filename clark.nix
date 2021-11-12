@@ -14,6 +14,20 @@ let
   # arbitrary - all that matters is that these don't conflict with each other or anything else
   clark-script-port = 56710; # if we change this we need to modify our Tasker config
   droopy-port = 8001;
+
+  #TODO https://github.com/NixOS/nixpkgs/pull/145702
+  pkgs = import <nixpkgs> {
+    config.packageOverrides = pkgs: {
+      droopy = pkgs.droopy.overrideAttrs (old: {
+        patches = old.patches ++ [
+          (pkgs.fetchpatch {
+            url = "https://patch-diff.githubusercontent.com/raw/stackp/Droopy/pull/31.patch";
+            sha256 = "1ig054rxn5r0ph4w4fhmrxlh158c97iqqc7dbnc819adn9nw96l5";
+          })
+        ];
+      });
+    };
+  };
 in
 {
   imports =
