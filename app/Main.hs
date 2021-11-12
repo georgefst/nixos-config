@@ -71,11 +71,11 @@ main = do
 
     let worker = runLifxUntilSuccess do
             devs <- discoverDevices Nothing
-            devNames <- traverse (\d -> (d,) <$> sendMessage d GetColor) devs
-            case find ((== encodeUtf8 optLightName) . label . snd) devNames of
+            devStates <- traverse (\d -> (d,) <$> sendMessage d GetColor) devs
+            case find ((== encodeUtf8 optLightName) . label . snd) devStates of
                 Nothing -> do
                     liftIO $ putStrLn "Couldn't find ceiling light, only:"
-                    pPrintOpt CheckColorTty defaultOutputOptionsDarkBg{outputOptionsInitialIndent = 4} devNames
+                    pPrintOpt CheckColorTty defaultOutputOptionsDarkBg{outputOptionsInitialIndent = 4} devStates
                 Just (light, _) ->
                     forever $
                         liftIO (takeMVar mvar) >>= \case
