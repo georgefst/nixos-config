@@ -69,18 +69,16 @@ main = do
                     putStrLn line
                     pure t1
 
-    let worker = runLifxUntilSuccess do
-            devs <- discoverDevices Nothing
-            devStates <- traverse (\d -> (d,) <$> sendMessage d GetColor) devs
-            case find ((== encodeUtf8 optLightName) . label . snd) devStates of
-                Nothing -> do
-                    liftIO $ putStrLn "Couldn't find ceiling light, only:"
-                    pPrintOpt CheckColorTty defaultOutputOptionsDarkBg{outputOptionsInitialIndent = 4} devStates
-                Just (light, _) -> forever do
-                    liftIO (takeMVar mvar) >>= \case
-                        ToggleLight -> toggleLight light
-
-    worker `concurrently_` listenOnNetwork `concurrently_` listenForButton
+    listenOnNetwork `concurrently_` listenForButton `concurrently_` runLifxUntilSuccess do
+        devs <- discoverDevices Nothing
+        devStates <- traverse (\d -> (d,) <$> sendMessage d GetColor) devs
+        case find ((== encodeUtf8 optLightName) . label . snd) devStates of
+            Nothing -> do
+                liftIO $ putStrLn "Couldn't find ceiling light, only:"
+                pPrintOpt CheckColorTty defaultOutputOptionsDarkBg{outputOptionsInitialIndent = 4} devStates
+            Just (light, _) -> forever do
+                liftIO (takeMVar mvar) >>= \case
+                    ToggleLight -> toggleLight light
 
 toggleLight :: MonadLifx m => Device -> m ()
 toggleLight light = sendMessage light . SetPower . not . statePowerToBool =<< sendMessage light GetPower
