@@ -8,6 +8,9 @@ let
   # some of the places I'm using this are running as root
   home = "/home/gthomas";
 
+  # useful for systemd `wanted-by` field, to make services always on
+  startup = [ "multi-user.target" ];
+
   # arbitrary - all that matters is that these don't conflict with each other or anything else
   clark-script-port = 56710; # if we change this we need to modify our Tasker config
   droopy-port = 8001;
@@ -102,7 +105,7 @@ in
       '';
       description = "clark script";
       path = [ pkgs.libgpiod ]; #TODO remove once we've ported to a proper GPIO library, instead of process wrapping
-      wantedBy = [ "multi-user.target" ];
+      wantedBy = startup;
     };
     droopy = {
       script = ''
@@ -114,7 +117,7 @@ in
       '';
       description = "droopy file server";
       path = [ pkgs.droopy ];
-      wantedBy = [ "multi-user.target" ];
+      wantedBy = startup;
     };
   };
 
