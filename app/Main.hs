@@ -76,10 +76,9 @@ main = do
                 Nothing -> do
                     liftIO $ putStrLn "Couldn't find ceiling light, only:"
                     pPrintOpt CheckColorTty defaultOutputOptionsDarkBg{outputOptionsInitialIndent = 4} devStates
-                Just (light, _) ->
-                    forever $
-                        liftIO (takeMVar mvar) >>= \case
-                            ToggleLight -> toggleLight light
+                Just (light, _) -> forever do
+                    liftIO (takeMVar mvar) >>= \case
+                        ToggleLight -> toggleLight light
 
     worker `concurrently_` listenOnNetwork `concurrently_` listenForButton
 
