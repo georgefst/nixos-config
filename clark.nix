@@ -5,9 +5,9 @@
 let
   secrets = import ./secrets.nix;
 
-  # arbitrary - all that matters is that it doesn't conflict with anything else
-  # if we change this we need to modify our Tasker config
-  clark-script-port = 56710;
+  # arbitrary - all that matters is that these don't conflict with each other or anything else
+  clark-script-port = 56710; # if we change this we need to modify our Tasker config
+  droopy-port = 8001;
 in
 {
   imports =
@@ -101,9 +101,24 @@ in
       path = [ pkgs.libgpiod ]; #TODO remove once we've ported to a proper GPIO library, instead of process wrapping
       wantedBy = [ "multi-user.target" ];
     };
+    droopy = {
+      script = ''
+        HOME=/home/gthomas droopy \
+          --dl \
+          -m 'Upload/download files' \
+          -d /home/gthomas/serve \
+          ${builtins.toString droopy-port} \
+      '';
+      description = "droopy file server";
+      path = [ pkgs.droopy ];
+      wantedBy = [ "multi-user.target" ];
+    };
   };
 
   networking.firewall.allowedUDPPorts = [
     clark-script-port
+  ];
+  networking.firewall.allowedTCPPorts = [
+    droopy-port
   ];
 }
