@@ -15,6 +15,8 @@ let
   clark-script-port = 56710; # if we change this we need to modify our Tasker config
   droopy-port = 8001;
 
+  file-server-dir = home + "/serve";
+
   #TODO https://github.com/NixOS/nixpkgs/pull/145702
   pkgs = import <nixpkgs> {
     config.packageOverrides = pkgs: {
@@ -123,10 +125,11 @@ in
     };
     droopy = {
       script = ''
+        mkdir -p ${file-server-dir}
         HOME=${home} droopy \
           --dl \
           -m 'Upload/download files' \
-          -d ${home}/serve \
+          -d ${file-server-dir} \
           ${builtins.toString droopy-port} \
       '';
       description = "droopy file server";
