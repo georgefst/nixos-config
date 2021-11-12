@@ -34,7 +34,7 @@ instance ParseRecord Opts where
     parseRecord =
         parseRecordWithModifiers
             defaultModifiers
-                { fieldNameModifier = fieldNameModifier lispCaseModifiers . drop 3
+                { fieldNameModifier = fieldNameModifier lispCaseModifiers . drop (length @[] "opt")
                 }
 
 data Action
