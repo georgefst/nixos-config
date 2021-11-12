@@ -5,6 +5,9 @@
 let
   secrets = import ./secrets.nix;
 
+  # some of the places I'm using this are running as root
+  home = "/home/gthomas";
+
   # arbitrary - all that matters is that these don't conflict with each other or anything else
   clark-script-port = 56710; # if we change this we need to modify our Tasker config
   droopy-port = 8001;
@@ -57,7 +60,7 @@ in
     gthomas = {
       isNormalUser = true;
       createHome = true;
-      home = "/home/gthomas";
+      home = home;
       extraGroups = [
         "gpio"
         "wheel"
@@ -90,7 +93,7 @@ in
   systemd.services = {
     clark = {
       script = ''
-        /home/gthomas/clark \
+        ${home}/clark \
           --button-debounce 1 \
           --button-pin 5 \
           --light-name Ceiling \
@@ -103,10 +106,10 @@ in
     };
     droopy = {
       script = ''
-        HOME=/home/gthomas droopy \
+        HOME=${home} droopy \
           --dl \
           -m 'Upload/download files' \
-          -d /home/gthomas/serve \
+          -d ${home}/serve \
           ${builtins.toString droopy-port} \
       '';
       description = "droopy file server";
