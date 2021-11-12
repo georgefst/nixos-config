@@ -4,6 +4,10 @@
 { config, pkgs, lib, ... }:
 let
   secrets = import ./secrets.nix;
+
+  # arbitrary - all that matters is that it doesn't conflict with anything else
+  # if we change this we need to modify our Tasker config
+  clark-script-port = 56710;
 in
 {
   imports =
@@ -86,11 +90,20 @@ in
   systemd.services = {
     clark = {
       script = ''
-        /home/gthomas/clark
+        /home/gthomas/clark \
+          --button-debounce 1 \
+          --button-pin 5 \
+          --light-name Ceiling \
+          --lifx-timeout 5 \
+          --receive-port ${builtins.toString clark-script-port} \
       '';
       description = "clark script";
       path = [ pkgs.libgpiod ]; #TODO remove once we've ported to a proper GPIO library, instead of process wrapping
       wantedBy = [ "multi-user.target" ];
     };
   };
+
+  networking.firewall.allowedUDPPorts = [
+    clark-script-port
+  ];
 }
