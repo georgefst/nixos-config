@@ -6,3 +6,8 @@ source-repository-package
     location: https://github.com/georgefst/haskell-filesystem
     subdir: system-filepath
     tag: 524acc5be3d5c1c97d3e861ac1dca0b0381e9fdb
+--TODO https://github.com/cdepillabout/pretty-simple/issues/82#issuecomment-921094150
+source-repository-package
+    type: git
+    location: https://github.com/georgefst/pretty-simple
+    tag: 33c26718312572746792969c8502fde46e47fa9b
