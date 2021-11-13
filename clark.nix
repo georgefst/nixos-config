@@ -36,6 +36,7 @@ in
   networking.interfaces.eth0.useDHCP = true;
   networking.interfaces.wlan0.useDHCP = true;
 
+  # overlays
   nixpkgs.overlays = [
     (self: super: {
       # Pi3-specific workaround: https://nixos.wiki/wiki/NixOS_on_ARM/Raspberry_Pi_3 ("WiFi / WLAN" section)
@@ -97,6 +98,7 @@ in
   networking.wireless.interfaces = [ "wlan0" ];
   networking.wireless.networks = secrets.wifi;
 
+  # global installs
   environment.systemPackages = [
     pkgs.autoPatchelfHook
     pkgs.file
@@ -105,6 +107,7 @@ in
     pkgs.tree
   ];
 
+  # systemd
   systemd.services = {
     clark = {
       script = ''
@@ -134,6 +137,7 @@ in
     };
   };
 
+  # open ports
   networking.firewall.allowedUDPPorts = [
     clark-script-port
   ];
