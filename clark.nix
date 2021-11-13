@@ -16,20 +16,6 @@ let
   droopy-port = 8001;
 
   file-server-dir = home + "/serve";
-
-  #TODO https://github.com/NixOS/nixpkgs/pull/145702
-  pkgs = import <nixpkgs> {
-    config.packageOverrides = pkgs: {
-      droopy = pkgs.droopy.overrideAttrs (old: {
-        patches = old.patches ++ [
-          (pkgs.fetchpatch {
-            url = "https://patch-diff.githubusercontent.com/raw/stackp/Droopy/pull/31.patch";
-            sha256 = "1ig054rxn5r0ph4w4fhmrxlh158c97iqqc7dbnc819adn9nw96l5";
-          })
-        ];
-      });
-    };
-  };
 in
 {
   imports =
@@ -45,14 +31,15 @@ in
   boot.loader.grub.enable = false;
   boot.loader.generic-extlinux-compatible.enable = true;
   hardware.enableRedistributableFirmware = true;
+  hardware.firmware = [ pkgs.wireless-regdb ];
   networking.useDHCP = false;
   networking.interfaces.eth0.useDHCP = true;
   networking.interfaces.wlan0.useDHCP = true;
 
-  # Pi3-specific workaround: https://nixos.wiki/wiki/NixOS_on_ARM/Raspberry_Pi_3 ("WiFi / WLAN" section)
-  # fixed in unstable: https://github.com/NixOS/nixpkgs/issues/101963#issuecomment-899319231
   nixpkgs.overlays = [
     (self: super: {
+      # Pi3-specific workaround: https://nixos.wiki/wiki/NixOS_on_ARM/Raspberry_Pi_3 ("WiFi / WLAN" section)
+      # fixed in unstable: https://github.com/NixOS/nixpkgs/issues/101963#issuecomment-899319231
       firmwareLinuxNonfree = super.firmwareLinuxNonfree.overrideAttrs (old: {
         version = "2020-12-18";
         src = pkgs.fetchgit {
@@ -63,9 +50,18 @@ in
         };
         outputHash = "1p7vn2hfwca6w69jhw5zq70w44ji8mdnibm1z959aalax6ndy146";
       });
+
+      #TODO https://github.com/NixOS/nixpkgs/pull/145702
+      droopy = super.droopy.overrideAttrs (old: {
+        patches = old.patches ++ [
+          (pkgs.fetchpatch {
+            url = "https://patch-diff.githubusercontent.com/raw/stackp/Droopy/pull/31.patch";
+            sha256 = "1ig054rxn5r0ph4w4fhmrxlh158c97iqqc7dbnc819adn9nw96l5";
+          })
+        ];
+      });
     })
   ];
-  hardware.firmware = [ pkgs.wireless-regdb ];
 
   # gpio
   users.groups.gpio = { };
