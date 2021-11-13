@@ -13,7 +13,7 @@ let
 
   # arbitrary - all that matters is that these don't conflict with each other or anything else
   clark-script-port = 56710; # if we change this we need to modify our Tasker config
-  droopy-port = 8001;
+  droopy-port = 80;
 
   file-server-dir = home + "/serve";
 in
