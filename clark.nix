@@ -127,7 +127,7 @@ in
       script = ''
         ${home}/clark \
           --button-debounce 1 \
-          --button-pin 5 \
+          --button-pin 27 \
           --light-name Ceiling \
           --lifx-timeout 5 \
           --receive-port ${builtins.toString clark-script-port} \
