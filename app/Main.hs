@@ -6,7 +6,7 @@ import Control.Exception
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Loops
-import qualified Data.ByteString.Char8 as BS
+import qualified Data.ByteString.Char8 as BSC
 import Data.Text ()
 import Data.Time
 import Data.Word
@@ -49,7 +49,7 @@ main = do
             bind sock $ SockAddrInet (fromIntegral optReceivePort) 0
             forever do
                 bs <- recv sock 1
-                withSGR' Blue $ BS.putStrLn $ "Received UDP message: " <> bs
+                withSGR' Blue $ BSC.putStrLn $ "Received UDP message: " <> bs
                 putMVar mvar ToggleLight
 
     let listenForButton = do
