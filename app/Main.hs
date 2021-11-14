@@ -105,4 +105,4 @@ withSGR' x = liftIO . withSGR [SetColor Foreground Vivid x, SetConsoleIntensity 
 
 -- | Run the action. If it fails then just print the error and go again.
 runLifxUntilSuccess :: Int -> Lifx a -> IO a
-runLifxUntilSuccess t x = either (\e -> print e >> runLifxUntilSuccess t x) pure =<< runLifxT t x
+runLifxUntilSuccess t x = either (\e -> print e >> threadDelay t >> runLifxUntilSuccess t x) pure =<< runLifxT t x
