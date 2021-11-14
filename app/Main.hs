@@ -6,6 +6,8 @@ import Control.Exception
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Loops
+import Data.ByteString (ByteString)
+import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BSC
 import Data.Text ()
 import Data.Time
@@ -17,6 +19,7 @@ import Options.Generic
 import System.Console.ANSI
 import System.IO
 import System.Process.Extra
+import Text.Pretty.Simple (pPrint)
 
 --TODO rename fields when we have OverloadedRecordDot (GHC 9.2), and thus simplify the `ParseRecord` instance
 data Opts = Opts
@@ -36,6 +39,7 @@ instance ParseRecord Opts where
 
 data Action
     = ToggleLight
+    deriving (Show)
 
 main :: IO ()
 main = do
@@ -50,7 +54,9 @@ main = do
             forever do
                 bs <- recv sock 1
                 withSGR' Blue $ BSC.putStrLn $ "Received UDP message: " <> bs
-                putMVar mvar ToggleLight
+                let action = decodeAction bs
+                pPrint action --TODO better logging
+                maybe mempty (putMVar mvar) $ decodeAction bs
 
     let listenForButton = do
             putStrLn "Starting gpiomon process..."
@@ -79,6 +85,11 @@ main = do
             -- https://gitlab.haskell.org/ghc/ghc/-/issues/20673
             takeMVar mvar >>= \case
                 ToggleLight -> runLifxUntilSuccess (lifxTime optLifxTimeout) $ toggleLight light
+
+decodeAction :: ByteString -> Maybe Action
+decodeAction bs = case BS.unpack bs of
+    [1] -> Just ToggleLight
+    _ -> Nothing
 
 toggleLight :: MonadLifx m => Device -> m ()
 toggleLight light = sendMessage light . SetPower . not . statePowerToBool =<< sendMessage light GetPower
