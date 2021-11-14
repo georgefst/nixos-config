@@ -73,10 +73,12 @@ main = do
                     putStrLn line
                     pure t1
 
-    listenOnNetwork `concurrently_` listenForButton `concurrently_` runLifxUntilSuccess (lifxTime optLifxTimeout) do
+    listenOnNetwork `concurrently_` listenForButton `concurrently_` do
         forever do
-            liftIO (takeMVar mvar) >>= \case
-                ToggleLight -> toggleLight light
+            --TODO we should shift `runLifx` a level up to avoid recreating the context, but we hit a GHC bug:
+            -- https://gitlab.haskell.org/ghc/ghc/-/issues/20673
+            takeMVar mvar >>= \case
+                ToggleLight -> runLifxUntilSuccess (lifxTime optLifxTimeout) $ toggleLight light
 
 toggleLight :: MonadLifx m => Device -> m ()
 toggleLight light = sendMessage light . SetPower . not . statePowerToBool =<< sendMessage light GetPower
