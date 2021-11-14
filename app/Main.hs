@@ -7,9 +7,7 @@ import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Loops
 import qualified Data.ByteString.Char8 as BS
-import Data.List
 import Data.Text ()
-import Data.Text.Encoding
 import Data.Time
 import Data.Word
 import Lifx.Lan hiding (SetColor)
@@ -19,7 +17,6 @@ import Options.Generic
 import System.Console.ANSI
 import System.IO
 import System.Process.Extra
-import Text.Pretty.Simple hiding (Blue, Color, Green, Red, Vivid)
 
 --TODO rename fields when we have OverloadedRecordDot (GHC 9.2), and thus simplify the `ParseRecord` instance
 data Opts = Opts
@@ -44,6 +41,8 @@ main :: IO ()
 main = do
     Opts{..} <- getRecord "Clark"
     mvar <- newEmptyMVar
+    --TODO avoid hardcoding - discovery doesn't currently work on Clark (known GHC 9.2.1 code aarch64 code gen bug?)
+    let light = deviceFromAddress (192, 168, 1, 190)
 
     let listenOnNetwork = do
             sock <- socket AF_INET Datagram defaultProtocol
@@ -75,15 +74,9 @@ main = do
                     pure t1
 
     listenOnNetwork `concurrently_` listenForButton `concurrently_` runLifxUntilSuccess (lifxTime optLifxTimeout) do
-        devs <- discoverDevices Nothing
-        devStates <- traverse (\d -> (d,) <$> sendMessage d GetColor) devs
-        case find ((== encodeUtf8 optLightName) . label . snd) devStates of
-            Nothing -> do
-                liftIO $ putStrLn "Couldn't find ceiling light, only:"
-                pPrintOpt CheckColorTty defaultOutputOptionsDarkBg{outputOptionsInitialIndent = 4} devStates
-            Just (light, _) -> forever do
-                liftIO (takeMVar mvar) >>= \case
-                    ToggleLight -> toggleLight light
+        forever do
+            liftIO (takeMVar mvar) >>= \case
+                ToggleLight -> toggleLight light
 
 toggleLight :: MonadLifx m => Device -> m ()
 toggleLight light = sendMessage light . SetPower . not . statePowerToBool =<< sendMessage light GetPower
