@@ -5,8 +5,8 @@
 let
   secrets = import ./secrets.nix;
 
-  # some of the places I'm using this are running as root
-  home = "/home/gthomas";
+  user = "gthomas"; #TODO how to use as key?
+  home = "/home/" + "gthomas"; # some of the places I'm using this are running as root
 
   # useful for systemd `wanted-by` field, to make services always on
   startup = [ "multi-user.target" ];
@@ -148,6 +148,55 @@ in
       description = "droopy file server";
       path = [ pkgs.droopy ];
       wantedBy = startup;
+    };
+  };
+
+  #TODO Sync/.stfolder still gets created - is there a setting for that?
+  services.syncthing = {
+    enable = true;
+    dataDir = home + "/syncthing-data"; #TODO is this good? maybe .local better
+    openDefaultPorts = true;
+    # configDir = home + "/.local/share/syncthing"; #TODO is this good? EDIT: default seems reasonable
+    user = user;
+    group = "users";
+    guiAddress = "0.0.0.0:8384"; #TODO port in variable - also, can we even access this anyway?
+    declarative = {
+      overrideDevices = true;
+      overrideFolders = true;
+      devices = {
+        #TODO quotes?
+        "church" = {
+          id = "QALHCRG-IIRSAMT-6RL3C6O-O3IECOT-GOF6FIK-7OH7XMI-JU3IBDZ-NGHQVQK";
+          introducer = true; #TODO does this mean we don't need to configure any others?
+        };
+      };
+      folders = {
+        "default" = {
+          path = home + "/syncthing/default";
+          label = "Default";
+          devices = [ "church" ]; #TODO full list in three places? can extract to variable, but what about introducers?
+          versioning = {
+            #TODO this sounds extremely useful, but I need to look in to it
+            type = "staggered";
+            params = {
+              cleanInterval = "3600";
+              maxAge = "15768000";
+            };
+          };
+        };
+        "fp3_4j86-photos" = {
+          path = home + "/syncthing/camera";
+          label = "Android Camera";
+          devices = [ "church" ];
+          versioning = {
+            #TODO
+            type = "simple";
+            params = {
+              keep = "10";
+            };
+          };
+        };
+      };
     };
   };
 
