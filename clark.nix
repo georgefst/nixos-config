@@ -158,4 +158,34 @@ in
   networking.firewall.allowedTCPPorts = [
     droopy-port
   ];
+
+  # syncthing
+  services.syncthing = {
+    enable = true;
+    openDefaultPorts = true;
+    user = "gthomas";
+    group = "users";
+    dataDir = home;
+    declarative = {
+      devices = {
+        # Billy will introduce us to all others, so there's no need to list them here
+        billy = {
+          id = "SNTZHCK-IRIPPLQ-4QHR7T6-PCTRUZ3-TVGFDJS-RJOE5VP-GJQI43B-TFQ7GQM";
+          introducer = true;
+        };
+      };
+      folders = {
+        default = {
+          path = home + "/sync";
+          label = "Default";
+          devices = [ "billy" ];
+        };
+        fp3_4j86-photos = {
+          path = home + "/camera-sync";
+          label = "Android Camera";
+          devices = [ "billy" ];
+        };
+      };
+    };
+  };
 }
