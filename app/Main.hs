@@ -45,7 +45,7 @@ main :: IO ()
 main = do
     Opts{..} <- getRecord "Clark"
     mvar <- newEmptyMVar
-    --TODO avoid hardcoding - discovery doesn't currently work on Clark (known GHC 9.2.1 code aarch64 code gen bug?)
+    --TODO avoid hardcoding - discovery doesn't currently work on Clark (known GHC 9.2.1 aarch64 code gen bug?)
     let light = deviceFromAddress (192, 168, 1, 190)
 
     let listenOnNetwork = do
