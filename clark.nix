@@ -128,6 +128,8 @@ in
         ${home}/clark \
           --button-debounce 1 \
           --button-pin 27 \
+          --led-pins 4 \
+          --led-pins 14 \
           --light-name Ceiling \
           --lifx-timeout 5 \
           --receive-port ${builtins.toString clark-script-port} \
