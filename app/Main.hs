@@ -9,7 +9,6 @@ import Control.Monad.Loops
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BSC
-import Data.Foldable
 import Data.Text ()
 import Data.Time
 import Data.Word
@@ -46,7 +45,7 @@ data Action
 main :: IO ()
 main = do
     Opts{..} <- getRecord "Clark"
-    for_ optLedPins \n -> callProcess "gpioset" ["gpiochip0", show n <> "=0"] -- ensure all LEDs are off to begin with
+    callProcess "gpioset" $ "gpiochip0" : map ((<> "=0") . show) optLedPins -- ensure all LEDs are off to begin with
     mvar <- newEmptyMVar
     --TODO avoid hardcoding - discovery doesn't currently work on Clark (known GHC 9.2.1 aarch64 code gen bug?)
     let light = deviceFromAddress (192, 168, 1, 190)
