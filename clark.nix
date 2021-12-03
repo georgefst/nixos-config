@@ -14,6 +14,7 @@ let
   # arbitrary - all that matters is that these don't conflict with each other or anything else
   clark-script-port = 56710; # if we change this we need to modify our Tasker config
   droopy-port = 80;
+  extra-ports = [ 56720 ]; # for temporary scripts etc.
 
   file-server-dir = home + "/serve";
 in
@@ -156,10 +157,10 @@ in
   # open ports
   networking.firewall.allowedUDPPorts = [
     clark-script-port
-  ];
+  ] ++ extra-ports;
   networking.firewall.allowedTCPPorts = [
     droopy-port
-  ];
+  ] ++ extra-ports;
 
   # syncthing
   services.syncthing = {
