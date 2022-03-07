@@ -81,12 +81,10 @@ main = do
                     putStrLn line
                     pure t1
 
-    listenOnNetwork `concurrently_` listenForButton `concurrently_` do
-        forever do
-            --TODO we should shift `runLifx` a level up to avoid recreating the context, but we hit a GHC bug:
-            -- https://gitlab.haskell.org/ghc/ghc/-/issues/20673
-            takeMVar mvar >>= \case
-                ToggleLight -> runLifxUntilSuccess (lifxTime optLifxTimeout) $ toggleLight light
+    listenOnNetwork `concurrently_` listenForButton `concurrently_` runLifxUntilSuccess (lifxTime optLifxTimeout) do
+        forever $
+            liftIO (takeMVar mvar) >>= \case
+                ToggleLight -> toggleLight light
 
 decodeAction :: ByteString -> Maybe Action
 decodeAction bs = case BS.unpack bs of
