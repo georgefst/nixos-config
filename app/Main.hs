@@ -21,21 +21,20 @@ import System.IO
 import System.Process.Extra
 import Text.Pretty.Simple (pPrint)
 
---TODO rename fields when we have OverloadedRecordDot (GHC 9.2), and thus simplify the `ParseRecord` instance
 data Opts = Opts
-    { optButtonDebounce :: Double
-    , optButtonPin :: Int
-    , optLedPins :: [Int]
-    , optLightName :: Text
-    , optLifxTimeout :: Double
-    , optReceivePort :: Word16
+    { buttonDebounce :: Double
+    , buttonPin :: Int
+    , ledPins :: [Int]
+    , lightName :: Text
+    , lifxTimeout :: Double
+    , receivePort :: Word16
     }
     deriving (Show, Generic)
 instance ParseRecord Opts where
     parseRecord =
         parseRecordWithModifiers
             defaultModifiers
-                { fieldNameModifier = fieldNameModifier lispCaseModifiers . drop (length @[] "opt")
+                { fieldNameModifier = fieldNameModifier lispCaseModifiers
                 }
 
 data Action
@@ -44,15 +43,15 @@ data Action
 
 main :: IO ()
 main = do
-    Opts{..} <- getRecord "Clark"
-    callProcess "gpioset" $ "gpiochip0" : map ((<> "=0") . show) optLedPins -- ensure all LEDs are off to begin with
+    (opts :: Opts) <- getRecord "Clark"
+    callProcess "gpioset" $ "gpiochip0" : map ((<> "=0") . show) opts.ledPins -- ensure all LEDs are off to begin with
     mvar <- newEmptyMVar
     --TODO avoid hardcoding - discovery doesn't currently work on Clark (firewall?)
     let light = deviceFromAddress (192, 168, 1, 190)
 
     let listenOnNetwork = do
             sock <- socket AF_INET Datagram defaultProtocol
-            bind sock $ SockAddrInet (fromIntegral optReceivePort) 0
+            bind sock $ SockAddrInet (fromIntegral opts.receivePort) 0
             forever do
                 bs <- recv sock 1
                 withSGR' Blue $ BSC.putStrLn $ "Received UDP message: " <> bs
@@ -64,7 +63,7 @@ main = do
             putStrLn "Starting gpiomon process..."
             hs@(_, Just gpiomonStdout, _, _) <-
                 createProcess
-                    (proc "gpiomon" ["-b", "-f", "gpiochip0", show optButtonPin])
+                    (proc "gpiomon" ["-b", "-f", "gpiochip0", show opts.buttonPin])
                         { std_out = CreatePipe
                         }
             putStrLn "Done!"
@@ -73,7 +72,7 @@ main = do
                 getCurrentTime >>= iterateM_ \t0 -> do
                     line <- hGetLine gpiomonStdout
                     t1 <- getCurrentTime
-                    if diffUTCTime t1 t0 < realToFrac optButtonDebounce
+                    if diffUTCTime t1 t0 < realToFrac opts.buttonDebounce
                         then withSGR' Red $ putStr "Ignoring: "
                         else do
                             withSGR' Green $ putStr "Ok: "
@@ -81,7 +80,7 @@ main = do
                     putStrLn line
                     pure t1
 
-    listenOnNetwork `concurrently_` listenForButton `concurrently_` runLifxUntilSuccess (lifxTime optLifxTimeout) do
+    listenOnNetwork `concurrently_` listenForButton `concurrently_` runLifxUntilSuccess (lifxTime opts.lifxTimeout) do
         forever $
             liftIO (takeMVar mvar) >>= \case
                 ToggleLight -> toggleLight light
