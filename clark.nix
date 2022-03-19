@@ -114,12 +114,12 @@ in
   networking.wireless.networks = secrets.wifi;
 
   # global installs
-  environment.systemPackages = [
-    pkgs.autoPatchelfHook
-    pkgs.file
-    pkgs.git
-    pkgs.libgpiod
-    pkgs.tree
+  environment.systemPackages = with pkgs; [
+    autoPatchelfHook
+    file
+    git
+    libgpiod
+    tree
   ];
 
   # systemd
