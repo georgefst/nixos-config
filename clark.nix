@@ -119,6 +119,7 @@ in
     file
     git
     libgpiod
+    mailutils
     tree
   ];
 
@@ -161,6 +162,9 @@ in
   networking.firewall.allowedTCPPorts = [
     droopy-port
   ] ++ extra-ports;
+
+  # mail server
+  services.postfix.enable = true; # use e.g. `echo body | mail -s subject georgefsthomas@gmail.com` (may go to spam)
 
   # syncthing
   services.syncthing = {
