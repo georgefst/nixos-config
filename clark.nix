@@ -153,6 +153,25 @@ in
       path = [ pkgs.droopy ];
       wantedBy = startup;
     };
+    #TODO this is useless as we need to run webdriver concurrently
+    # chromium has a dependency marked broken: https://github.com/NixOS/nixpkgs/pull/136629
+    # this at least demonstrates that we can send email
+    tennis-scraper = {
+      script = ''
+        mkdir -p /tmp/scripts
+        echo 'echo "$2" | mail georgefsthomas@gmail.com -s "$1"' > /tmp/scripts/tennis-scraper-notify.sh
+        chmod +x /tmp/scripts/tennis-scraper-notify.sh
+        ${home}/tennis-scraper \
+          --username georgefst \
+          --password ${secrets.passwords.lta} \
+          --timeout 10 \
+          --dhall ~/sync/config/tennis-scraper.dhall \
+          --notify tennis-scraper-notify.sh \
+      '';
+      description = "tennis scraper";
+      path = [ pkgs.mailutils ];
+      wantedBy = startup;
+    };
   };
 
   # open ports
