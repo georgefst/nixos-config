@@ -164,6 +164,7 @@ in
           --timeout 10 \
           --dhall ${home}/sync/config/tennis-scraper.dhall \
           --notify ${pkgs.writeShellScript "notify" ''echo "$2" | mail georgefsthomas@gmail.com -s "$1"''} \
+          --headless \
       '';
       description = "tennis scraper";
       path = [ pkgs.mailutils ];
