@@ -153,22 +153,25 @@ in
       path = [ pkgs.droopy ];
       wantedBy = startup;
     };
-    #TODO this is useless as we need to run webdriver concurrently
-    # chromium has a dependency marked broken: https://github.com/NixOS/nixpkgs/pull/136629
-    # this at least demonstrates that we can send email
     tennis-scraper = {
       script = ''
         ${home}/tennis-scraper \
           --username georgefst \
           --password ${secrets.passwords.lta} \
-          --timeout 10 \
           --dhall ${home}/sync/config/tennis-scraper.dhall \
           --notify ${pkgs.writeShellScript "notify" ''echo "$2" | mail georgefsthomas@gmail.com -s "$1"''} \
           --headless \
+          --wait-multiplier 3 \
       '';
       description = "tennis scraper";
       path = [ pkgs.mailutils ];
+      wants = [ "geckodriver" ];
       wantedBy = startup;
+    };
+    geckodriver = {
+      script = "geckodriver";
+      description = "firefox webdriver interface";
+      path = [ pkgs.geckodriver pkgs.firefox ];
     };
   };
 
