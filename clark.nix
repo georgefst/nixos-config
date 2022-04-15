@@ -157,12 +157,6 @@ in
     # chromium has a dependency marked broken: https://github.com/NixOS/nixpkgs/pull/136629
     # this at least demonstrates that we can send email
     tennis-scraper = {
-      #TODO for some reason, we can't just add to `path` and say `--notify notify`
-      # `PATH` only has `/nix/store/...-notify.sh/bin`, which doesn't even exist
-      # this _seems_ like a bug, but it may be me misunderstanding something about Nix
-      #TODO is there a better way of doing "higher-order bash scripts"?
-      # the only reason I need a script here is basically to swap around args (unnecessary with e.g. `notify-send`)
-      # at least Nix helps us keep this fairly neat
       script = ''
         ${home}/tennis-scraper \
           --username georgefst \
