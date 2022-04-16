@@ -165,13 +165,13 @@ in
       '';
       description = "tennis scraper";
       path = [ pkgs.mailutils ];
-      wants = [ "geckodriver" ];
       wantedBy = startup;
     };
     geckodriver = {
       script = "geckodriver";
       description = "firefox webdriver interface";
       path = [ pkgs.geckodriver pkgs.firefox ];
+      wantedBy = startup;
     };
   };
 
