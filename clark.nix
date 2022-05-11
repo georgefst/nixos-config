@@ -173,6 +173,18 @@ in
       path = [ pkgs.geckodriver pkgs.firefox ];
       wantedBy = startup;
     };
+    email-check = {
+      script = ''
+        while true
+        do
+          date | mail georgefsthomas@gmail.com -s 'Clark email test'
+          sleep $((24 * 3600))
+        done
+      '';
+      description = "email check";
+      path = [ pkgs.mailutils ];
+      wantedBy = startup;
+    };
   };
 
   # open ports
