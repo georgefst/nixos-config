@@ -172,6 +172,7 @@ in
           --wait-multiplier 3 \
       '';
       description = "tennis scraper";
+      path = [ pkgs.curl ];
       wantedBy = startup;
     };
     geckodriver = {
