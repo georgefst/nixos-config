@@ -119,7 +119,6 @@ in
     file
     git
     libgpiod
-    mailutils
     tree
   ];
 
@@ -159,30 +158,26 @@ in
           --username georgefst \
           --password ${secrets.passwords.lta} \
           --dhall ${home}/sync/config/tennis-scraper.dhall \
-          --notify ${pkgs.writeShellScript "notify" ''echo "$2" | mail georgefsthomas@gmail.com -s "$1"''} \
+          --notify ${
+            pkgs.writeShellScript "notify" ''
+              curl -s --user 'api:${secrets.mailgun.key}' \
+              	https://api.mailgun.net/v3/sandbox${secrets.mailgun.sandbox}.mailgun.org/messages \
+              	-F from='Mailgun Sandbox <postmaster@sandbox${secrets.mailgun.sandbox}.mailgun.org>' \
+              	-F to='George Thomas <georgefsthomas@gmail.com>' \
+              	-F subject="$1" \
+              	-F text="$2" \
+            ''
+          } \
           --headless \
           --wait-multiplier 3 \
       '';
       description = "tennis scraper";
-      path = [ pkgs.mailutils ];
       wantedBy = startup;
     };
     geckodriver = {
       script = "geckodriver";
       description = "firefox webdriver interface";
       path = [ pkgs.geckodriver pkgs.firefox ];
-      wantedBy = startup;
-    };
-    email-check = {
-      script = ''
-        while true
-        do
-          date | mail georgefsthomas@gmail.com -s 'Clark email test'
-          sleep $((24 * 3600))
-        done
-      '';
-      description = "email check";
-      path = [ pkgs.mailutils ];
       wantedBy = startup;
     };
   };
@@ -194,9 +189,6 @@ in
   networking.firewall.allowedTCPPorts = [
     droopy-port
   ] ++ extra-ports;
-
-  # mail server
-  services.postfix.enable = true; # use e.g. `echo body | mail -s subject georgefsthomas@gmail.com` (may go to spam)
 
   # syncthing
   services.syncthing = {
