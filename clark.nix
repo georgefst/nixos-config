@@ -17,6 +17,8 @@ let
   extra-ports = [ 56720 ]; # for temporary scripts etc.
 
   file-server-dir = home + "/serve";
+  syncthing-main-dir = home + "/sync";
+  syncthing-camera-dir = home + "/camera-sync";
 in
 {
   imports =
@@ -208,12 +210,12 @@ in
       };
       folders = {
         default = {
-          path = home + "/sync";
+          path = syncthing-main-dir;
           label = "Default";
           devices = [ "billy" ];
         };
         fp3_4j86-photos = {
-          path = home + "/camera-sync";
+          path = syncthing-camera-dir;
           label = "Android Camera";
           devices = [ "billy" ];
         };
