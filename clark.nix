@@ -168,6 +168,7 @@ in
               	-F to='George Thomas <georgefsthomas@gmail.com>' \
               	-F subject="$1" \
               	-F text="$2" \
+              || sed -i "1iClark tennis scraper failed to send email: $(date)" ${syncthing-main-dir}/notes/todo.md
             ''
           } \
           --headless \
