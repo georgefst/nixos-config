@@ -125,7 +125,7 @@ in
   ];
 
   # systemd
-  systemd.user.services = {
+  systemd.services = {
     clark = {
       script = ''
         ${home}/clark \
@@ -141,6 +141,19 @@ in
       path = [ pkgs.libgpiod ]; #TODO remove once we've ported to a proper GPIO library, instead of process wrapping
       wantedBy = startup;
     };
+    droopy = {
+      script = ''
+        mkdir -p ${file-server-dir}
+        HOME=${home} droopy \
+          --dl \
+          -m 'Upload/download files' \
+          -d ${file-server-dir} \
+          ${builtins.toString droopy-port} \
+      '';
+      description = "droopy file server";
+      path = [ pkgs.droopy ];
+      wantedBy = startup;
+    };
     tennis-scraper = {
       script = ''
         ${home}/tennis-scraper \
@@ -150,11 +163,11 @@ in
           --notify ${
             pkgs.writeShellScript "notify" ''
               curl -s --user 'api:${secrets.mailgun.key}' \
-                https://api.mailgun.net/v3/sandbox${secrets.mailgun.sandbox}.mailgun.org/messages \
-                -F from='Mailgun Sandbox <postmaster@sandbox${secrets.mailgun.sandbox}.mailgun.org>' \
-                -F to='George Thomas <georgefsthomas@gmail.com>' \
-                -F subject="$1" \
-                -F text="$2" \
+              	https://api.mailgun.net/v3/sandbox${secrets.mailgun.sandbox}.mailgun.org/messages \
+              	-F from='Mailgun Sandbox <postmaster@sandbox${secrets.mailgun.sandbox}.mailgun.org>' \
+              	-F to='George Thomas <georgefsthomas@gmail.com>' \
+              	-F subject="$1" \
+              	-F text="$2" \
               || sed -i "1iClark tennis scraper failed to send email: $(date)" ${syncthing-main-dir}/notes/todo.md
             ''
           } \
@@ -169,22 +182,6 @@ in
       script = "geckodriver";
       description = "firefox webdriver interface";
       path = [ pkgs.geckodriver pkgs.firefox ];
-      wantedBy = startup;
-    };
-  };
-  # for whatever reason (e.g. binding to port 80), these need to be run as root
-  systemd.services = {
-    droopy = {
-      script = ''
-        mkdir -p ${file-server-dir}
-        HOME=${home} droopy \
-          --dl \
-          -m 'Upload/download files' \
-          -d ${file-server-dir} \
-          ${builtins.toString droopy-port} \
-      '';
-      description = "droopy file server";
-      path = [ pkgs.droopy ];
       wantedBy = startup;
     };
   };
