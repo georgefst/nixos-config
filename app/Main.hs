@@ -7,8 +7,8 @@ import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Loops
 import Data.ByteString (ByteString)
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Char8 as BSC
+import Data.ByteString qualified as BS
+import Data.ByteString.Char8 qualified as BSC
 import Data.Text ()
 import Data.Time
 import Data.Word
@@ -44,9 +44,10 @@ data Action
 main :: IO ()
 main = do
     (opts :: Opts) <- getRecord "Clark"
-    callProcess "gpioset" $ "gpiochip0" : map ((<> "=0") . show) opts.ledPins -- ensure all LEDs are off to begin with
+    -- ensure all LEDs are off to begin with
+    callProcess "gpioset" $ "gpiochip0" : map ((<> "=0") . show) opts.ledPins
     mvar <- newEmptyMVar
-    --TODO avoid hardcoding - discovery doesn't currently work on Clark (firewall?)
+    -- TODO avoid hardcoding - discovery doesn't currently work on Clark (firewall?)
     let light = deviceFromAddress (192, 168, 1, 190)
 
     let listenOnNetwork = do
@@ -56,7 +57,7 @@ main = do
                 bs <- recv sock 1
                 withSGR' Blue $ BSC.putStrLn $ "Received UDP message: " <> bs
                 let action = decodeAction bs
-                pPrint action --TODO better logging
+                pPrint action -- TODO better logging
                 maybe mempty (putMVar mvar) $ decodeAction bs
 
     let listenForButton = do
@@ -93,15 +94,15 @@ decodeAction bs = case BS.unpack bs of
 toggleLight :: MonadLifx m => Device -> m ()
 toggleLight light = sendMessage light . SetPower . not . statePowerToBool =<< sendMessage light GetPower
 
---TODO upstream?
+-- TODO upstream?
 statePowerToBool :: StatePower -> Bool
 statePowerToBool = (/= StatePower 0)
 
---TODO lifx-lan should probably use a time library type, rather than Int
+-- TODO lifx-lan should probably use a time library type, rather than Int
 lifxTime :: Double -> Int
 lifxTime = round . (* 1_000_000)
 
---TODO upstream? not the first time I've defined this
+-- TODO upstream? not the first time I've defined this
 withSGR :: [SGR] -> IO a -> IO a
 withSGR sgr x = do
     setSGR sgr
