@@ -58,7 +58,7 @@ main = do
                 withSGR' Blue $ BSC.putStrLn $ "Received UDP message: " <> bs
                 let action = decodeAction bs
                 pPrint action -- TODO better logging
-                maybe mempty (putMVar mvar) $ decodeAction bs
+                maybe mempty (putMVar mvar) action
 
     let listenForButton = do
             putStrLn "Starting gpiomon process..."
