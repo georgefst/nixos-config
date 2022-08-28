@@ -1,6 +1,6 @@
 module Main (main) where
 
---TODO this is in its own section due to a Fourmolu bug with reordering comments in import lists
+-- TODO this is in its own section due to a Fourmolu bug with reordering comments in import lists
 import Text.Pretty.Simple hiding (Color (..), Intensity (..)) -- TODO https://github.com/quchen/prettyprinter/issues/233
 
 import Control.Concurrent
@@ -81,7 +81,7 @@ main = do
             putStrLn "Starting gpiomon process..."
             hs@(_, Just gpiomonStdout, _, _) <-
                 createProcess
-                    (proc "gpiomon" ["-b", "-f", "gpiochip0", show opts.buttonPin])
+                    (proc "gpiomon" ["-b", "-f", gpioChip, show opts.buttonPin])
                         { std_out = CreatePipe
                         }
             putStrLn "Done!"
@@ -154,7 +154,9 @@ sendEmail handleError EmailOpts{..} =
 
 -- TODO get a proper Haskell GPIO library (hpio?) working with the modern interface
 setGpio :: MonadIO m => Bool -> [Int] -> m ()
-setGpio b xs = liftIO $ callProcess "gpioset" $ "gpiochip0" : map ((<> "=" <> show (fromEnum b)) . show) xs
+setGpio b xs = liftIO $ callProcess "gpioset" $ gpioChip : map ((<> "=" <> show (fromEnum b)) . show) xs
+gpioChip :: String
+gpioChip = "gpiochip0"
 
 -- TODO upstream?
 statePowerToBool :: StatePower -> Bool
