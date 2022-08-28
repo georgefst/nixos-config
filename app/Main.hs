@@ -8,6 +8,7 @@ import Control.Monad.IO.Class
 import Control.Monad.Loops
 import Data.Binary
 import Data.Binary.Get
+import Data.Bitraversable
 import Data.ByteString.Char8 qualified as BSC
 import Data.ByteString.Lazy qualified as BSL
 import Data.Either.Extra
@@ -99,8 +100,7 @@ decodeAction =
         getWord8 >>= \case
             1 -> pure ToggleLight
             2 -> do
-                subject <- decodeUtf8 <$> get
-                body <- decodeUtf8 <$> get
+                (subject, body) <- bisequence $ dupe $ decodeUtf8 <$> get
                 pure $ SendEmail{..}
             n -> fail $ "unknown action: " <> show n
 
