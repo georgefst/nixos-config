@@ -73,9 +73,7 @@ main = do
             forever do
                 bs <- recv sock 1
                 withSGR' Blue $ BSC.putStrLn $ "Received UDP message: " <> bs
-                let action = decodeAction $ BSL.fromStrict bs
-                pPrint action -- TODO better logging
-                maybe mempty (putMVar mvar) action
+                maybe mempty (putMVar mvar) $ decodeAction $ BSL.fromStrict bs
 
     let listenForButton = gpioMon opts.buttonDebounce opts.buttonPin $ putMVar mvar ToggleLight
 
@@ -85,8 +83,10 @@ main = do
             gpioSet True [opts.ledErrorPin]
 
     listenOnNetwork `concurrently_` listenForButton `concurrently_` runLifxUntilSuccess (lifxTime opts.lifxTimeout) do
-        forever $
-            liftIO (takeMVar mvar) >>= \case
+        forever do
+            action <- liftIO $ takeMVar mvar
+            pPrint action -- TODO better logging
+            case action of
                 ResetError -> gpioSet False [opts.ledErrorPin]
                 ToggleLight -> toggleLight light
                 SendEmail{subject, body} -> sendEmail handleError EmailOpts{..}
