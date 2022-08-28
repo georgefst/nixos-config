@@ -6,12 +6,14 @@ import Control.Exception
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Loops
-import Data.ByteString (ByteString)
-import Data.ByteString qualified as BS
+import Data.Binary
+import Data.Binary.Get
 import Data.ByteString.Char8 qualified as BSC
+import Data.ByteString.Lazy qualified as BSL
+import Data.Either.Extra
 import Data.Text ()
 import Data.Time
-import Data.Word
+import Data.Tuple.Extra
 import Lifx.Lan hiding (SetColor)
 import Network.Socket
 import Network.Socket.ByteString
@@ -56,7 +58,7 @@ main = do
             forever do
                 bs <- recv sock 1
                 withSGR' Blue $ BSC.putStrLn $ "Received UDP message: " <> bs
-                let action = decodeAction bs
+                let action = decodeAction $ BSL.fromStrict bs
                 pPrint action -- TODO better logging
                 maybe mempty (putMVar mvar) action
 
@@ -86,10 +88,12 @@ main = do
             liftIO (takeMVar mvar) >>= \case
                 ToggleLight -> toggleLight light
 
-decodeAction :: ByteString -> Maybe Action
-decodeAction bs = case BS.unpack bs of
-    [1] -> Just ToggleLight
-    _ -> Nothing
+decodeAction :: BSL.ByteString -> Maybe Action
+decodeAction =
+    fmap thd3 . eitherToMaybe . runGetOrFail do
+        getWord8 >>= \case
+            1 -> pure ToggleLight
+            n -> fail $ "unknown action: " <> show n
 
 toggleLight :: MonadLifx m => Device -> m ()
 toggleLight light = sendMessage light . SetPower . not . statePowerToBool =<< sendMessage light GetPower

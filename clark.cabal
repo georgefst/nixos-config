@@ -19,6 +19,7 @@ executable clark
         base >= 4.16,
         ansi-terminal >= 0.11,
         async >= 2.2.4,
+        binary >= 0.8.9,
         bytestring >= 0.10.12,
         extra >= 1.7.10,
         lifx-lan >= 0.5.0,
