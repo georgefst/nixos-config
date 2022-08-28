@@ -54,6 +54,8 @@ data Action
     | SendEmail {subject :: Text, body :: Text}
     deriving (Show)
 
+type HandleError = forall a. Show a => Text -> a -> IO ()
+
 main :: IO ()
 main = do
     (opts :: Opts) <- getRecord "Clark"
@@ -119,7 +121,7 @@ decodeAction =
 
 toggleLight :: MonadLifx m => Device -> m ()
 toggleLight light = sendMessage light . SetPower . not . statePowerToBool =<< sendMessage light GetPower
-sendEmail :: MonadIO m => (forall a. Show a => Text -> a -> IO ()) -> Opts -> Text -> Text -> m ()
+sendEmail :: MonadIO m => HandleError -> Opts -> Text -> Text -> m ()
 sendEmail handleError opts subject body =
     liftIO $
         void (postWith postOpts url formParams)
