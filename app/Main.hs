@@ -111,9 +111,9 @@ sendEmail opts subject body =
     liftIO
         . callProcess "curl"
         $ mconcat
-            [ ["-s", "--user"]
-            , ["api:" <> T.unpack opts.mailgunKey]
+            [ ["-s"]
             , ["https://api.mailgun.net/v3/sandbox" <> T.unpack opts.mailgunSandbox <> ".mailgun.org/messages"]
+            , ["--user", "api:" <> T.unpack opts.mailgunKey]
             , ["-F", "from=Mailgun Sandbox <postmaster@sandbox" <> T.unpack opts.mailgunSandbox <> ".mailgun.org>"]
             , ["-F", "to=George Thomas <georgefsthomas@gmail.com>"]
             , ["-F", "subject=" <> T.unpack subject]
