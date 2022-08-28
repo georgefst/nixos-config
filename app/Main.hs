@@ -77,26 +77,7 @@ main = do
                 pPrint action -- TODO better logging
                 maybe mempty (putMVar mvar) action
 
-    let listenForButton = do
-            putStrLn "Starting gpiomon process..."
-            hs@(_, Just gpiomonStdout, _, _) <-
-                createProcess
-                    (proc "gpiomon" ["-b", "-f", gpioChip, show opts.buttonPin])
-                        { std_out = CreatePipe
-                        }
-            putStrLn "Done!"
-
-            handle (\(e :: IOException) -> print e >> cleanupProcess hs) $
-                getCurrentTime >>= iterateM_ \t0 -> do
-                    line <- hGetLine gpiomonStdout
-                    t1 <- getCurrentTime
-                    if diffUTCTime t1 t0 < realToFrac opts.buttonDebounce
-                        then withSGR' Red $ putStr "Ignoring: "
-                        else do
-                            withSGR' Green $ putStr "Ok: "
-                            putMVar mvar ToggleLight
-                    putStrLn line
-                    pure t1
+    let listenForButton = gpioMon opts.buttonDebounce opts.buttonPin $ putMVar mvar ToggleLight
 
     let handleError title body = do
             T.putStrLn $ title <> ":"
@@ -155,6 +136,27 @@ sendEmail handleError EmailOpts{..} =
 -- TODO get a proper Haskell GPIO library (hpio?) working with the modern interface
 setGpio :: MonadIO m => Bool -> [Int] -> m ()
 setGpio b xs = liftIO $ callProcess "gpioset" $ gpioChip : map ((<> "=" <> show (fromEnum b)) . show) xs
+gpioMon :: Double -> Int -> IO () -> IO ()
+gpioMon debounce pin x = do
+    putStrLn "Starting gpiomon process..."
+    hs@(_, Just gpiomonStdout, _, _) <-
+        createProcess
+            (proc "gpiomon" ["-b", "-f", gpioChip, show pin])
+                { std_out = CreatePipe
+                }
+    putStrLn "Done!"
+
+    handle (\(e :: IOException) -> print e >> cleanupProcess hs) $
+        getCurrentTime >>= iterateM_ \t0 -> do
+            line <- hGetLine gpiomonStdout
+            t1 <- getCurrentTime
+            if diffUTCTime t1 t0 < realToFrac debounce
+                then withSGR' Red $ putStr "Ignoring: "
+                else do
+                    withSGR' Green $ putStr "Ok: "
+                    x
+            putStrLn line
+            pure t1
 gpioChip :: String
 gpioChip = "gpiochip0"
 
