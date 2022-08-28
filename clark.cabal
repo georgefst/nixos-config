@@ -11,6 +11,7 @@ executable clark
     default-extensions:
         BlockArguments
         LambdaCase
+        NoFieldSelectors
         NoMonomorphismRestriction
         OverloadedRecordDot
         OverloadedStrings

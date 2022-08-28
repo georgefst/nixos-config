@@ -11,7 +11,8 @@ import Data.Binary.Get
 import Data.ByteString.Char8 qualified as BSC
 import Data.ByteString.Lazy qualified as BSL
 import Data.Either.Extra
-import Data.Text ()
+import Data.Text qualified as T
+import Data.Text.Encoding
 import Data.Time
 import Data.Tuple.Extra
 import Lifx.Lan hiding (SetColor)
@@ -30,6 +31,8 @@ data Opts = Opts
     , lightName :: Text
     , lifxTimeout :: Double
     , receivePort :: Word16
+    , mailgunSandbox :: Text
+    , mailgunKey :: Text
     }
     deriving (Show, Generic)
 instance ParseRecord Opts where
@@ -41,6 +44,7 @@ instance ParseRecord Opts where
 
 data Action
     = ToggleLight
+    | SendEmail {subject :: Text, body :: Text}
     deriving (Show)
 
 main :: IO ()
@@ -87,16 +91,34 @@ main = do
         forever $
             liftIO (takeMVar mvar) >>= \case
                 ToggleLight -> toggleLight light
+                SendEmail{subject, body} -> sendEmail opts subject body
 
 decodeAction :: BSL.ByteString -> Maybe Action
 decodeAction =
     fmap thd3 . eitherToMaybe . runGetOrFail do
         getWord8 >>= \case
             1 -> pure ToggleLight
+            2 -> do
+                subject <- decodeUtf8 <$> get
+                body <- decodeUtf8 <$> get
+                pure $ SendEmail{..}
             n -> fail $ "unknown action: " <> show n
 
 toggleLight :: MonadLifx m => Device -> m ()
 toggleLight light = sendMessage light . SetPower . not . statePowerToBool =<< sendMessage light GetPower
+sendEmail :: MonadIO m => Opts -> Text -> Text -> m ()
+sendEmail opts subject body =
+    liftIO
+        . callProcess "curl"
+        $ mconcat
+            [ ["-s", "--user"]
+            , ["api:" <> T.unpack opts.mailgunKey]
+            , ["https://api.mailgun.net/v3/sandbox" <> T.unpack opts.mailgunSandbox <> ".mailgun.org/messages"]
+            , ["-F", "from=Mailgun Sandbox <postmaster@sandbox" <> T.unpack opts.mailgunSandbox <> ".mailgun.org>"]
+            , ["-F", "to=George Thomas <georgefsthomas@gmail.com>"]
+            , ["-F", "subject=" <> T.unpack subject]
+            , ["-F", "text=" <> T.unpack body]
+            ]
 
 -- TODO upstream?
 statePowerToBool :: StatePower -> Bool
