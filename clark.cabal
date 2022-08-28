@@ -10,6 +10,7 @@ executable clark
     main-is: Main.hs
     default-extensions:
         BlockArguments
+        DuplicateRecordFields
         LambdaCase
         NoFieldSelectors
         NoMonomorphismRestriction

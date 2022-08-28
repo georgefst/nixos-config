@@ -58,7 +58,7 @@ type HandleError = forall a. Show a => Text -> a -> IO ()
 
 main :: IO ()
 main = do
-    (opts :: Opts) <- getRecord "Clark"
+    opts@Opts{mailgunSandbox, mailgunKey} <- getRecord "Clark"
     -- ensure all LEDs are off to begin with
     callProcess "gpioset" $ "gpiochip0" : map ((<> "=0") . show) [opts.ledErrorPin, opts.ledOtherPin]
     mvar <- newEmptyMVar
@@ -106,7 +106,7 @@ main = do
             liftIO (takeMVar mvar) >>= \case
                 ResetError -> liftIO $ callProcess "gpioset" ["gpiochip0", show opts.ledErrorPin <> "=0"]
                 ToggleLight -> toggleLight light
-                SendEmail{subject, body} -> sendEmail handleError opts subject body
+                SendEmail{subject, body} -> sendEmail handleError EmailOpts{..}
 
 decodeAction :: BSL.ByteString -> Maybe Action
 decodeAction =
@@ -121,16 +121,22 @@ decodeAction =
 
 toggleLight :: MonadLifx m => Device -> m ()
 toggleLight light = sendMessage light . SetPower . not . statePowerToBool =<< sendMessage light GetPower
-sendEmail :: MonadIO m => HandleError -> Opts -> Text -> Text -> m ()
-sendEmail handleError opts subject body =
+data EmailOpts = EmailOpts
+    { mailgunKey :: Text
+    , mailgunSandbox :: Text
+    , subject :: Text
+    , body :: Text
+    }
+sendEmail :: MonadIO m => HandleError -> EmailOpts -> m ()
+sendEmail handleError EmailOpts{..} =
     liftIO $
         void (postWith postOpts url formParams)
             `catchHttpException` handleError "Failed to send email"
   where
-    postOpts = defaults & auth ?~ basicAuth "api" (encodeUtf8 opts.mailgunKey)
-    url = "https://api.milgun.net/v3/sandbox" <> T.unpack opts.mailgunSandbox <> ".mailgun.org/messages"
+    postOpts = defaults & auth ?~ basicAuth "api" (encodeUtf8 mailgunKey)
+    url = "https://api.milgun.net/v3/sandbox" <> T.unpack mailgunSandbox <> ".mailgun.org/messages"
     formParams =
-        [ "from" := "Mailgun Sandbox <postmaster@sandbox" <> opts.mailgunSandbox <> ".mailgun.org>"
+        [ "from" := "Mailgun Sandbox <postmaster@sandbox" <> mailgunSandbox <> ".mailgun.org>"
         , "to" := ("George Thomas <georgefsthomas@gmail.com>" :: Text)
         , "subject" := subject
         , "text" := body
