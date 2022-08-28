@@ -119,8 +119,11 @@ decodeAction =
                 pure $ SendEmail{..}
             n -> fail $ "unknown action: " <> show n
 
+{- Run action -}
+
 toggleLight :: MonadLifx m => Device -> m ()
 toggleLight light = sendMessage light . SetPower . not . statePowerToBool =<< sendMessage light GetPower
+
 data EmailOpts = EmailOpts
     { mailgunKey :: Text
     , mailgunSandbox :: Text
@@ -144,6 +147,8 @@ sendEmail handleError EmailOpts{..} =
     catchHttpException = catchJust \case
         HttpExceptionRequest _ e -> Just e
         InvalidUrlException _ _ -> Nothing
+
+{- Util -}
 
 -- TODO upstream?
 statePowerToBool :: StatePower -> Bool
