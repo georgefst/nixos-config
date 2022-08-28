@@ -94,12 +94,17 @@ main = do
                     putStrLn line
                     pure t1
 
+    let handleError title body = do
+            T.putStrLn $ title <> ":"
+            pPrintOpt CheckColorTty defaultOutputOptionsDarkBg{outputOptionsInitialIndent = 4} body
+            callProcess "gpioset" ["gpiochip0", show opts.ledErrorPin <> "=1"]
+
     listenOnNetwork `concurrently_` listenForButton `concurrently_` runLifxUntilSuccess (lifxTime opts.lifxTimeout) do
         forever $
             liftIO (takeMVar mvar) >>= \case
                 ResetError -> liftIO $ callProcess "gpioset" ["gpiochip0", show opts.ledErrorPin <> "=0"]
                 ToggleLight -> toggleLight light
-                SendEmail{subject, body} -> sendEmail opts subject body
+                SendEmail{subject, body} -> sendEmail handleError opts subject body
 
 decodeAction :: BSL.ByteString -> Maybe Action
 decodeAction =
@@ -112,19 +117,13 @@ decodeAction =
                 pure $ SendEmail{..}
             n -> fail $ "unknown action: " <> show n
 
-handleError :: Show a => Int -> Text -> a -> IO ()
-handleError ledErrorPin t x = do
-    T.putStrLn $ t <> ":"
-    pPrintOpt CheckColorTty defaultOutputOptionsDarkBg{outputOptionsInitialIndent = 4} x
-    callProcess "gpioset" ["gpiochip0", show ledErrorPin <> "=1"]
-
 toggleLight :: MonadLifx m => Device -> m ()
 toggleLight light = sendMessage light . SetPower . not . statePowerToBool =<< sendMessage light GetPower
-sendEmail :: MonadIO m => Opts -> Text -> Text -> m ()
-sendEmail opts subject body =
+sendEmail :: MonadIO m => (forall a. Show a => Text -> a -> IO ()) -> Opts -> Text -> Text -> m ()
+sendEmail handleError opts subject body =
     liftIO $
         void (postWith postOpts url formParams)
-            `catchHttpException` handleError opts.ledErrorPin "Failed to send email"
+            `catchHttpException` handleError "Failed to send email"
   where
     postOpts = defaults & auth ?~ basicAuth "api" (encodeUtf8 opts.mailgunKey)
     url = "https://api.milgun.net/v3/sandbox" <> T.unpack opts.mailgunSandbox <> ".mailgun.org/messages"
