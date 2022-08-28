@@ -23,6 +23,8 @@ executable clark
         binary >= 0.8.9,
         bytestring >= 0.10.12,
         extra >= 1.7.10,
+        http-client >= 0.7.13,
+        lens >= 5.2,
         lifx-lan >= 0.5.0,
         monad-loops >= 0.4.3,
         network >= 3.1.2,
@@ -31,6 +33,7 @@ executable clark
         process >= 1.6.13,
         text >= 1.2.4,
         time >= 1.9.3,
+        wreq >= 0.5.3,
     hs-source-dirs: app
     default-language: GHC2021
     ghc-options:

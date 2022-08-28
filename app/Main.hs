@@ -3,6 +3,7 @@ module Main (main) where
 import Control.Concurrent
 import Control.Concurrent.Async
 import Control.Exception
+import Control.Lens
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Loops
@@ -14,16 +15,19 @@ import Data.ByteString.Lazy qualified as BSL
 import Data.Either.Extra
 import Data.Text qualified as T
 import Data.Text.Encoding
+import Data.Text.IO qualified as T
 import Data.Time
 import Data.Tuple.Extra
 import Lifx.Lan hiding (SetColor)
+import Network.HTTP.Client
 import Network.Socket
 import Network.Socket.ByteString
+import Network.Wreq
 import Options.Generic
 import System.Console.ANSI
 import System.IO
 import System.Process.Extra
-import Text.Pretty.Simple (pPrint)
+import Text.Pretty.Simple hiding (Color (..), Intensity (..)) -- TODO https://github.com/quchen/prettyprinter/issues/233
 
 data Opts = Opts
     { buttonDebounce :: Double
@@ -100,7 +104,7 @@ decodeAction =
         getWord8 >>= \case
             1 -> pure ToggleLight
             2 -> do
-                (subject, body) <- bisequence $ dupe $ decodeUtf8 <$> get
+                (subject, body) <- bisequence $ dupe $ decodeUtf8 <$> Data.Binary.get
                 pure $ SendEmail{..}
             n -> fail $ "unknown action: " <> show n
 
@@ -108,17 +112,22 @@ toggleLight :: MonadLifx m => Device -> m ()
 toggleLight light = sendMessage light . SetPower . not . statePowerToBool =<< sendMessage light GetPower
 sendEmail :: MonadIO m => Opts -> Text -> Text -> m ()
 sendEmail opts subject body =
-    liftIO
-        . callProcess "curl"
-        $ mconcat
-            [ ["-s"]
-            , ["https://api.mailgun.net/v3/sandbox" <> T.unpack opts.mailgunSandbox <> ".mailgun.org/messages"]
-            , ["--user", "api:" <> T.unpack opts.mailgunKey]
-            , ["-F", "from=Mailgun Sandbox <postmaster@sandbox" <> T.unpack opts.mailgunSandbox <> ".mailgun.org>"]
-            , ["-F", "to=George Thomas <georgefsthomas@gmail.com>"]
-            , ["-F", "subject=" <> T.unpack subject]
-            , ["-F", "text=" <> T.unpack body]
-            ]
+    liftIO $
+        void (postWith postOpts url formParams) `catchHttpException` \e -> do
+            T.putStrLn "Failed to send email:"
+            pPrintOpt CheckColorTty defaultOutputOptionsDarkBg{outputOptionsInitialIndent = 4} e
+  where
+    postOpts = defaults & auth ?~ basicAuth "api" (encodeUtf8 opts.mailgunKey)
+    url = "https://api.milgun.net/v3/sandbox" <> T.unpack opts.mailgunSandbox <> ".mailgun.org/messages"
+    formParams =
+        [ "from" := "Mailgun Sandbox <postmaster@sandbox" <> opts.mailgunSandbox <> ".mailgun.org>"
+        , "to" := ("George Thomas <georgefsthomas@gmail.com>" :: Text)
+        , "subject" := subject
+        , "text" := body
+        ]
+    catchHttpException = catchJust \case
+        HttpExceptionRequest _ e -> Just e
+        InvalidUrlException _ _ -> Nothing
 
 -- TODO upstream?
 statePowerToBool :: StatePower -> Bool
