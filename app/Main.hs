@@ -1,5 +1,8 @@
 module Main (main) where
 
+--TODO this is in its own section due to a Fourmolu bug with reordering comments in import lists
+import Text.Pretty.Simple hiding (Color (..), Intensity (..)) -- TODO https://github.com/quchen/prettyprinter/issues/233
+
 import Control.Concurrent
 import Control.Concurrent.Async
 import Control.Exception
@@ -27,7 +30,6 @@ import Options.Generic
 import System.Console.ANSI
 import System.IO
 import System.Process.Extra
-import Text.Pretty.Simple hiding (Color (..), Intensity (..)) -- TODO https://github.com/quchen/prettyprinter/issues/233
 
 data Opts = Opts
     { buttonDebounce :: Double
