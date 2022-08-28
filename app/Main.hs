@@ -49,7 +49,8 @@ instance ParseRecord Opts where
                 }
 
 data Action
-    = ToggleLight
+    = ResetError
+    | ToggleLight
     | SendEmail {subject :: Text, body :: Text}
     deriving (Show)
 
@@ -96,6 +97,7 @@ main = do
     listenOnNetwork `concurrently_` listenForButton `concurrently_` runLifxUntilSuccess (lifxTime opts.lifxTimeout) do
         forever $
             liftIO (takeMVar mvar) >>= \case
+                ResetError -> liftIO $ callProcess "gpioset" ["gpiochip0", show opts.ledErrorPin <> "=0"]
                 ToggleLight -> toggleLight light
                 SendEmail{subject, body} -> sendEmail opts subject body
 
@@ -103,6 +105,7 @@ decodeAction :: BSL.ByteString -> Maybe Action
 decodeAction =
     fmap thd3 . eitherToMaybe . runGetOrFail do
         getWord8 >>= \case
+            0 -> pure ResetError
             1 -> pure ToggleLight
             2 -> do
                 (subject, body) <- bisequence $ dupe $ decodeUtf8 <$> Data.Binary.get
