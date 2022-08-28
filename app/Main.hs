@@ -32,7 +32,8 @@ import Text.Pretty.Simple hiding (Color (..), Intensity (..)) -- TODO https://gi
 data Opts = Opts
     { buttonDebounce :: Double
     , buttonPin :: Int
-    , ledPins :: [Int]
+    , ledErrorPin :: Int
+    , ledOtherPin :: Int
     , lightName :: Text
     , lifxTimeout :: Double
     , receivePort :: Word16
@@ -56,7 +57,7 @@ main :: IO ()
 main = do
     (opts :: Opts) <- getRecord "Clark"
     -- ensure all LEDs are off to begin with
-    callProcess "gpioset" $ "gpiochip0" : map ((<> "=0") . show) opts.ledPins
+    callProcess "gpioset" $ "gpiochip0" : map ((<> "=0") . show) [opts.ledErrorPin, opts.ledOtherPin]
     mvar <- newEmptyMVar
     -- TODO avoid hardcoding - discovery doesn't currently work on Clark (firewall?)
     let light = deviceFromAddress (192, 168, 1, 190)
@@ -108,14 +109,19 @@ decodeAction =
                 pure $ SendEmail{..}
             n -> fail $ "unknown action: " <> show n
 
+handleError :: Show a => Int -> Text -> a -> IO ()
+handleError ledErrorPin t x = do
+    T.putStrLn $ t <> ":"
+    pPrintOpt CheckColorTty defaultOutputOptionsDarkBg{outputOptionsInitialIndent = 4} x
+    callProcess "gpioset" ["gpiochip0", show ledErrorPin <> "=1"]
+
 toggleLight :: MonadLifx m => Device -> m ()
 toggleLight light = sendMessage light . SetPower . not . statePowerToBool =<< sendMessage light GetPower
 sendEmail :: MonadIO m => Opts -> Text -> Text -> m ()
 sendEmail opts subject body =
     liftIO $
-        void (postWith postOpts url formParams) `catchHttpException` \e -> do
-            T.putStrLn "Failed to send email:"
-            pPrintOpt CheckColorTty defaultOutputOptionsDarkBg{outputOptionsInitialIndent = 4} e
+        void (postWith postOpts url formParams)
+            `catchHttpException` handleError opts.ledErrorPin "Failed to send email"
   where
     postOpts = defaults & auth ?~ basicAuth "api" (encodeUtf8 opts.mailgunKey)
     url = "https://api.milgun.net/v3/sandbox" <> T.unpack opts.mailgunSandbox <> ".mailgun.org/messages"
