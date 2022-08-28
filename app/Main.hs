@@ -60,7 +60,7 @@ main :: IO ()
 main = do
     opts@Opts{mailgunSandbox, mailgunKey} <- getRecord "Clark"
     -- ensure all LEDs are off to begin with
-    callProcess "gpioset" $ "gpiochip0" : map ((<> "=0") . show) [opts.ledErrorPin, opts.ledOtherPin]
+    setGpio False [opts.ledErrorPin, opts.ledOtherPin]
     mvar <- newEmptyMVar
     -- TODO avoid hardcoding - discovery doesn't currently work on Clark (firewall?)
     let light = deviceFromAddress (192, 168, 1, 190)
@@ -99,12 +99,12 @@ main = do
     let handleError title body = do
             T.putStrLn $ title <> ":"
             pPrintOpt CheckColorTty defaultOutputOptionsDarkBg{outputOptionsInitialIndent = 4} body
-            callProcess "gpioset" ["gpiochip0", show opts.ledErrorPin <> "=1"]
+            setGpio True [opts.ledErrorPin]
 
     listenOnNetwork `concurrently_` listenForButton `concurrently_` runLifxUntilSuccess (lifxTime opts.lifxTimeout) do
         forever $
             liftIO (takeMVar mvar) >>= \case
-                ResetError -> liftIO $ callProcess "gpioset" ["gpiochip0", show opts.ledErrorPin <> "=0"]
+                ResetError -> setGpio False [opts.ledErrorPin]
                 ToggleLight -> toggleLight light
                 SendEmail{subject, body} -> sendEmail handleError EmailOpts{..}
 
@@ -149,6 +149,10 @@ sendEmail handleError EmailOpts{..} =
         InvalidUrlException _ _ -> Nothing
 
 {- Util -}
+
+-- TODO get a proper Haskell GPIO library (hpio?) working with the modern interface
+setGpio :: MonadIO m => Bool -> [Int] -> m ()
+setGpio b xs = liftIO $ callProcess "gpioset" $ "gpiochip0" : map ((<> "=" <> show (fromEnum b)) . show) xs
 
 -- TODO upstream?
 statePowerToBool :: StatePower -> Bool
