@@ -10,8 +10,8 @@ import Control.Lens
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Loops
-import Data.Binary
-import Data.Binary.Get
+import Data.Binary qualified as B
+import Data.Binary.Get (runGetOrFail)
 import Data.Bitraversable
 import Data.ByteString.Char8 qualified as BSC
 import Data.ByteString.Lazy qualified as BSL
@@ -21,6 +21,7 @@ import Data.Text.Encoding
 import Data.Text.IO qualified as T
 import Data.Time
 import Data.Tuple.Extra
+import Data.Word
 import Lifx.Lan hiding (SetColor)
 import Network.HTTP.Client
 import Network.Socket
@@ -94,11 +95,11 @@ main = do
 decodeAction :: BSL.ByteString -> Maybe Action
 decodeAction =
     fmap thd3 . eitherToMaybe . runGetOrFail do
-        getWord8 >>= \case
+        B.get @Word8 >>= \case
             0 -> pure ResetError
             1 -> pure ToggleLight
             2 -> do
-                (subject, body) <- bisequence $ dupe $ decodeUtf8 <$> Data.Binary.get
+                (subject, body) <- bisequence $ dupe $ decodeUtf8 <$> B.get
                 pure $ SendEmail{..}
             n -> fail $ "unknown action: " <> show n
 
