@@ -16,6 +16,7 @@ executable clark
         NoMonomorphismRestriction
         OverloadedRecordDot
         OverloadedStrings
+        PartialTypeSignatures
         RecordWildCards
     build-depends:
         base >= 4.16,
