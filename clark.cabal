@@ -24,7 +24,7 @@ executable clark
         binary >= 0.8.9,
         bytestring >= 0.10.12,
         extra >= 1.7.10,
-        http-client >= 0.7.13,
+        http-client >= 0.7.11,
         lens >= 5.2,
         lifx-lan >= 0.5.0,
         monad-loops >= 0.4.3,

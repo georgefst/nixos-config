@@ -11,3 +11,19 @@ source-repository-package
     type: git
     location: https://github.com/georgefst/pretty-simple
     tag: 33c26718312572746792969c8502fde46e47fa9b
+--TODO https://github.com/TomMD/entropy/pull/20#issuecomment-1100221632
+source-repository-package
+    type: git
+    location: https://github.com/georgefst/entropy
+    tag: 14d3ccf09e8f94b5541aeefc01df54bfcd825a96
+--TODO https://github.com/haskell/wreq/pull/147
+source-repository-package
+    type: git
+    location: https://github.com/georgefst/wreq
+    tag: c21ecf7ada18643a0b21bda4363e157010238668
+--TODO exposes stuff so that `wreq` fork above can make lenses without TH: https://github.com/georgefst/http-client/tree/expose-internals
+source-repository-package
+    type: git
+    location: https://github.com/georgefst/http-client
+    subdir: http-client
+    tag: bd218eff5faf19333960833e7fd28c211e2aecc4
