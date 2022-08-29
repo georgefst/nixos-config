@@ -10,17 +10,16 @@ import Control.Lens
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Loops
+import Data.Bifunctor
 import Data.Binary qualified as B
 import Data.Binary.Get (runGetOrFail)
-import Data.Bitraversable
-import Data.ByteString.Char8 qualified as BSC
+import Data.Binary.Get qualified as B
 import Data.ByteString.Lazy qualified as BSL
-import Data.Either.Extra
 import Data.Text qualified as T
 import Data.Text.Encoding
 import Data.Text.IO qualified as T
 import Data.Time
-import Data.Tuple.Extra
+import Data.Tuple.Extra hiding (first, second)
 import Data.Word
 import Lifx.Lan hiding (SetColor)
 import Network.HTTP.Client
@@ -64,7 +63,7 @@ main = do
     opts@Opts{mailgunSandbox, mailgunKey} <- getRecord "Clark"
     -- ensure all LEDs are off to begin with
     gpioSet False [opts.ledErrorPin, opts.ledOtherPin]
-    mvar <- newEmptyMVar
+    (mvar :: MVar (Either (Exists Show) Action)) <- newEmptyMVar
     -- TODO avoid hardcoding - discovery doesn't currently work on Clark (firewall?)
     let light = deviceFromAddress (192, 168, 1, 190)
 
@@ -73,28 +72,29 @@ main = do
             bind sock $ SockAddrInet (fromIntegral opts.receivePort) 0
             forever do
                 bs <- recv sock 4096
-                withSGR' Blue $ BSC.putStrLn $ "Received UDP message: " <> bs
-                maybe mempty (putMVar mvar) $ decodeAction $ BSL.fromStrict bs
+                putMVar mvar $ first Exists $ decodeAction $ BSL.fromStrict bs
 
-    let listenForButton = gpioMon opts.buttonDebounce opts.buttonPin $ putMVar mvar ToggleLight
+    let listenForButton = gpioMon opts.buttonDebounce opts.buttonPin $ putMVar mvar $ Right ToggleLight
 
     let handleError title body = do
-            T.putStrLn $ title <> ":"
+            withSGR' Red $ T.putStrLn $ title <> ":"
             pPrintOpt CheckColorTty defaultOutputOptionsDarkBg{outputOptionsInitialIndent = 4} body
             gpioSet True [opts.ledErrorPin]
 
     listenOnNetwork `concurrently_` listenForButton `concurrently_` runLifxUntilSuccess (lifxTime opts.lifxTimeout) do
-        forever do
-            action <- liftIO $ takeMVar mvar
-            pPrint action -- TODO better logging
-            case action of
-                ResetError -> gpioSet False [opts.ledErrorPin]
-                ToggleLight -> toggleLight light
-                SendEmail{subject, body} -> sendEmail handleError EmailOpts{..}
+        forever $
+            liftIO (takeMVar mvar) >>= \case
+                Left (Exists e) -> liftIO $ handleError "Action failure" e
+                Right action -> do
+                    pPrint action -- TODO better logging
+                    case action of
+                        ResetError -> gpioSet False [opts.ledErrorPin]
+                        ToggleLight -> toggleLight light
+                        SendEmail{subject, body} -> sendEmail handleError EmailOpts{..}
 
-decodeAction :: BSL.ByteString -> Maybe Action
+decodeAction :: BSL.ByteString -> Either (BSL.ByteString, B.ByteOffset, String) Action
 decodeAction =
-    fmap thd3 . eitherToMaybe . runGetOrFail do
+    fmap thd3 . runGetOrFail do
         B.get @Word8 >>= \case
             0 -> pure ResetError
             1 -> pure ToggleLight
@@ -185,3 +185,7 @@ withSGR' x = liftIO . withSGR [SetColor Foreground Vivid x, SetConsoleIntensity 
 -- | Run the action. If it fails then just print the error and go again.
 runLifxUntilSuccess :: Int -> Lifx a -> IO a
 runLifxUntilSuccess t x = either (\e -> print e >> threadDelay t >> runLifxUntilSuccess t x) pure =<< runLifxT t x
+
+-- TODO replace with first-class existential when they arrive
+data Exists c where
+    Exists :: c a => a -> Exists c
