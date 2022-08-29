@@ -72,7 +72,7 @@ main = do
             sock <- socket AF_INET Datagram defaultProtocol
             bind sock $ SockAddrInet (fromIntegral opts.receivePort) 0
             forever do
-                bs <- recv sock 1
+                bs <- recv sock 4096
                 withSGR' Blue $ BSC.putStrLn $ "Received UDP message: " <> bs
                 maybe mempty (putMVar mvar) $ decodeAction $ BSL.fromStrict bs
 
