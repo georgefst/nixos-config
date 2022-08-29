@@ -122,7 +122,7 @@ sendEmail handleError EmailOpts{..} =
             `catchHttpException` handleError "Failed to send email"
   where
     postOpts = defaults & auth ?~ basicAuth "api" (encodeUtf8 mailgunKey)
-    url = "https://api.milgun.net/v3/sandbox" <> T.unpack mailgunSandbox <> ".mailgun.org/messages"
+    url = "https://api.mailgun.net/v3/sandbox" <> T.unpack mailgunSandbox <> ".mailgun.org/messages"
     formParams =
         [ "from" := "Mailgun Sandbox <postmaster@sandbox" <> mailgunSandbox <> ".mailgun.org>"
         , "to" := ("George Thomas <georgefsthomas@gmail.com>" :: Text)
