@@ -99,7 +99,8 @@ decodeAction =
             0 -> pure ResetError
             1 -> pure ToggleLight
             2 -> do
-                (subject, body) <- bisequence $ dupe $ decodeUtf8 <$> B.get
+                subject <- decodeUtf8 <$> (B.getByteString . fromIntegral =<< B.get @Word8)
+                body <- decodeUtf8 <$> (B.getByteString . fromIntegral =<< B.get @Word16)
                 pure $ SendEmail{..}
             n -> fail $ "unknown action: " <> show n
 
