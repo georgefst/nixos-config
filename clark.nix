@@ -12,7 +12,7 @@ let
   startup = [ "multi-user.target" ];
 
   # arbitrary - all that matters is that these don't conflict with each other or anything else
-  clark-script-port = 56710; # if we change this we need to modify our Tasker config
+  clark-script-port = 56710; # if we change this we need to modify Tasker config, .bashrc etc.
   droopy-port = 80;
   extra-ports = [ 56720 ]; # for temporary scripts etc.
 
@@ -131,11 +131,13 @@ in
         ${home}/clark \
           --button-debounce 1 \
           --button-pin 27 \
-          --led-pins 4 \
-          --led-pins 14 \
+          --led-error-pin 4 \
+          --led-other-pin 14 \
           --light-name Ceiling \
           --lifx-timeout 5 \
           --receive-port ${builtins.toString clark-script-port} \
+          --mailgun-sandbox ${secrets.mailgun.sandbox} \
+          --mailgun-key ${secrets.mailgun.key} \
       '';
       description = "clark script";
       path = [ pkgs.libgpiod ]; #TODO remove once we've ported to a proper GPIO library, instead of process wrapping
