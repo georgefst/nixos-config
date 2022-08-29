@@ -60,6 +60,7 @@ type HandleError = forall a. Show a => Text -> a -> IO ()
 
 main :: IO ()
 main = do
+    hSetBuffering stdout LineBuffering -- TODO necessary when running as systemd service - why? report upstream
     opts@Opts{mailgunSandbox, mailgunKey} <- getRecord "Clark"
     -- ensure all LEDs are off to begin with
     gpioSet False [opts.ledErrorPin, opts.ledOtherPin]
