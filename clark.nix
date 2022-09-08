@@ -178,6 +178,10 @@ in
       '';
       description = "tennis scraper";
       path = [ pkgs.curl ];
+      environment = {
+        # for Dhall - we probably wouldn't need this if we weren't running as root
+        XDG_CACHE_HOME = "${home}/.cache";
+      };
       wantedBy = startup;
     };
     geckodriver = {
