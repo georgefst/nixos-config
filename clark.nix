@@ -142,11 +142,11 @@ in
           --notify ${
             pkgs.writeShellScript "notify" ''
               curl -s --user 'api:${secrets.mailgun.key}' \
-              	https://api.mailgun.net/v3/sandbox${secrets.mailgun.sandbox}.mailgun.org/messages \
-              	-F from='Mailgun Sandbox <postmaster@sandbox${secrets.mailgun.sandbox}.mailgun.org>' \
-              	-F to='George Thomas <georgefsthomas@gmail.com>' \
-              	-F subject="$1" \
-              	-F text="$2" \
+                https://api.mailgun.net/v3/sandbox${secrets.mailgun.sandbox}.mailgun.org/messages \
+                -F from='Mailgun Sandbox <postmaster@sandbox${secrets.mailgun.sandbox}.mailgun.org>' \
+                -F to='George Thomas <georgefsthomas@gmail.com>' \
+                -F subject="$1" \
+                -F text="$2" \
               || sed -i "1iClark tennis scraper failed to send email: $(date)" ${syncthing-main-dir}/notes/todo.md
             ''
           } \
