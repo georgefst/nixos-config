@@ -185,25 +185,23 @@ in
     user = "gthomas";
     group = "users";
     dataDir = home;
-    declarative = {
-      devices = {
-        # Billy will introduce us to all others, so there's no need to list them here
-        billy = {
-          id = "SNTZHCK-IRIPPLQ-4QHR7T6-PCTRUZ3-TVGFDJS-RJOE5VP-GJQI43B-TFQ7GQM";
-          introducer = true;
-        };
+    devices = {
+      # Billy will introduce us to all others, so there's no need to list them here
+      billy = {
+        id = "SNTZHCK-IRIPPLQ-4QHR7T6-PCTRUZ3-TVGFDJS-RJOE5VP-GJQI43B-TFQ7GQM";
+        introducer = true;
       };
-      folders = {
-        default = {
-          path = syncthing-main-dir;
-          label = "Default";
-          devices = [ "billy" ];
-        };
-        fp3_4j86-photos = {
-          path = syncthing-camera-dir;
-          label = "Android Camera";
-          devices = [ "billy" ];
-        };
+    };
+    folders = {
+      default = {
+        path = syncthing-main-dir;
+        label = "Default";
+        devices = [ "billy" ];
+      };
+      fp3_4j86-photos = {
+        path = syncthing-camera-dir;
+        label = "Android Camera";
+        devices = [ "billy" ];
       };
     };
   };
