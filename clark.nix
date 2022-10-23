@@ -26,6 +26,9 @@ in
       ./hardware-configuration.nix
     ];
 
+  # nix stuff
+  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+
   # stuff I'm probably never going to change
   networking.hostName = "clark";
   system.stateVersion = "21.05"; # https://nixos.wiki/wiki/FAQ/When_do_I_update_stateVersion
