@@ -130,7 +130,7 @@ in
           --mailgun-key ${secrets.mailgun.key} \
       '';
       description = "clark script";
-      path = [ pkgs.libgpiod ]; #TODO remove once we've ported to a proper GPIO library, instead of process wrapping
+      path = [ pkgs.libgpiod ];
       wantedBy = startup;
     };
     droopy = {
