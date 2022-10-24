@@ -92,6 +92,15 @@ in
   };
   security.sudo.wheelNeedsPassword = false;
 
+  # shell
+  programs.bash.promptInit = ''
+    green=$(tput setaf 10)
+    blue=$(tput setaf 4)
+    bold=$(tput bold)
+    reset=$(tput sgr0)
+    PS1="\[$bold\]\[$blue\]\H\[$reset\]\[$bold\]:\[$green\]\w\[$reset\]\[$bold\]\\$ \[$reset\]"
+  '';
+
   # ssh
   services.openssh.enable = true;
   services.openssh.passwordAuthentication = false;
