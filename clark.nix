@@ -207,12 +207,12 @@ in
         XDG_CACHE_HOME = "${home}/.cache";
       };
       wantedBy = startup;
+      wants = [ "geckodriver.service" ];
     };
     geckodriver = {
       script = "geckodriver";
       description = "firefox webdriver interface";
       path = [ pkgs.geckodriver pkgs.firefox ];
-      wantedBy = startup;
     };
   };
 
