@@ -143,6 +143,30 @@ in
       path = [ pkgs.libgpiod ];
       wantedBy = startup;
     };
+    email-ip = {
+      script = ''
+        IP=""
+        while true
+        do
+          NEW_IP=$(curl https://ipinfo.io/ip)
+          if [[ $NEW_IP != $IP ]]
+          then
+            curl -s --user 'api:${secrets.mailgun.key}' \
+              https://api.mailgun.net/v3/sandbox${secrets.mailgun.sandbox}.mailgun.org/messages \
+              -F from='Mailgun Sandbox <postmaster@sandbox${secrets.mailgun.sandbox}.mailgun.org>' \
+              -F to='George Thomas <georgefsthomas@gmail.com>' \
+              -F subject='Public IP address changed' \
+              -F text="Old: $IP, New: $NEW_IP" \
+            || sed -i "1iClark tennis scraper failed to send email: $(date)" ${syncthing-main-dir}/notes/todo.md
+          fi
+          IP=$NEW_IP
+          sleep $((60 * 60))
+        done
+      '';
+      description = "notify when IP changes";
+      path = [ pkgs.curl ];
+      wantedBy = startup;
+    };
     droopy = {
       script = ''
         mkdir -p ${file-server-dir}
