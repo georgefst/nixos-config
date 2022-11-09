@@ -157,7 +157,7 @@ in
               -F to='George Thomas <georgefsthomas@gmail.com>' \
               -F subject='Public IP address changed' \
               -F text="Old: $IP, New: $NEW_IP" \
-            || sed -i "1iClark tennis scraper failed to send email: $(date)" ${syncthing-main-dir}/notes/todo.md
+            || sed -i "1iClark IP checker failed to send email: $(date)" ${syncthing-main-dir}/notes/todo.md
           fi
           IP=$NEW_IP
           sleep $((60 * 60))
