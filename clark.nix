@@ -149,7 +149,7 @@ in
         while true
         do
           NEW_IP=$(curl https://ipinfo.io/ip)
-          if [[ $NEW_IP != $IP ]]
+          if [[ -n $IP && $NEW_IP != $IP ]]
           then
             curl -s --user 'api:${secrets.mailgun.key}' \
               https://api.mailgun.net/v3/sandbox${secrets.mailgun.sandbox}.mailgun.org/messages \
