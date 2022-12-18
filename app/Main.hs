@@ -30,6 +30,7 @@ import Options.Generic
 import System.Console.ANSI
 import System.IO
 import System.Process.Extra
+import System.Timeout (timeout)
 
 data Opts = Opts
     { buttonDebounce :: Double
@@ -41,6 +42,7 @@ data Opts = Opts
     , receivePort :: Word16
     , mailgunSandbox :: Text
     , mailgunKey :: Text
+    , sshTimeout :: Int
     }
     deriving (Show, Generic)
 instance ParseRecord Opts where
@@ -89,7 +91,7 @@ main = do
     listenOnNetwork `concurrently_` listenForButton `concurrently_` runLifxUntilSuccess (lifxTime opts.lifxTimeout) do
         forever $
             liftIO (takeMVar mvar) >>= \case
-                Left (Exists e) -> liftIO $ handleError "Action failure" e
+                Left (Exists e) -> handleError "Action failure" e
                 Right action -> do
                     pPrint action -- TODO better logging
                     case action of
@@ -97,11 +99,12 @@ main = do
                         ToggleLight -> toggleLight light
                         SendEmail{subject, body} -> sendEmail handleError EmailOpts{..}
                         SuspendBilly ->
-                            liftIO $
-                                maybe (handleError "SSH timeout" ()) pure
-                                    =<< timeout
+                            maybe (handleError "SSH timeout" ()) pure
+                                =<< liftIO
+                                    ( timeout
                                         (opts.sshTimeout * 1_000_000)
                                         (callProcess "ssh" ["billy", "systemctl suspend"])
+                                    )
 
 decodeAction :: BSL.ByteString -> Either (BSL.ByteString, B.ByteOffset, String) Action
 decodeAction =
