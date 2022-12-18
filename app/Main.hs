@@ -96,7 +96,7 @@ main = do
                         ResetError -> gpioSet False [opts.ledErrorPin]
                         ToggleLight -> toggleLight light
                         SendEmail{subject, body} -> sendEmail handleError EmailOpts{..}
-                        SuspendBilly -> liftIO $ callProcess "ssh" ["billy", "systemctl suspend"]
+                        SuspendBilly -> liftIO $ maybe (handleError "SSH timeout" ()) pure =<< timeout (opts.sshTimeout * 1_000_000) (callProcess "ssh" ["billy", "systemctl suspend"])
 
 decodeAction :: BSL.ByteString -> Either (BSL.ByteString, B.ByteOffset, String) Action
 decodeAction =
