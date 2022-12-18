@@ -54,6 +54,7 @@ data Action
     = ResetError
     | ToggleLight
     | SendEmail {subject :: Text, body :: Text}
+    | SuspendBilly
     deriving (Show)
 
 type HandleError = forall a. Show a => Text -> a -> IO ()
@@ -75,7 +76,7 @@ main = do
                 bs <- recv sock 4096
                 putMVar mvar $ first Exists $ decodeAction $ BSL.fromStrict bs
 
-    let listenForButton = gpioMon opts.buttonDebounce opts.buttonPin $ putMVar mvar $ Right ToggleLight
+    let listenForButton = gpioMon opts.buttonDebounce opts.buttonPin $ putMVar mvar (Right ToggleLight) >> putMVar mvar (Right SuspendBilly)
 
     let handleError title body = do
             withSGR' Red $ T.putStrLn $ title <> ":"
@@ -92,6 +93,7 @@ main = do
                         ResetError -> gpioSet False [opts.ledErrorPin]
                         ToggleLight -> toggleLight light
                         SendEmail{subject, body} -> sendEmail handleError EmailOpts{..}
+                        SuspendBilly -> liftIO $ callProcess "ssh" ["billy", "systemctl suspend"]
 
 decodeAction :: BSL.ByteString -> Either (BSL.ByteString, B.ByteOffset, String) Action
 decodeAction =
@@ -103,6 +105,7 @@ decodeAction =
                 subject <- decodeUtf8 <$> (B.getByteString . fromIntegral =<< B.get @Word8)
                 body <- decodeUtf8 <$> (B.getByteString . fromIntegral =<< B.get @Word16)
                 pure $ SendEmail{..}
+            3 -> pure SuspendBilly
             n -> fail $ "unknown action: " <> show n
 
 {- Run action -}
