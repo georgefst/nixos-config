@@ -76,7 +76,10 @@ main = do
                 bs <- recv sock 4096
                 putMVar mvar $ first Exists $ decodeAction $ BSL.fromStrict bs
 
-    let listenForButton = gpioMon opts.buttonDebounce opts.buttonPin $ putMVar mvar (Right ToggleLight) >> putMVar mvar (Right SuspendBilly)
+    let listenForButton =
+            gpioMon opts.buttonDebounce opts.buttonPin $
+                putMVar mvar (Right ToggleLight)
+                    >> putMVar mvar (Right SuspendBilly)
 
     let handleError title body = do
             withSGR' Red $ T.putStrLn $ title <> ":"
