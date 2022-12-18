@@ -138,6 +138,7 @@ in
           --receive-port ${builtins.toString clark-script-port} \
           --mailgun-sandbox ${secrets.mailgun.sandbox} \
           --mailgun-key ${secrets.mailgun.key} \
+          --ssh-timeout 3 \
       '';
       description = "clark script";
       path = [ pkgs.libgpiod ];
