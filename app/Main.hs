@@ -103,7 +103,7 @@ main = do
                                 =<< liftIO
                                     ( timeout
                                         (opts.sshTimeout * 1_000_000)
-                                        (callProcess "ssh" ["billy", "systemctl suspend"])
+                                        mempty
                                     )
 
 decodeAction :: BSL.ByteString -> Either (BSL.ByteString, B.ByteOffset, String) Action
