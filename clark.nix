@@ -18,7 +18,7 @@ let
 
   file-server-dir = home + "/serve";
   syncthing-main-dir = home + "/sync";
-  syncthing-camera-dir = home + "/camera-sync";
+  syncthing-camera-dir = home + "/sync-camera";
 in
 {
   imports =
