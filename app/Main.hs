@@ -152,7 +152,7 @@ sendEmail handleError EmailOpts{..} =
 
 -- TODO get a proper Haskell GPIO library (hpio?) working with the modern interface
 gpioSet :: MonadIO m => Bool -> [Int] -> m ()
-gpioSet b xs = liftIO $ callProcess "gpioset" $ gpioChip : map ((<> "=" <> show (fromEnum b)) . show) xs
+gpioSet _b _xs = pure ()
 gpioMon :: Double -> Int -> IO () -> IO ()
 gpioMon debounce pin x = do
     putStrLn "Starting gpiomon process..."
