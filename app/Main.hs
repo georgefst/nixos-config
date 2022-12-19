@@ -69,7 +69,7 @@ main = do
     gpioSet False [opts.ledErrorPin, opts.ledOtherPin]
     (mvar :: MVar (Either (Exists Show) Action)) <- newEmptyMVar
     -- TODO avoid hardcoding - discovery doesn't currently work on Clark (firewall?)
-    let light = deviceFromAddress (192, 168, 1, 192)
+    let light = deviceFromAddress (192, 168, 1, 190)
 
     let listenOnNetwork = do
             sock <- socket AF_INET Datagram defaultProtocol
