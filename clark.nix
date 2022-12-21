@@ -23,7 +23,7 @@ in
 {
   imports =
     [
-      ./hardware-configuration.nix
+      ./hardware-configuration/clark.nix
     ];
 
   # nix stuff
