@@ -59,14 +59,21 @@ data Action
     | SuspendBilly
     deriving (Show)
 
+data LED
+    = ErrorLED
+    | OtherLED
+
 type HandleError = forall a. Show a => Text -> a -> IO ()
 
 main :: IO ()
 main = do
     hSetBuffering stdout LineBuffering -- TODO necessary when running as systemd service - why? report upstream
     opts@Opts{mailgunSandbox, mailgunKey} <- getRecord "Clark"
+    let ledPin = \case
+            ErrorLED -> opts.ledErrorPin
+            OtherLED -> opts.ledOtherPin
     -- ensure all LEDs are off to begin with
-    gpioSet False [opts.ledErrorPin, opts.ledOtherPin]
+    gpioSet False [ledPin ErrorLED, ledPin OtherLED]
     mvar <- newEmptyMVar @(Either (Exists Show) Action)
     -- TODO avoid hardcoding - discovery doesn't currently work on Clark (firewall?)
     let light = deviceFromAddress (192, 168, 1, 190)
@@ -95,7 +102,7 @@ main = do
                 Right action -> do
                     pPrint action -- TODO better logging
                     case action of
-                        ResetError -> gpioSet False [opts.ledErrorPin]
+                        ResetError -> gpioSet False [ledPin ErrorLED]
                         ToggleLight -> toggleLight light
                         SendEmail{subject, body} -> sendEmail handleError EmailOpts{..}
                         SuspendBilly ->
