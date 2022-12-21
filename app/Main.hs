@@ -67,7 +67,7 @@ main = do
     opts@Opts{mailgunSandbox, mailgunKey} <- getRecord "Clark"
     -- ensure all LEDs are off to begin with
     gpioSet False [opts.ledErrorPin, opts.ledOtherPin]
-    (mvar :: MVar (Either (Exists Show) Action)) <- newEmptyMVar
+    mvar <- newEmptyMVar @(Either (Exists Show) Action)
     -- TODO avoid hardcoding - discovery doesn't currently work on Clark (firewall?)
     let light = deviceFromAddress (192, 168, 1, 190)
 
