@@ -1,3 +1,6 @@
+{-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 module Main (main) where
 
 -- TODO this is in its own section due to a Fourmolu bug with reordering comments in import lists
@@ -5,16 +8,20 @@ import Text.Pretty.Simple hiding (Color (..), Intensity (..)) -- TODO https://gi
 
 import Control.Concurrent
 import Control.Concurrent.Async
-import Control.Exception
+import Control.Exception (IOException)
 import Control.Lens
 import Control.Monad
+import Control.Monad.Catch
 import Control.Monad.IO.Class
 import Control.Monad.Loops
+import Control.Monad.State
 import Data.Bifunctor
 import Data.Binary qualified as B
 import Data.Binary.Get (runGetOrFail)
 import Data.Binary.Get qualified as B
 import Data.ByteString.Lazy qualified as BSL
+import Data.Map (Map)
+import Data.Map qualified as Map
 import Data.Text qualified as T
 import Data.Text.Encoding
 import Data.Text.IO qualified as T
@@ -22,10 +29,11 @@ import Data.Time
 import Data.Tuple.Extra hiding (first, second)
 import Data.Word
 import Lifx.Lan hiding (SetColor)
+import Lifx.Lan.Internal (LifxT (LifxT))
 import Network.HTTP.Client
 import Network.Socket
 import Network.Socket.ByteString
-import Network.Wreq
+import Network.Wreq hiding (get, put)
 import Options.Generic
 import System.Console.ANSI
 import System.IO
@@ -59,21 +67,28 @@ data Action
     | SuspendBilly
     deriving (Show)
 
-data LED
-    = ErrorLED
-    | OtherLED
+-- TODO add these instances upstream (and/or remove the `MonadState` instance so that we don't even need opaque `AppM`)
+deriving newtype instance MonadThrow (LifxT IO)
+deriving newtype instance MonadCatch (LifxT IO)
+newtype AppM x = AppM {unwrap :: StateT (Map Int ProcessHandle) (LifxT IO) x}
+    deriving newtype
+        ( Functor
+        , Applicative
+        , Monad
+        , MonadIO
+        , MonadState (Map Int ProcessHandle)
+        , MonadLifx
+        , MonadThrow
+        , MonadCatch
+        )
 
-type HandleError = forall a m. (MonadIO m, Show a) => Text -> a -> m ()
+type HandleError m = forall a. Show a => Text -> a -> m ()
 
 main :: IO ()
 main = do
     hSetBuffering stdout LineBuffering -- TODO necessary when running as systemd service - why? report upstream
-    opts@Opts{mailgunSandbox, mailgunKey} <- getRecord "Clark"
-    let ledPin = \case
-            ErrorLED -> opts.ledErrorPin
-            OtherLED -> opts.ledOtherPin
-    -- ensure all LEDs are off to begin with
-    gpioSet False [ledPin ErrorLED, ledPin OtherLED]
+    -- TODO temporarily hardcoded
+    opts@Opts{mailgunSandbox, mailgunKey} <- (\o -> o{ledErrorPin = 19, ledOtherPin = 26}) <$> getRecord "Clark"
     mvar <- newEmptyMVar @(Either (Exists Show) Action)
     -- TODO avoid hardcoding - discovery doesn't currently work on Clark (firewall?)
     let light = deviceFromAddress (192, 168, 1, 190)
@@ -93,16 +108,21 @@ main = do
     let handleError title body = do
             withSGR' Red $ T.putStrLn $ title <> ":"
             pPrintOpt CheckColorTty defaultOutputOptionsDarkBg{outputOptionsInitialIndent = 4} body
-            gpioSet True [opts.ledErrorPin]
+            gets (Map.lookup opts.ledErrorPin) >>= \case
+                Nothing -> modify . Map.insert opts.ledErrorPin =<< gpioSet [opts.ledErrorPin]
+                Just h -> liftIO $ putStrLn . ("LED is already on: pid " <>) . maybe "not found" show =<< getPid h
 
     listenOnNetwork `concurrently_` listenForButton `concurrently_` runLifxUntilSuccess (lifxTime opts.lifxTimeout) do
-        forever $
+        flip evalStateT mempty . (.unwrap) . forever @AppM $
             liftIO (takeMVar mvar) >>= \case
                 Left (Exists e) -> handleError "Action failure" e
                 Right action -> do
                     pPrint action -- TODO better logging
                     case action of
-                        ResetError -> gpioSet False [ledPin ErrorLED]
+                        ResetError ->
+                            gets (Map.lookup opts.ledErrorPin) >>= \case
+                                Just h -> liftIO (terminateProcess h) >> modify (Map.delete opts.ledErrorPin)
+                                Nothing -> liftIO $ putStrLn "LED is already off"
                         ToggleLight -> toggleLight light
                         SendEmail{subject, body} -> sendEmail handleError EmailOpts{..}
                         SuspendBilly ->
@@ -137,11 +157,10 @@ data EmailOpts = EmailOpts
     , subject :: Text
     , body :: Text
     }
-sendEmail :: MonadIO m => HandleError -> EmailOpts -> m ()
+sendEmail :: (MonadIO m, MonadCatch m) => HandleError m -> EmailOpts -> m ()
 sendEmail handleError EmailOpts{..} =
-    liftIO $
-        void (postWith postOpts url formParams)
-            `catchHttpException` handleError "Failed to send email"
+    liftIO (void (postWith postOpts url formParams))
+        `catchHttpException` handleError "Failed to send email"
   where
     postOpts = defaults & auth ?~ basicAuth "api" (encodeUtf8 mailgunKey)
     url = "https://api.mailgun.net/v3/sandbox" <> T.unpack mailgunSandbox <> ".mailgun.org/messages"
@@ -158,8 +177,13 @@ sendEmail handleError EmailOpts{..} =
 {- Util -}
 
 -- TODO get a proper Haskell GPIO library (hpio?) working with the modern interface
-gpioSet :: MonadIO m => Bool -> [Int] -> m ()
-gpioSet _b _xs = pure ()
+gpioSet :: MonadIO m => [Int] -> m ProcessHandle
+gpioSet xs =
+    liftIO
+        . fmap (\(_, _, _, x) -> x)
+        . createProcess
+        . proc "gpioset"
+        $ "--mode=signal" : gpioChip : map ((<> "=1") . show) xs
 gpioMon :: Double -> Int -> IO () -> IO ()
 gpioMon debounce pin x = do
     putStrLn "Starting gpiomon process..."
