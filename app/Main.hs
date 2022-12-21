@@ -63,7 +63,7 @@ data LED
     = ErrorLED
     | OtherLED
 
-type HandleError = forall a. Show a => Text -> a -> IO ()
+type HandleError = forall a m. (MonadIO m, Show a) => Text -> a -> m ()
 
 main :: IO ()
 main = do
