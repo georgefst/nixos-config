@@ -84,11 +84,20 @@ newtype AppM x = AppM {unwrap :: StateT (Map Int ProcessHandle) (LifxT IO) x}
 
 type HandleError m = forall a. Show a => Text -> a -> m ()
 
+newtype ActionQueue = ActionQueue {unwrap :: MVar ActionOrError}
+newActionQueue :: MonadIO m => m ActionQueue
+newActionQueue = liftIO $ ActionQueue <$> newEmptyMVar
+enqueueAction :: MonadIO m => ActionQueue -> ActionOrError -> m ()
+enqueueAction q = liftIO . putMVar q.unwrap
+dequeueActions :: MonadIO m => ActionQueue -> (ActionOrError -> m ()) -> m ()
+dequeueActions q x = forever $ liftIO (takeMVar q.unwrap) >>= x
+type ActionOrError = Either (Exists Show) Action
+
 main :: IO ()
 main = do
     hSetBuffering stdout LineBuffering -- TODO necessary when running as systemd service - why? report upstream
     opts@Opts{mailgunSandbox, mailgunKey} <- getRecord "Clark"
-    mvar <- newEmptyMVar @(Either (Exists Show) Action)
+    queue <- newActionQueue
     -- TODO avoid hardcoding - discovery doesn't currently work on Clark (firewall?)
     let light = deviceFromAddress (192, 168, 1, 190)
 
@@ -97,12 +106,12 @@ main = do
             bind sock $ SockAddrInet (fromIntegral opts.receivePort) 0
             forever do
                 bs <- recv sock 4096
-                putMVar mvar $ first Exists $ decodeAction $ BSL.fromStrict bs
+                enqueueAction queue $ first Exists $ decodeAction $ BSL.fromStrict bs
 
     let listenForButton =
             gpioMon opts.buttonDebounce opts.buttonPin $
-                putMVar mvar (Right ToggleLight)
-                    >> putMVar mvar (Right SuspendBilly)
+                enqueueAction queue (Right ToggleLight)
+                    >> enqueueAction queue (Right SuspendBilly)
 
     let handleError title body = do
             withSGR' Red $ T.putStrLn $ title <> ":"
@@ -112,8 +121,8 @@ main = do
                 Just h -> liftIO $ putStrLn . ("LED is already on: pid " <>) . maybe "not found" show =<< getPid h
 
     listenOnNetwork `concurrently_` listenForButton `concurrently_` runLifxUntilSuccess (lifxTime opts.lifxTimeout) do
-        flip evalStateT mempty . (.unwrap) . forever @AppM $
-            liftIO (takeMVar mvar) >>= \case
+        flip evalStateT mempty . (.unwrap) $
+            dequeueActions @AppM queue \case
                 Left (Exists e) -> handleError "Action failure" e
                 Right action -> do
                     pPrint action -- TODO better logging
