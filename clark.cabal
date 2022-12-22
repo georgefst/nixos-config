@@ -12,7 +12,9 @@ executable clark
         BlockArguments
         DerivingStrategies
         DuplicateRecordFields
+        GADTs
         LambdaCase
+        ImpredicativeTypes
         NoFieldSelectors
         NoMonomorphismRestriction
         OverloadedRecordDot

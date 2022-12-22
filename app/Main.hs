@@ -12,10 +12,9 @@ import Control.Exception (IOException)
 import Control.Lens
 import Control.Monad
 import Control.Monad.Catch
-import Control.Monad.IO.Class
+import Control.Monad.Except
 import Control.Monad.Loops
 import Control.Monad.State
-import Data.Bifunctor
 import Data.Binary qualified as B
 import Data.Binary.Get (runGetOrFail)
 import Data.Binary.Get qualified as B
@@ -23,7 +22,7 @@ import Data.ByteString.Lazy qualified as BSL
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Text qualified as T
-import Data.Text.Encoding
+import Data.Text.Encoding hiding (Some)
 import Data.Text.IO qualified as T
 import Data.Time
 import Data.Tuple.Extra hiding (first, second)
@@ -60,12 +59,12 @@ instance ParseRecord Opts where
                 { fieldNameModifier = fieldNameModifier lispCaseModifiers
                 }
 
-data Action
-    = ResetError
-    | ToggleLight
-    | SendEmail {subject :: Text, body :: Text}
-    | SuspendBilly
-    deriving (Show)
+data Action a where
+    ResetError :: Action ()
+    ToggleLight :: Action Bool -- returns `True` if the light is _now_ on
+    SendEmail :: {subject :: Text, body :: Text} -> Action ()
+    SuspendBilly :: Action ()
+deriving instance Show (Action a)
 
 -- TODO add these instances upstream (and/or remove the `MonadState` instance so that we don't even need opaque `AppM`)
 deriving newtype instance MonadThrow (LifxT IO)
@@ -82,16 +81,40 @@ newtype AppM x = AppM {unwrap :: StateT (Map Int ProcessHandle) (LifxT IO) x}
         , MonadCatch
         )
 
-type HandleError m = forall a. Show a => Text -> a -> m ()
+-- TODO look in to how this relates to free monads
+data PerformActions a where
+    CompoundAction :: PerformActions a -> (a -> PerformActions b) -> PerformActions b
+    OneAction :: Action a -> PerformActions a
+    SimpleAction :: a -> PerformActions a
+performAction :: Action a -> PerformActions a
+performAction = OneAction
+performActions :: Monad m => (forall r. Action r -> m (Either e r)) -> PerformActions a -> m (Either e a)
+performActions run = \case
+    CompoundAction m f -> performActions run m >>= either (pure . Left) (performActions run . f)
+    OneAction a -> run a
+    SimpleAction x -> pure $ Right x
+instance Functor PerformActions where
+    fmap = (<*>) . pure
+instance Applicative PerformActions where
+    pure = SimpleAction
+    (<*>) = ap
+instance Monad PerformActions where
+    (>>=) = CompoundAction
 
 newtype ActionQueue = ActionQueue {unwrap :: MVar ActionOrError}
 newActionQueue :: MonadIO m => m ActionQueue
 newActionQueue = liftIO $ ActionQueue <$> newEmptyMVar
-enqueueAction :: MonadIO m => ActionQueue -> ActionOrError -> m ()
-enqueueAction q = liftIO . putMVar q.unwrap
-dequeueActions :: MonadIO m => ActionQueue -> (ActionOrError -> m ()) -> m ()
-dequeueActions q x = forever $ liftIO (takeMVar q.unwrap) >>= x
-type ActionOrError = Either (Exists Show) Action
+enqueueError :: (MonadIO m, Show e) => ActionQueue -> Text -> e -> m ()
+enqueueError q t = liftIO . putMVar (q.unwrap) . curry Left t . Exists
+enqueueAction :: (MonadIO m, Show a) => ActionQueue -> PerformActions a -> m ()
+enqueueAction q = liftIO . putMVar (q.unwrap) . Right . Some
+dequeueActions :: MonadIO m => ActionQueue -> ((Text, Exists Show) -> m ()) -> (forall a. PerformActions a -> m ()) -> m ()
+dequeueActions q h x =
+    forever $
+        liftIO (takeMVar q.unwrap) >>= \case
+            Right (Some a) -> x a
+            Left e -> h e
+type ActionOrError = Either (Text, Exists Show) (Some PerformActions)
 
 main :: IO ()
 main = do
@@ -106,14 +129,16 @@ main = do
             bind sock $ SockAddrInet (fromIntegral opts.receivePort) 0
             forever do
                 bs <- recv sock 4096
-                enqueueAction queue $ first Exists $ decodeAction $ BSL.fromStrict bs
+                case decodeAction $ BSL.fromStrict bs of
+                    Right (Some x) -> enqueueAction queue $ performAction x
+                    Left e -> enqueueError queue "Decode failure" e
 
     let listenForButton =
-            gpioMon opts.buttonDebounce opts.buttonPin $
-                enqueueAction queue (Right ToggleLight)
-                    >> enqueueAction queue (Right SuspendBilly)
+            gpioMon opts.buttonDebounce opts.buttonPin . enqueueAction queue $
+                performAction ToggleLight >>= flip unless (performAction SuspendBilly)
 
-    let handleError title body = do
+    let handleError :: Show a => Text -> a -> AppM ()
+        handleError title body = do
             withSGR' Red $ T.putStrLn $ title <> ":"
             pPrintOpt CheckColorTty defaultOutputOptionsDarkBg{outputOptionsInitialIndent = 4} body
             gets (Map.lookup opts.ledErrorPin) >>= \case
@@ -121,10 +146,9 @@ main = do
                 Just h -> liftIO $ putStrLn . ("LED is already on: pid " <>) . maybe "not found" show =<< getPid h
 
     listenOnNetwork `concurrently_` listenForButton `concurrently_` runLifxUntilSuccess (lifxTime opts.lifxTimeout) do
-        flip evalStateT mempty . (.unwrap) $
-            dequeueActions @AppM queue \case
-                Left (Exists e) -> handleError "Action failure" e
-                Right action -> do
+        flip evalStateT mempty . (.unwrap) . dequeueActions @AppM queue (\(s, Exists e) -> handleError s e) $
+            either (\(s, Exists e) -> handleError s e) (const $ pure ())
+                <=< performActions \action -> runExceptT @(Text, Exists Show) do
                     pPrint action -- TODO better logging
                     case action of
                         ResetError ->
@@ -132,9 +156,11 @@ main = do
                                 Just h -> liftIO (terminateProcess h) >> modify (Map.delete opts.ledErrorPin)
                                 Nothing -> liftIO $ putStrLn "LED is already off"
                         ToggleLight -> toggleLight light
-                        SendEmail{subject, body} -> sendEmail handleError EmailOpts{..}
+                        SendEmail{subject, body} ->
+                            sendEmail EmailOpts{..}
+                                >>= either (throwError . ("Failed to send email",) . Exists) pure
                         SuspendBilly ->
-                            maybe (handleError "SSH timeout" ()) pure
+                            maybe (throwError ("SSH timeout", Exists ())) pure
                                 =<< liftIO
                                     ( timeout
                                         (opts.sshTimeout * 1_000_000)
@@ -148,23 +174,26 @@ main = do
                                         )
                                     )
 
-decodeAction :: BSL.ByteString -> Either (BSL.ByteString, B.ByteOffset, String) Action
+decodeAction :: BSL.ByteString -> Either (BSL.ByteString, B.ByteOffset, String) (Some Action)
 decodeAction =
     fmap thd3 . runGetOrFail do
         B.get @Word8 >>= \case
-            0 -> pure ResetError
-            1 -> pure ToggleLight
+            0 -> pure $ Some ResetError
+            1 -> pure $ Some ToggleLight
             2 -> do
                 subject <- decodeUtf8 <$> (B.getByteString . fromIntegral =<< B.get @Word8)
                 body <- decodeUtf8 <$> (B.getByteString . fromIntegral =<< B.get @Word16)
-                pure $ SendEmail{..}
-            3 -> pure SuspendBilly
+                pure $ Some SendEmail{..}
+            3 -> pure $ Some SuspendBilly
             n -> fail $ "unknown action: " <> show n
 
 {- Run action -}
 
-toggleLight :: MonadLifx m => Device -> m ()
-toggleLight light = sendMessage light . SetPower . not . statePowerToBool =<< sendMessage light GetPower
+toggleLight :: MonadLifx m => Device -> m Bool
+toggleLight light = do
+    r <- not . statePowerToBool <$> sendMessage light GetPower
+    sendMessage light $ SetPower r
+    pure r
 
 data EmailOpts = EmailOpts
     { mailgunKey :: Text
@@ -172,10 +201,11 @@ data EmailOpts = EmailOpts
     , subject :: Text
     , body :: Text
     }
-sendEmail :: (MonadIO m, MonadCatch m) => HandleError m -> EmailOpts -> m ()
-sendEmail handleError EmailOpts{..} =
-    liftIO (void (postWith postOpts url formParams))
-        `catchHttpException` handleError "Failed to send email"
+sendEmail :: MonadIO m => EmailOpts -> m (Either HttpExceptionContent ())
+sendEmail EmailOpts{..} =
+    liftIO $
+        (Right () <$ postWith postOpts url formParams)
+            `catchHttpException` (pure . Left)
   where
     postOpts = defaults & auth ?~ basicAuth "api" (encodeUtf8 mailgunKey)
     url = "https://api.mailgun.net/v3/sandbox" <> T.unpack mailgunSandbox <> ".mailgun.org/messages"
@@ -250,3 +280,5 @@ runLifxUntilSuccess t x = either (\e -> print e >> threadDelay t >> runLifxUntil
 -- TODO replace with first-class existential when they arrive (https://github.com/ghc-proposals/ghc-proposals/pull/473)
 data Exists c where
     Exists :: c a => a -> Exists c
+data Some d where
+    Some :: Show a => d a -> Some d
