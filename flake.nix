@@ -4,7 +4,10 @@
     nixosConfigurations = {
       clark = nixpkgs.lib.nixosSystem {
         system = "aarch64-linux";
-        modules = [ ./clark.nix ];
+        modules = [
+          "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
+          ./clark.nix
+        ];
       };
     };
   };
