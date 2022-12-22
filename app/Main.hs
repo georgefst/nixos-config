@@ -129,7 +129,14 @@ main = do
                                 =<< liftIO
                                     ( timeout
                                         (opts.sshTimeout * 1_000_000)
-                                        mempty
+                                        ( callProcess
+                                            "ssh"
+                                            [ "-i/home/gthomas/.ssh/id_rsa"
+                                            , "-oUserKnownHostsFile=/home/gthomas/.ssh/known_hosts"
+                                            , "gthomas@billy"
+                                            , "systemctl suspend"
+                                            ]
+                                        )
                                     )
 
 decodeAction :: BSL.ByteString -> Either (BSL.ByteString, B.ByteOffset, String) Action
