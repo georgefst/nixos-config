@@ -140,7 +140,7 @@ in
           --ssh-timeout 3 \
       '';
       description = "clark script";
-      path = [ pkgs.libgpiod ];
+      path = [ pkgs.libgpiod pkgs.openssh ];
       wantedBy = startup;
     };
     email-ip = {
