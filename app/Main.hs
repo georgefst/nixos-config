@@ -87,8 +87,7 @@ type HandleError m = forall a. Show a => Text -> a -> m ()
 main :: IO ()
 main = do
     hSetBuffering stdout LineBuffering -- TODO necessary when running as systemd service - why? report upstream
-    -- TODO temporarily hardcoded
-    opts@Opts{mailgunSandbox, mailgunKey} <- (\o -> o{ledErrorPin = 19, ledOtherPin = 26}) <$> getRecord "Clark"
+    opts@Opts{mailgunSandbox, mailgunKey} <- getRecord "Clark"
     mvar <- newEmptyMVar @(Either (Exists Show) Action)
     -- TODO avoid hardcoding - discovery doesn't currently work on Clark (firewall?)
     let light = deviceFromAddress (192, 168, 1, 190)
