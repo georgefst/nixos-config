@@ -247,6 +247,6 @@ withSGR' x = liftIO . withSGR [SetColor Foreground Vivid x, SetConsoleIntensity 
 runLifxUntilSuccess :: Int -> Lifx a -> IO a
 runLifxUntilSuccess t x = either (\e -> print e >> threadDelay t >> runLifxUntilSuccess t x) pure =<< runLifxT t x
 
--- TODO replace with first-class existential when they arrive
+-- TODO replace with first-class existential when they arrive (https://github.com/ghc-proposals/ghc-proposals/pull/473)
 data Exists c where
     Exists :: c a => a -> Exists c
