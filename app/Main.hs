@@ -6,6 +6,7 @@ module Main (main) where
 -- TODO this is in its own section due to a Fourmolu bug with reordering comments in import lists
 import Text.Pretty.Simple hiding (Color (..), Intensity (..)) -- TODO https://github.com/quchen/prettyprinter/issues/233
 
+import Compound
 import Control.Concurrent
 import Control.Concurrent.Async
 import Control.Exception (IOException)
@@ -81,40 +82,20 @@ newtype AppM x = AppM {unwrap :: StateT (Map Int ProcessHandle) (LifxT IO) x}
         , MonadCatch
         )
 
--- TODO look in to how this relates to free monads
-data PerformActions a where
-    CompoundAction :: PerformActions a -> (a -> PerformActions b) -> PerformActions b
-    OneAction :: Action a -> PerformActions a
-    SimpleAction :: a -> PerformActions a
-performAction :: Action a -> PerformActions a
-performAction = OneAction
-performActions :: Monad m => (forall r. Action r -> m (Either e r)) -> PerformActions a -> m (Either e a)
-performActions run = \case
-    CompoundAction m f -> performActions run m >>= either (pure . Left) (performActions run . f)
-    OneAction a -> run a
-    SimpleAction x -> pure $ Right x
-instance Functor PerformActions where
-    fmap = (<*>) . pure
-instance Applicative PerformActions where
-    pure = SimpleAction
-    (<*>) = ap
-instance Monad PerformActions where
-    (>>=) = CompoundAction
-
 newtype ActionQueue = ActionQueue {unwrap :: MVar ActionOrError}
 newActionQueue :: MonadIO m => m ActionQueue
 newActionQueue = liftIO $ ActionQueue <$> newEmptyMVar
 enqueueError :: (MonadIO m, Show e) => ActionQueue -> Text -> e -> m ()
 enqueueError q t = liftIO . putMVar (q.unwrap) . curry Left t . Exists
-enqueueAction :: (MonadIO m, Show a) => ActionQueue -> PerformActions a -> m ()
+enqueueAction :: (MonadIO m, Show a) => ActionQueue -> Compound Action a -> m ()
 enqueueAction q = liftIO . putMVar (q.unwrap) . Right . Some
-dequeueActions :: MonadIO m => ActionQueue -> ((Text, Exists Show) -> m ()) -> (forall a. PerformActions a -> m ()) -> m ()
+dequeueActions :: MonadIO m => ActionQueue -> ((Text, Exists Show) -> m ()) -> (forall a. Compound Action a -> m ()) -> m ()
 dequeueActions q h x =
     forever $
         liftIO (takeMVar q.unwrap) >>= \case
             Right (Some a) -> x a
             Left e -> h e
-type ActionOrError = Either (Text, Exists Show) (Some PerformActions)
+type ActionOrError = Either (Text, Exists Show) (Some (Compound Action))
 
 main :: IO ()
 main = do
@@ -130,12 +111,12 @@ main = do
             forever do
                 bs <- recv sock 4096
                 case decodeAction $ BSL.fromStrict bs of
-                    Right (Some x) -> enqueueAction queue $ performAction x
+                    Right (Some x) -> enqueueAction queue $ Compound.single x
                     Left e -> enqueueError queue "Decode failure" e
 
     let listenForButton =
             gpioMon opts.buttonDebounce opts.buttonPin . enqueueAction queue $
-                performAction ToggleLight >>= flip unless (performAction SuspendBilly)
+                Compound.single ToggleLight >>= flip unless (Compound.single SuspendBilly)
 
     let handleError :: Show a => Text -> a -> AppM ()
         handleError title body = do
@@ -148,7 +129,7 @@ main = do
     listenOnNetwork `concurrently_` listenForButton `concurrently_` runLifxUntilSuccess (lifxTime opts.lifxTimeout) do
         flip evalStateT mempty . (.unwrap) . dequeueActions @AppM queue (\(s, Exists e) -> handleError s e) $
             either (\(s, Exists e) -> handleError s e) (const $ pure ())
-                <=< performActions \action -> runExceptT @(Text, Exists Show) do
+                <=< Compound.run \action -> runExceptT @(Text, Exists Show) do
                     pPrint action -- TODO better logging
                     case action of
                         ResetError ->

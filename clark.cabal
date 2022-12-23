@@ -8,6 +8,8 @@ maintainer:         georgefsthomas@gmail.com
 
 executable clark
     main-is: Main.hs
+    other-modules:
+        Compound
     default-extensions:
         BlockArguments
         DerivingStrategies
