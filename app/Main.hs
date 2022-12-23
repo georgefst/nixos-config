@@ -129,7 +129,7 @@ main = do
     listenOnNetwork `concurrently_` listenForButton `concurrently_` runLifxUntilSuccess (lifxTime opts.lifxTimeout) do
         flip evalStateT mempty . (.unwrap) . dequeueActions @AppM queue (\(s, Exists e) -> handleError s e) $
             either (\(s, Exists e) -> handleError s e) (const $ pure ())
-                <=< Compound.run \action -> runExceptT @(Text, Exists Show) do
+                <=< runExceptT @(Text, Exists Show) . Compound.run \action -> do
                     pPrint action -- TODO better logging
                     case action of
                         ResetError ->

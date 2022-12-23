@@ -16,8 +16,8 @@ instance Monad (Compound f) where
 single :: f a -> Compound f a
 single = One
 
-run :: Monad m => (forall r. f r -> m (Either e r)) -> Compound f a -> m (Either e a)
+run :: Monad m => (forall r. f r -> m r) -> Compound f a -> m a
 run go = \case
-    Compound m f -> run go m >>= either (pure . Left) (run go . f)
+    Compound m f -> run go m >>= (run go . f)
     One a -> go a
-    Simple x -> pure $ Right x
+    Simple x -> pure x
