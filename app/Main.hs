@@ -62,7 +62,7 @@ instance ParseRecord Opts where
 data Action a where
     ResetError :: Action ()
     ToggleLight :: Action Bool -- returns `True` if the light is _now_ on
-    SendEmail :: {subject :: Text, body :: Text} -> Action ()
+    SendEmail :: {subject :: Text, body :: Text} -> Action (Response BSL.ByteString)
     SuspendBilly :: Action ()
 deriving instance Show (Action a)
 
@@ -201,11 +201,9 @@ data EmailOpts = EmailOpts
     , subject :: Text
     , body :: Text
     }
-sendEmail :: MonadIO m => EmailOpts -> m (Either HttpExceptionContent ())
+sendEmail :: MonadIO m => EmailOpts -> m (Either HttpExceptionContent (Response BSL.ByteString))
 sendEmail EmailOpts{..} =
-    liftIO $
-        (Right () <$ postWith postOpts url formParams)
-            `catchHttpException` (pure . Left)
+    liftIO $ tryHttpException $ postWith postOpts url formParams
   where
     postOpts = defaults & auth ?~ basicAuth "api" (encodeUtf8 mailgunKey)
     url = "https://api.mailgun.net/v3/sandbox" <> T.unpack mailgunSandbox <> ".mailgun.org/messages"
@@ -215,7 +213,7 @@ sendEmail EmailOpts{..} =
         , "subject" := subject
         , "text" := body
         ]
-    catchHttpException = catchJust \case
+    tryHttpException = tryJust \case
         HttpExceptionRequest _ e -> Just e
         InvalidUrlException _ _ -> Nothing
 
