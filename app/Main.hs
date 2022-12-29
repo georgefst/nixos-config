@@ -124,9 +124,9 @@ main = do
         handleError title body = do
             withSGR' Red $ T.putStrLn $ title <> ":"
             pPrintOpt CheckColorTty defaultOutputOptionsDarkBg{outputOptionsInitialIndent = 4} body
-            gets (Map.lookup opts.ledErrorPin) >>= \case
-                Nothing -> modify . Map.insert opts.ledErrorPin =<< gpioSet [opts.ledErrorPin]
-                Just _ -> liftIO $ putStrLn "LED is already on"
+            gets (Map.member opts.ledErrorPin) >>= \case
+                False -> modify . Map.insert opts.ledErrorPin =<< gpioSet [opts.ledErrorPin]
+                True -> liftIO $ putStrLn "LED is already on"
 
     listenOnNetwork `concurrently_` listenForButton `concurrently_` runLifxUntilSuccess (lifxTime opts.lifxTimeout) do
         flip evalStateT mempty . (.unwrap) . dequeueActions @AppM queue (\(s, Exists e) -> handleError s e) $
