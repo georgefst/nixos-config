@@ -72,13 +72,13 @@ deriving instance Show (Action a)
 -- TODO add these instances upstream (and/or remove the `MonadState` instance so that we don't even need opaque `AppM`)
 deriving newtype instance MonadThrow (LifxT IO)
 deriving newtype instance MonadCatch (LifxT IO)
-newtype AppM x = AppM {unwrap :: StateT (Map Int ProcessHandle) (LifxT IO) x}
+newtype AppM x = AppM {unwrap :: StateT (Map Int (Process Inherit Inherit Inherit)) (LifxT IO) x}
     deriving newtype
         ( Functor
         , Applicative
         , Monad
         , MonadIO
-        , MonadState (Map Int ProcessHandle)
+        , MonadState (Map Int (Process Inherit Inherit Inherit))
         , MonadLifx
         , MonadThrow
         , MonadCatch
@@ -204,7 +204,7 @@ sendEmail EmailOpts{..} =
 {- Util -}
 
 -- TODO get a proper Haskell GPIO library (hpio?) working with the modern interface
-gpioSet :: MonadIO m => [Int] -> m ProcessHandle
+gpioSet :: MonadIO m => [Int] -> m (Process Inherit Inherit Inherit)
 gpioSet xs =
     liftIO
         . startProcess
@@ -233,8 +233,6 @@ gpioMon debounce pin x = do
             pure t1
 gpioChip :: ByteString
 gpioChip = "gpiochip0"
-
-type ProcessHandle = Process Inherit Inherit Inherit
 
 -- TODO upstream?
 statePowerToBool :: StatePower -> Bool
