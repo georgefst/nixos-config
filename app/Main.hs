@@ -147,13 +147,14 @@ main = do
                                 =<< liftIO
                                     ( timeout
                                         (opts.sshTimeout * 1_000_000)
-                                        ( callProcess $ proc
-                                            "ssh"
-                                            [ "-i/home/gthomas/.ssh/id_rsa"
-                                            , "-oUserKnownHostsFile=/home/gthomas/.ssh/known_hosts"
-                                            , "gthomas@billy"
-                                            , "systemctl suspend"
-                                            ]
+                                        ( callProcess $
+                                            proc
+                                                "ssh"
+                                                [ "-i/home/gthomas/.ssh/id_rsa"
+                                                , "-oUserKnownHostsFile=/home/gthomas/.ssh/known_hosts"
+                                                , "gthomas@billy"
+                                                , "systemctl suspend"
+                                                ]
                                         )
                                     )
 
