@@ -150,7 +150,7 @@ in
         while true
         do
           NEW_IP=$(curl -s https://ipinfo.io/ip)
-          if [[ -n $IP && $NEW_IP != $IP ]]
+          if [[ $NEW_IP != $IP ]]
           then
             echo "Changed: $NEW_IP"
             curl -s --user 'api:${secrets.mailgun.key}' \
