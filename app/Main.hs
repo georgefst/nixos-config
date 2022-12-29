@@ -147,7 +147,7 @@ main = do
                                 =<< liftIO
                                     ( timeout
                                         (opts.sshTimeout * 1_000_000)
-                                        ( callProcess $
+                                        ( fmap fst3 $ readProcessWithExitCode $
                                             proc
                                                 "ssh"
                                                 [ "-i/home/gthomas/.ssh/id_rsa"
