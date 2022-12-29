@@ -149,9 +149,10 @@ in
         IP=""
         while true
         do
-          NEW_IP=$(curl https://ipinfo.io/ip)
+          NEW_IP=$(curl -s https://ipinfo.io/ip)
           if [[ -n $IP && $NEW_IP != $IP ]]
           then
+            echo "Changed: $NEW_IP"
             curl -s --user 'api:${secrets.mailgun.key}' \
               https://api.mailgun.net/v3/sandbox${secrets.mailgun.sandbox}.mailgun.org/messages \
               -F from='Mailgun Sandbox <postmaster@sandbox${secrets.mailgun.sandbox}.mailgun.org>' \
@@ -159,9 +160,11 @@ in
               -F subject='Public IP address changed' \
               -F text="Old: $IP, New: $NEW_IP" \
             || sed -i "1iClark IP checker failed to send email: $(date)" ${syncthing-main-dir}/notes/todo.md
+          else
+            echo "No change"
           fi
           IP=$NEW_IP
-          sleep $((60 * 60))
+          sleep $((15 * 60))
         done
       '';
       description = "notify when IP changes";
