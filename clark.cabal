@@ -40,7 +40,7 @@ executable clark
         network >= 3.1.2,
         optparse-generic >= 1.4.6,
         pretty-simple >= 4.0.0,
-        process >= 1.6.13,
+        rawfilepath >= 1.0,
         text >= 1.2.4,
         time >= 1.9.3,
         transformers >= 0.5.6,

@@ -19,6 +19,7 @@ import Control.Monad.State
 import Data.Binary qualified as B
 import Data.Binary.Get (runGetOrFail)
 import Data.Binary.Get qualified as B
+import Data.ByteString (ByteString)
 import Data.ByteString.Lazy qualified as BSL
 import Data.Map (Map)
 import Data.Map qualified as Map
@@ -35,9 +36,10 @@ import Network.Socket
 import Network.Socket.ByteString
 import Network.Wreq hiding (get, put)
 import Options.Generic
+import RawFilePath
 import System.Console.ANSI
+import System.Exit
 import System.IO
-import System.Process.Extra
 import System.Timeout (timeout)
 
 data Opts = Opts
@@ -64,7 +66,7 @@ data Action a where
     ResetError :: Action ()
     ToggleLight :: Action Bool -- returns `True` if the light is _now_ on
     SendEmail :: {subject :: Text, body :: Text} -> Action (Response BSL.ByteString)
-    SuspendBilly :: Action ()
+    SuspendBilly :: Action ExitCode
 deriving instance Show (Action a)
 
 -- TODO add these instances upstream (and/or remove the `MonadState` instance so that we don't even need opaque `AppM`)
@@ -116,7 +118,7 @@ main = do
 
     let listenForButton =
             gpioMon opts.buttonDebounce opts.buttonPin . enqueueAction queue $
-                Compound.single ToggleLight >>= flip unless (Compound.single SuspendBilly)
+                Compound.single ToggleLight >>= flip unless (void $ Compound.single SuspendBilly)
 
     let handleError :: Show a => Text -> a -> AppM ()
         handleError title body = do
@@ -124,7 +126,7 @@ main = do
             pPrintOpt CheckColorTty defaultOutputOptionsDarkBg{outputOptionsInitialIndent = 4} body
             gets (Map.lookup opts.ledErrorPin) >>= \case
                 Nothing -> modify . Map.insert opts.ledErrorPin =<< gpioSet [opts.ledErrorPin]
-                Just h -> liftIO $ putStrLn . ("LED is already on: pid " <>) . maybe "not found" show =<< getPid h
+                Just _ -> liftIO $ putStrLn "LED is already on"
 
     listenOnNetwork `concurrently_` listenForButton `concurrently_` runLifxUntilSuccess (lifxTime opts.lifxTimeout) do
         flip evalStateT mempty . (.unwrap) . dequeueActions @AppM queue (\(s, Exists e) -> handleError s e) $
@@ -145,7 +147,7 @@ main = do
                                 =<< liftIO
                                     ( timeout
                                         (opts.sshTimeout * 1_000_000)
-                                        ( callProcess
+                                        ( callProcess $ proc
                                             "ssh"
                                             [ "-i/home/gthomas/.ssh/id_rsa"
                                             , "-oUserKnownHostsFile=/home/gthomas/.ssh/known_hosts"
@@ -204,21 +206,20 @@ sendEmail EmailOpts{..} =
 gpioSet :: MonadIO m => [Int] -> m ProcessHandle
 gpioSet xs =
     liftIO
-        . fmap (\(_, _, _, x) -> x)
-        . createProcess
+        . startProcess
         . proc "gpioset"
-        $ "--mode=signal" : gpioChip : map ((<> "=1") . show) xs
+        $ "--mode=signal" : gpioChip : map ((<> "=1") . showBS) xs
 gpioMon :: Double -> Int -> IO () -> IO ()
 gpioMon debounce pin x = do
     putStrLn "Starting gpiomon process..."
-    hs@(_, Just gpiomonStdout, _, _) <-
-        createProcess
-            (proc "gpiomon" ["-b", "-f", gpioChip, show pin])
-                { std_out = CreatePipe
-                }
+    p <-
+        startProcess $
+            proc "gpiomon" ["-b", "-f", gpioChip, showBS pin]
+                `setStdout` CreatePipe
+    let gpiomonStdout = processStdout p
     putStrLn "Done!"
 
-    handle (\(e :: IOException) -> print e >> cleanupProcess hs) $
+    handle (\(e :: IOException) -> print e >> terminateProcess p >> hClose gpiomonStdout) $
         getCurrentTime >>= iterateM_ \t0 -> do
             line <- hGetLine gpiomonStdout
             t1 <- getCurrentTime
@@ -229,12 +230,19 @@ gpioMon debounce pin x = do
                     x
             putStrLn line
             pure t1
-gpioChip :: String
+gpioChip :: ByteString
 gpioChip = "gpiochip0"
+
+type ProcessHandle = Process Inherit Inherit Inherit
 
 -- TODO upstream?
 statePowerToBool :: StatePower -> Bool
 statePowerToBool = (/= StatePower 0)
+
+showT :: Show a => a -> Text
+showT = T.pack . show
+showBS :: Show a => a -> ByteString
+showBS = encodeUtf8 . showT
 
 -- TODO lifx-lan should probably use a time library type, rather than Int
 lifxTime :: Double -> Int
