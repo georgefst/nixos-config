@@ -9,7 +9,9 @@ instance Functor (Compound f) where
     fmap = (<*>) . pure
 instance Applicative (Compound f) where
     pure = Simple
-    (<*>) = (. flip fmap) . (>>=)
+
+    {- HLINT ignore "Use <&>" -}
+    (<*>) m1 m2 = m1 >>= (m2 >>=) . (pure .)
 instance Monad (Compound f) where
     (>>=) = Compound
 
