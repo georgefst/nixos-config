@@ -49,3 +49,4 @@ executable clark
     default-language: GHC2021
     ghc-options:
         -Wall
+        -threaded

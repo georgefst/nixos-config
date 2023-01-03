@@ -20,7 +20,9 @@ import Data.Binary qualified as B
 import Data.Binary.Get (runGetOrFail)
 import Data.Binary.Get qualified as B
 import Data.ByteString (ByteString)
+import Data.ByteString qualified as B
 import Data.ByteString.Lazy qualified as BSL
+import Data.Either.Extra
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Text qualified as T
@@ -40,7 +42,6 @@ import RawFilePath
 import System.Console.ANSI
 import System.Exit
 import System.IO
-import System.Timeout (timeout)
 
 data Opts = Opts
     { buttonDebounce :: Double
@@ -145,10 +146,8 @@ main = do
                         SuspendBilly ->
                             maybe (throwError ("SSH timeout", Exists ())) pure
                                 =<< liftIO
-                                    ( timeout
-                                        (opts.sshTimeout * 1_000_000)
-                                        ( fmap fst3
-                                            . readProcessWithExitCode
+                                        ( fmap (fmap fst3)
+                                            . readProcessWithExitCodeTimeout (opts.sshTimeout * 1_000_000)
                                             $ proc
                                                 "ssh"
                                                 [ "-i/home/gthomas/.ssh/id_rsa"
@@ -157,7 +156,6 @@ main = do
                                                 , "systemctl suspend"
                                                 ]
                                         )
-                                    )
 
 decodeAction :: BSL.ByteString -> Either (BSL.ByteString, B.ByteOffset, String) (Some Action)
 decodeAction =
@@ -269,3 +267,20 @@ data Exists c where
     Exists :: c a => a -> Exists c
 data Some d where
     Some :: Show a => d a -> Some d
+
+--TODO return partial stdout/stderr in timeout case
+
+{- | Essentially `\t -> timeout t . readProcessWithExitCode`, except that it actually works since it uses `SIGTERM`,
+whereas `timeout` uses an async exception, and thus isn't good at terminating foreign code.
+Time is in microseconds, as with `threadDelay` and `timeout`.
+-}
+readProcessWithExitCodeTimeout :: Int -> ProcessConf stdin stdout stderr -> IO (Maybe (ExitCode, ByteString, ByteString))
+readProcessWithExitCodeTimeout t conf = do
+    p <-
+        startProcess $
+            conf
+                `setStdin` NoStream
+                `setStdout` CreatePipe
+                `setStderr` CreatePipe
+    eitherToMaybe @() <$> ((threadDelay t >> terminateProcess p) `race` waitForProcess p)
+        >>= traverse \exitCode -> (exitCode,,) <$> B.hGetContents (processStdout p) <*> B.hGetContents (processStderr p)
