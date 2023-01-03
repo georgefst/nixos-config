@@ -1,6 +1,8 @@
 -- TODO release this as a library? look in to how it relates to free monads
 module Compound (Compound, single, run) where
 
+import Control.Monad (ap)
+
 data Compound f a where
     Compound :: Compound f a -> (a -> Compound f b) -> Compound f b
     One :: f a -> Compound f a
@@ -9,9 +11,7 @@ instance Functor (Compound f) where
     fmap = (<*>) . pure
 instance Applicative (Compound f) where
     pure = Simple
-
-    {- HLINT ignore "Use <&>" -}
-    (<*>) m1 m2 = m1 >>= (m2 >>=) . (pure .)
+    (<*>) = ap
 instance Monad (Compound f) where
     (>>=) = Compound
 
