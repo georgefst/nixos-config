@@ -23,6 +23,7 @@ import Data.ByteString (ByteString)
 import Data.ByteString qualified as B
 import Data.ByteString.Lazy qualified as BSL
 import Data.Either.Extra
+import Data.Foldable (for_)
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Text qualified as T
@@ -42,7 +43,6 @@ import RawFilePath
 import System.Console.ANSI
 import System.Exit
 import System.IO
-import Data.Foldable (for_)
 
 data Opts = Opts
     { buttonDebounce :: Double
@@ -147,16 +147,16 @@ main = do
                         SuspendBilly ->
                             maybe (throwError ("SSH timeout", Exists ())) pure
                                 =<< liftIO
-                                        ( traverse (\(e, out, err) -> showOutput out err >> pure e)
-                                            <=< readProcessWithExitCodeTimeout (opts.sshTimeout * 1_000_000)
-                                            $ proc
-                                                "ssh"
-                                                [ "-i/home/gthomas/.ssh/id_rsa"
-                                                , "-oUserKnownHostsFile=/home/gthomas/.ssh/known_hosts"
-                                                , "gthomas@billy"
-                                                , "systemctl suspend"
-                                                ]
-                                        )
+                                    ( traverse (\(e, out, err) -> showOutput out err >> pure e)
+                                        <=< readProcessWithExitCodeTimeout (opts.sshTimeout * 1_000_000)
+                                        $ proc
+                                            "ssh"
+                                            [ "-i/home/gthomas/.ssh/id_rsa"
+                                            , "-oUserKnownHostsFile=/home/gthomas/.ssh/known_hosts"
+                                            , "gthomas@billy"
+                                            , "systemctl suspend"
+                                            ]
+                                    )
                           where
                             showOutput out err = for_ [("stdout", out), ("stderr", err)] \(s, t) ->
                                 unless (B.null out) $ T.putStrLn ("    " <> s <> ": ") >> B.putStr t
@@ -272,7 +272,7 @@ data Exists c where
 data Some d where
     Some :: Show a => d a -> Some d
 
---TODO return partial stdout/stderr in timeout case
+-- TODO return partial stdout/stderr in timeout case
 
 {- | Essentially `\t -> timeout t . readProcessWithExitCode`, except that it actually works since it uses `SIGTERM`,
 whereas `timeout` uses an async exception, and thus isn't good at terminating foreign code.
