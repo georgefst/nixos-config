@@ -42,6 +42,7 @@ import RawFilePath
 import System.Console.ANSI
 import System.Exit
 import System.IO
+import Data.Foldable (for_)
 
 data Opts = Opts
     { buttonDebounce :: Double
@@ -146,8 +147,8 @@ main = do
                         SuspendBilly ->
                             maybe (throwError ("SSH timeout", Exists ())) pure
                                 =<< liftIO
-                                        ( fmap (fmap fst3)
-                                            . readProcessWithExitCodeTimeout (opts.sshTimeout * 1_000_000)
+                                        ( traverse (\(e, out, err) -> showOutput out err >> pure e)
+                                            <=< readProcessWithExitCodeTimeout (opts.sshTimeout * 1_000_000)
                                             $ proc
                                                 "ssh"
                                                 [ "-i/home/gthomas/.ssh/id_rsa"
@@ -156,6 +157,9 @@ main = do
                                                 , "systemctl suspend"
                                                 ]
                                         )
+                          where
+                            showOutput out err = for_ [("stdout", out), ("stderr", err)] \(s, t) ->
+                                unless (B.null out) $ T.putStrLn ("    " <> s <> ": ") >> B.putStr t
 
 decodeAction :: BSL.ByteString -> Either (BSL.ByteString, B.ByteOffset, String) (Some Action)
 decodeAction =
