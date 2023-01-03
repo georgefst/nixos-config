@@ -9,8 +9,8 @@ source-repository-package
 --TODO https://github.com/cdepillabout/pretty-simple/issues/82#issuecomment-921094150
 source-repository-package
     type: git
-    location: https://github.com/georgefst/pretty-simple
-    tag: 33c26718312572746792969c8502fde46e47fa9b
+    location: https://github.com/cdepillabout/pretty-simple
+    tag: 15a67c3d22aa1bb97063058667c0121566e53131
 --TODO https://github.com/TomMD/entropy/pull/20#issuecomment-1100221632
 source-repository-package
     type: git
