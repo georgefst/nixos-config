@@ -33,7 +33,6 @@ import Data.Time
 import Data.Tuple.Extra hiding (first, second)
 import Data.Word
 import Lifx.Lan hiding (SetColor)
-import Lifx.Lan.Internal (LifxT (LifxT))
 import Network.HTTP.Client
 import Network.Socket
 import Network.Socket.ByteString
@@ -71,20 +70,7 @@ data Action a where
     SuspendBilly :: Action ExitCode
 deriving instance Show (Action a)
 
--- TODO add these instances upstream (and/or remove the `MonadState` instance so that we don't even need opaque `AppM`)
-deriving newtype instance MonadThrow (LifxT IO)
-deriving newtype instance MonadCatch (LifxT IO)
-newtype AppM x = AppM {unwrap :: StateT (Map Int (Process Inherit Inherit Inherit)) (LifxT IO) x}
-    deriving newtype
-        ( Functor
-        , Applicative
-        , Monad
-        , MonadIO
-        , MonadState (Map Int (Process Inherit Inherit Inherit))
-        , MonadLifx
-        , MonadThrow
-        , MonadCatch
-        )
+type AppM x = StateT (Map Int (Process Inherit Inherit Inherit)) (LifxT IO) x
 
 newtype ActionQueue = ActionQueue {unwrap :: MVar ActionOrError}
 newActionQueue :: MonadIO m => m ActionQueue
@@ -131,7 +117,7 @@ main = do
                 True -> liftIO $ putStrLn "LED is already on"
 
     listenOnNetwork `concurrently_` listenForButton `concurrently_` runLifxUntilSuccess (lifxTime opts.lifxTimeout) do
-        flip evalStateT mempty . (.unwrap) . dequeueActions @AppM queue (\(s, Exists e) -> handleError s e) $
+        flip evalStateT mempty . dequeueActions queue (\(s, Exists e) -> handleError s e) $
             either (\(s, Exists e) -> handleError s e) (const $ pure ())
                 <=< runExceptT @(Text, Exists Show) . Compound.run \action -> do
                     pPrint action -- TODO better logging
