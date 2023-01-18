@@ -145,7 +145,7 @@ main = do
                                     )
                           where
                             showOutput out err = for_ [("stdout", out), ("stderr", err)] \(s, t) ->
-                                unless (B.null out) $ T.putStrLn ("    " <> s <> ": ") >> B.putStr t
+                                unless (B.null t) $ T.putStrLn ("    " <> s <> ": ") >> B.putStr t
 
 decodeAction :: BSL.ByteString -> Either (BSL.ByteString, B.ByteOffset, String) (Some Action)
 decodeAction =
