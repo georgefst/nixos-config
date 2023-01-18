@@ -67,7 +67,7 @@ data Action a where
     ResetError :: Action ()
     ToggleLight :: Action Bool -- returns `True` if the light is _now_ on
     SendEmail :: {subject :: Text, body :: Text} -> Action (Response BSL.ByteString)
-    SuspendBilly :: Action ExitCode
+    SuspendBilly :: Action (Maybe ExitCode)
 deriving instance Show (Action a)
 
 type AppM x = StateT (Map Int (Process Inherit Inherit Inherit)) (LifxT IO) x
@@ -131,7 +131,10 @@ main = do
                             sendEmail EmailOpts{..}
                                 >>= either (throwError . ("Failed to send email",) . Exists) pure
                         SuspendBilly ->
-                            maybe (throwError ("SSH timeout", Exists ())) pure
+                            -- TODO restore error throwing once we have a physical button for `ResetError`
+                            -- maybe (throwError ("SSH timeout", Exists ())) pure
+                            {- HLINT ignore main "Monad law, right identity" -}
+                            pure
                                 =<< liftIO
                                     ( traverse (\(e, out, err) -> showOutput out err >> pure e)
                                         <=< readProcessWithExitCodeTimeout (opts.sshTimeout * 1_000_000)
