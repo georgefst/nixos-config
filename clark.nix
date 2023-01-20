@@ -255,4 +255,10 @@ in
       };
     };
   };
+  # allows certain scripts and config files to be compatible across my devices
+  system.activationScripts.syncthing-root-link.text = ''
+    if [[ ! -e /syncthing ]]; then
+      ln -s ${syncthing-main-dir} /syncthing
+    fi
+  '';
 }
