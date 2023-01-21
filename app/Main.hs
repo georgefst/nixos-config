@@ -151,9 +151,9 @@ main = do
                                             , "systemctl suspend"
                                             ]
                                     )
-                          where
-                            showOutput out err = for_ [("stdout", out), ("stderr", err)] \(s, t) ->
-                                unless (B.null t) $ T.putStrLn ("    " <> s <> ": ") >> B.putStr t
+  where
+    showOutput out err = liftIO $ for_ [("stdout", out), ("stderr", err)] \(s, t) ->
+        unless (B.null t) $ T.putStrLn ("    " <> s <> ": ") >> B.putStr t
 
 decodeAction :: BSL.ByteString -> Either (BSL.ByteString, B.ByteOffset, String) (Some Action)
 decodeAction =
