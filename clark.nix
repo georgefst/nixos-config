@@ -142,7 +142,7 @@ in
           --ssh-timeout 3 \
       '';
       description = "clark script";
-      path = [ pkgs.libgpiod pkgs.openssh ];
+      path = [ pkgs.libgpiod pkgs.mosquitto pkgs.openssh ];
       wantedBy = startup;
     };
     email-ip = {
