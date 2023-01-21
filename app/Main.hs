@@ -1,6 +1,3 @@
-{-# LANGUAGE UndecidableInstances #-}
-{-# OPTIONS_GHC -Wno-orphans #-}
-
 module Main (main) where
 
 -- TODO this is in its own section due to a Fourmolu bug with reordering comments in import lists
