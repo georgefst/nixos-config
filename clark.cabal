@@ -10,8 +10,10 @@ executable clark
     main-is: Main.hs
     other-modules:
         Compound
+        MQTT.Meross
     default-extensions:
         BlockArguments
+        DeriveAnyClass
         DerivingStrategies
         DuplicateRecordFields
         GADTs
@@ -25,6 +27,7 @@ executable clark
         RecordWildCards
     build-depends:
         base >= 4.16,
+        aeson ^>= 2.1.1,
         ansi-terminal >= 0.11,
         async >= 2.2.4,
         binary >= 0.8.9,

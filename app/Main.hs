@@ -30,6 +30,7 @@ import Data.Time
 import Data.Tuple.Extra hiding (first, second)
 import Data.Word
 import Lifx.Lan hiding (SetColor)
+import MQTT.Meross qualified
 import Network.HTTP.Client
 import Network.Socket
 import Network.Socket.ByteString
@@ -63,6 +64,7 @@ instance ParseRecord Opts where
 data Action a where
     ResetError :: Action ()
     ToggleLight :: Action Bool -- returns `True` if the light is _now_ on
+    SetDeskUSBPower :: Bool -> Action ()
     SendEmail :: {subject :: Text, body :: Text} -> Action (Response BSL.ByteString)
     SuspendBilly :: Action (Maybe ExitCode)
 deriving instance Show (Action a)
@@ -104,6 +106,7 @@ main = do
     let listenForButton =
             gpioMon opts.buttonDebounce opts.buttonPin . enqueueAction queue $
                 Compound.single ToggleLight >>= \morning -> do
+                    Compound.single $ SetDeskUSBPower morning
                     unless morning . void $ Compound.single SuspendBilly
 
     let handleError :: Show a => Text -> a -> AppM ()
@@ -125,6 +128,10 @@ main = do
                                 Just h -> liftIO (terminateProcess h) >> modify (Map.delete opts.ledErrorPin)
                                 Nothing -> liftIO $ putStrLn "LED is already off"
                         ToggleLight -> toggleLight light
+                        SetDeskUSBPower b ->
+                            MQTT.Meross.send (MQTT.Meross.toggle 4 b) >>= \case
+                                ExitSuccess -> pure ()
+                                ExitFailure e -> throwError ("Failed to set desk USB power", Exists e)
                         SendEmail{subject, body} ->
                             sendEmail EmailOpts{..}
                                 >>= either (throwError . ("Failed to send email",) . Exists) pure
