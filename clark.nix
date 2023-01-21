@@ -14,6 +14,7 @@ let
   # arbitrary - all that matters is that these don't conflict with each other or anything else
   clark-script-port = 56710; # if we change this we need to modify Tasker config, .bashrc etc.
   droopy-port = 80;
+  mqtt-port = 8883; # actually the default port, and probably implicitly assumed all over, including outside this file
   extra-ports = [ 56720 ]; # for temporary scripts etc.
 
   file-server-dir = home + "/serve";
@@ -219,6 +220,14 @@ in
       path = [ pkgs.geckodriver pkgs.firefox ];
     };
   };
+  systemd.user.services = {
+    mosquitto = {
+      script = "mosquitto -c ${syncthing-main-dir}/config/mqtt/meross.conf -v";
+      description = "mosquitto MQTT broker";
+      path = [ pkgs.mosquitto ];
+      wantedBy = startup;
+    };
+  };
 
   # open ports
   networking.firewall.allowedUDPPorts = [
@@ -226,6 +235,7 @@ in
   ] ++ extra-ports;
   networking.firewall.allowedTCPPorts = [
     droopy-port
+    mqtt-port
   ] ++ extra-ports;
 
   # syncthing
