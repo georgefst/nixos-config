@@ -106,7 +106,8 @@ main = do
 
     let listenForButton =
             gpioMon opts.buttonDebounce opts.buttonPin . enqueueAction queue $
-                Compound.single ToggleLight >>= flip unless (void $ Compound.single SuspendBilly)
+                Compound.single ToggleLight >>= \morning -> do
+                    unless morning . void $ Compound.single SuspendBilly
 
     let handleError :: Show a => Text -> a -> AppM ()
         handleError title body = do
