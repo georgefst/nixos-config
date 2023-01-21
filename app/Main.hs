@@ -139,7 +139,7 @@ main = do
                                 =<< sendEmail EmailOpts{..}
                         SuspendBilly ->
                             -- TODO restore error throwing once we have a physical button for `ResetError`
-                            -- maybe (throwError ("SSH timeout", Exists ())) pure
+                            -- common up with `SetDeskUSBPower`
                             {- HLINT ignore main "Monad law, right identity" -}
                             pure
                                 =<< liftIO
