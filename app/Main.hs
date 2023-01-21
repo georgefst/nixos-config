@@ -128,10 +128,12 @@ main = do
                                 Just h -> liftIO (terminateProcess h) >> modify (Map.delete opts.ledErrorPin)
                                 Nothing -> liftIO $ putStrLn "LED is already off"
                         ToggleLight -> toggleLight light
-                        SetDeskUSBPower b ->
-                            MQTT.Meross.send (MQTT.Meross.toggle 4 b) >>= \case
+                        SetDeskUSBPower b -> do
+                            (e, out, err) <- MQTT.Meross.send $ MQTT.Meross.toggle 4 b
+                            showOutput out err
+                            case e of
                                 ExitSuccess -> pure ()
-                                ExitFailure e -> throwError ("Failed to set desk USB power", Exists e)
+                                ExitFailure n -> throwError ("Failed to set desk USB power", Exists n)
                         SendEmail{subject, body} ->
                             sendEmail EmailOpts{..}
                                 >>= either (throwError . ("Failed to send email",) . Exists) pure

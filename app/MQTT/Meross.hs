@@ -2,15 +2,16 @@ module MQTT.Meross (Message, send, toggle) where
 
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Aeson (ToJSON, encode)
+import Data.ByteString (ByteString)
 import Data.ByteString.Lazy qualified as BSL
 import Data.Text (Text)
 import GHC.Generics (Generic)
-import RawFilePath (callProcess, proc)
+import RawFilePath (proc, readProcessWithExitCode)
 import System.Exit (ExitCode)
 
-send :: MonadIO m => Message -> m ExitCode
+send :: MonadIO m => Message -> m (ExitCode, ByteString, ByteString)
 send m =
-    liftIO . callProcess $
+    liftIO . readProcessWithExitCode $
         proc
             "mosquitto_pub"
             [ "-h"
