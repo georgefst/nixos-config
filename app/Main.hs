@@ -135,8 +135,8 @@ main = do
                                 ExitSuccess -> pure ()
                                 ExitFailure n -> throwError ("Failed to set desk USB power", Exists n)
                         SendEmail{subject, body} ->
-                            sendEmail EmailOpts{..}
-                                >>= either (throwError . ("Failed to send email",) . Exists) pure
+                            either (throwError . ("Failed to send email",) . Exists) pure
+                                =<< sendEmail EmailOpts{..}
                         SuspendBilly ->
                             -- TODO restore error throwing once we have a physical button for `ResetError`
                             -- maybe (throwError ("SSH timeout", Exists ())) pure
