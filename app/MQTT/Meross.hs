@@ -5,10 +5,10 @@ import Data.Aeson (ToJSON, encode)
 import Data.ByteString (ByteString)
 import Data.ByteString.Lazy qualified as BSL
 import Data.Text (Text)
+import Data.Time.Clock.POSIX (getPOSIXTime)
 import GHC.Generics (Generic)
 import RawFilePath (proc, readProcessWithExitCode)
 import System.Exit (ExitCode)
-import Data.Time.Clock.POSIX (getPOSIXTime)
 
 send :: MonadIO m => Message -> m (ExitCode, ByteString, ByteString)
 send m =
@@ -29,30 +29,31 @@ send m =
 toggle :: MonadIO m => Int -> Bool -> m Message
 toggle channel onoff = do
     timestamp <- truncate <$> liftIO getPOSIXTime
-    pure Message
-        { header =
-            -- these values came from a random online example somewhere - hey, they work...
-            Header
-                { namespace = "Appliance.Control.ToggleX"
-                , method = "SET"
-                , from = "george/clark-haskell-script"
-                , payloadVersion = 1
-                , timestamp
-                , triggerSrc = "Android"
-                -- I'm not really sure what these fields mean, but changing them slightly stops everything working
-                , messageId = "ef6b8e50620ac768569f1f7abc6507a5"
-                , sign = "e48c24e510044d7e2d248c68ff2c10ca"
-                }
-        , payload =
-            Payload
-                { togglex =
-                    Just
-                        ToggleX
-                            { channel
-                            , onoff = fromEnum onoff
-                            }
-                }
-        }
+    pure
+        Message
+            { header =
+                -- these values came from a random online example somewhere - hey, they work...
+                Header
+                    { namespace = "Appliance.Control.ToggleX"
+                    , method = "SET"
+                    , from = "george/clark-haskell-script"
+                    , payloadVersion = 1
+                    , timestamp
+                    , triggerSrc = "Android"
+                    , -- I'm not really sure what these fields mean, but changing them slightly stops everything working
+                      messageId = "ef6b8e50620ac768569f1f7abc6507a5"
+                    , sign = "e48c24e510044d7e2d248c68ff2c10ca"
+                    }
+            , payload =
+                Payload
+                    { togglex =
+                        Just
+                            ToggleX
+                                { channel
+                                , onoff = fromEnum onoff
+                                }
+                    }
+            }
 
 data Message = Message
     { header :: Header
