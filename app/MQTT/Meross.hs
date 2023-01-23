@@ -36,10 +36,10 @@ toggle channel onoff = do
                 Header
                     { namespace = "Appliance.Control.ToggleX"
                     , method = "SET"
-                    , from = "george/clark-haskell-script"
+                    , from = "clark/haskell-script"
                     , payloadVersion = 1
                     , timestamp
-                    , triggerSrc = "Android"
+                    , triggerSrc = "George"
                     , -- I'm not really sure what these fields mean, but changing them slightly stops everything working
                       messageId = "ef6b8e50620ac768569f1f7abc6507a5"
                     , sign = "e48c24e510044d7e2d248c68ff2c10ca"
