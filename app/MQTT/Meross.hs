@@ -5,7 +5,6 @@ import Data.Aeson (ToJSON, encode)
 import Data.ByteString (ByteString)
 import Data.ByteString.Lazy qualified as BSL
 import Data.Text (Text)
-import Data.Time.Clock.POSIX (getPOSIXTime)
 import GHC.Generics (Generic)
 import RawFilePath (proc, readProcessWithExitCode)
 import System.Exit (ExitCode)
@@ -28,7 +27,8 @@ send m =
 
 toggle :: MonadIO m => Int -> Bool -> m Message
 toggle channel onoff = do
-    timestamp <- truncate <$> liftIO getPOSIXTime
+    -- TODO we should be using a proper `timestamp` and a random `messageId`, but we need to regenerate `sign`...
+    -- timestamp <- truncate <$> liftIO getPOSIXTime
     pure
         Message
             { header =
@@ -38,10 +38,9 @@ toggle channel onoff = do
                     , method = "SET"
                     , from = "clark/haskell-script"
                     , payloadVersion = 1
-                    , timestamp
                     , triggerSrc = "George"
-                    , -- I'm not really sure what these fields mean, but changing them slightly stops everything working
-                      messageId = "ef6b8e50620ac768569f1f7abc6507a5"
+                    , timestamp = 1601908439
+                    , messageId = "ef6b8e50620ac768569f1f7abc6507a5"
                     , sign = "e48c24e510044d7e2d248c68ff2c10ca"
                     }
             , payload =
