@@ -33,7 +33,7 @@ toggle channel onoff =
             Header
                 { namespace = "Appliance.Control.ToggleX"
                 , method = "SET"
-                , from = "/app/510112-0b0bf05b07dc5bb03fa414642e849a11/subscribe"
+                , from = "george/clark-haskell-script"
                 , payloadVersion = 1
                 , timestamp = 1601908439
                 , triggerSrc = "Android"
