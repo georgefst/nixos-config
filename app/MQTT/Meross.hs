@@ -34,11 +34,12 @@ toggle channel onoff =
                 { namespace = "Appliance.Control.ToggleX"
                 , method = "SET"
                 , from = "/app/510112-0b0bf05b07dc5bb03fa414642e849a11/subscribe"
-                , messageId = "ef6b8e50620ac768569f1f7abc6507a5"
                 , payloadVersion = 1
-                , sign = "e48c24e510044d7e2d248c68ff2c10ca"
                 , timestamp = 1601908439
                 , triggerSrc = "Android"
+                -- I'm not really sure what these fields mean, but changing them slightly stops everything working
+                , messageId = "ef6b8e50620ac768569f1f7abc6507a5"
+                , sign = "e48c24e510044d7e2d248c68ff2c10ca"
                 }
         , payload =
             Payload
