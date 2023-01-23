@@ -129,7 +129,7 @@ main = do
                                 Nothing -> liftIO $ putStrLn "LED is already off"
                         ToggleLight -> toggleLight light
                         SetDeskUSBPower b -> do
-                            (e, out, err) <- MQTT.Meross.send $ MQTT.Meross.toggle 4 b
+                            (e, out, err) <- MQTT.Meross.send =<< MQTT.Meross.toggle 4 b
                             showOutput out err
                             case e of
                                 ExitSuccess -> pure ()

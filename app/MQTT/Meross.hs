@@ -8,6 +8,7 @@ import Data.Text (Text)
 import GHC.Generics (Generic)
 import RawFilePath (proc, readProcessWithExitCode)
 import System.Exit (ExitCode)
+import Data.Time.Clock.POSIX (getPOSIXTime)
 
 send :: MonadIO m => Message -> m (ExitCode, ByteString, ByteString)
 send m =
@@ -25,9 +26,10 @@ send m =
             , BSL.toStrict $ encode m
             ]
 
-toggle :: Int -> Bool -> Message
-toggle channel onoff =
-    Message
+toggle :: MonadIO m => Int -> Bool -> m Message
+toggle channel onoff = do
+    timestamp <- truncate <$> liftIO getPOSIXTime
+    pure Message
         { header =
             -- these values came from a random online example somewhere - hey, they work...
             Header
@@ -35,7 +37,7 @@ toggle channel onoff =
                 , method = "SET"
                 , from = "george/clark-haskell-script"
                 , payloadVersion = 1
-                , timestamp = 1601908439
+                , timestamp
                 , triggerSrc = "Android"
                 -- I'm not really sure what these fields mean, but changing them slightly stops everything working
                 , messageId = "ef6b8e50620ac768569f1f7abc6507a5"
