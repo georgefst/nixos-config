@@ -168,6 +168,7 @@ decodeAction =
                 body <- decodeUtf8 <$> (B.getByteString . fromIntegral =<< B.get @Word16)
                 pure $ Some SendEmail{..}
             3 -> pure $ Some SuspendBilly
+            4 -> Some . SetDeskUSBPower . (/= 0) <$> B.get @Word8
             n -> fail $ "unknown action: " <> show n
 
 {- Run action -}
