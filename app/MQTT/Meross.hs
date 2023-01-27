@@ -14,9 +14,7 @@ send m =
     liftIO . readProcessWithExitCode $
         proc
             "mosquitto_pub"
-            [ "-h"
-            , "clark.local"
-            , "--insecure"
+            [ "--insecure"
             , "--cafile"
             , "/syncthing/config/mqtt/certs/ca/ca.crt"
             , "-t"
