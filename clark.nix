@@ -10,6 +10,7 @@ let
 
   # useful for systemd `wanted-by` field, to make services always on
   startup = [ "multi-user.target" ];
+  startup-user = [ "default.target" ];
 
   # arbitrary - all that matters is that these don't conflict with each other or anything else
   clark-script-port = 56710; # if we change this we need to modify Tasker config, .bashrc etc.
@@ -225,7 +226,7 @@ in
       script = "mosquitto -c ${syncthing-main-dir}/config/mqtt/meross.conf -v";
       description = "mosquitto MQTT broker";
       path = [ pkgs.mosquitto ];
-      wantedBy = startup;
+      wantedBy = startup-user;
     };
   };
 
