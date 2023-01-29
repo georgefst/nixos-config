@@ -89,7 +89,7 @@ type ActionOrError = Either (Text, Exists Show) (Some (Compound Action))
 main :: IO ()
 main = do
     hSetBuffering stdout LineBuffering -- TODO necessary when running as systemd service - why? report upstream
-    opts@Opts{mailgunSandbox, mailgunKey} <- getRecord "Clark"
+    (opts :: Opts) <- getRecord "Clark"
     queue <- newActionQueue
     -- TODO avoid hardcoding - discovery doesn't currently work on Clark (firewall?)
     let light = deviceFromAddress (192, 168, 1, 190)
@@ -136,7 +136,7 @@ main = do
                                 ExitFailure n -> throwError ("Failed to set desk USB power", Exists n)
                         SendEmail{subject, body} ->
                             either (throwError . ("Failed to send email",) . Exists) pure
-                                =<< sendEmail EmailOpts{..}
+                                =<< sendEmail ((\Opts{..} -> EmailOpts{..}) opts)
                         SuspendBilly ->
                             -- TODO restore error throwing once we have a physical button for `ResetError`
                             -- common up with `SetDeskUSBPower`
