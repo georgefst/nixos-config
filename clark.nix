@@ -9,8 +9,8 @@ let
   home = "/home/gthomas";
 
   # useful for systemd `wanted-by` field, to make services always on
-  startup = [ "multi-user.target" ];
-  startup-user = [ "default.target" ];
+  startup-root = [ "multi-user.target" ];
+  startup = [ "default.target" ];
 
   # arbitrary - all that matters is that these don't conflict with each other or anything else
   clark-script-port = 56710; # if we change this we need to modify Tasker config, .bashrc etc.
@@ -127,7 +127,7 @@ in
   ];
 
   # systemd
-  systemd.services = {
+  systemd.user.services = {
     clark = {
       script = ''
         ${home}/clark \
@@ -173,19 +173,6 @@ in
       path = [ pkgs.curl ];
       wantedBy = startup;
     };
-    droopy = {
-      script = ''
-        mkdir -p ${file-server-dir}
-        HOME=${home} droopy \
-          --dl \
-          -m 'Upload/download files' \
-          -d ${file-server-dir} \
-          ${builtins.toString droopy-port} \
-      '';
-      description = "droopy file server";
-      path = [ pkgs.droopy ];
-      wantedBy = startup;
-    };
     tennis-scraper = {
       script = ''
         ${home}/tennis-scraper \
@@ -208,10 +195,6 @@ in
       '';
       description = "tennis scraper";
       path = [ pkgs.curl ];
-      environment = {
-        # for Dhall - we probably wouldn't need this if we weren't running as root
-        XDG_CACHE_HOME = "${home}/.cache";
-      };
       wantedBy = startup;
       wants = [ "geckodriver.service" ];
     };
@@ -220,13 +203,27 @@ in
       description = "firefox webdriver interface";
       path = [ pkgs.geckodriver pkgs.firefox ];
     };
-  };
-  systemd.user.services = {
     mosquitto = {
       script = "mosquitto -c ${syncthing-main-dir}/config/mqtt/meross.conf -v";
       description = "mosquitto MQTT broker";
       path = [ pkgs.mosquitto ];
-      wantedBy = startup-user;
+      wantedBy = startup;
+    };
+  };
+  # for whatever reason (e.g. binding to port 80), these need to be run as root
+  systemd.services = {
+    droopy = {
+      script = ''
+        mkdir -p ${file-server-dir}
+        HOME=${home} droopy \
+          --dl \
+          -m 'Upload/download files' \
+          -d ${file-server-dir} \
+          ${builtins.toString droopy-port} \
+      '';
+      description = "droopy file server";
+      path = [ pkgs.droopy ];
+      wantedBy = startup-root;
     };
   };
 
