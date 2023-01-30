@@ -3,7 +3,6 @@ module Main (main) where
 -- TODO this is in its own section due to a Fourmolu bug with reordering comments in import lists
 import Text.Pretty.Simple hiding (Color (..), Intensity (..)) -- TODO https://github.com/quchen/prettyprinter/issues/233
 
-import Compound
 import Control.Concurrent
 import Control.Concurrent.Async
 import Control.Exception (IOException)
@@ -11,6 +10,7 @@ import Control.Lens
 import Control.Monad
 import Control.Monad.Catch
 import Control.Monad.Except
+import Control.Monad.Freer
 import Control.Monad.Loops
 import Control.Monad.State
 import Data.Binary qualified as B
@@ -34,7 +34,7 @@ import Lifx.Lan qualified as Lifx
 import MQTT.Meross qualified
 import Network.HTTP.Client
 import Network.Socket
-import Network.Socket.ByteString
+import Network.Socket.ByteString hiding (send)
 import Network.Wreq hiding (get, put)
 import Options.Generic
 import RawFilePath
@@ -78,15 +78,15 @@ newActionQueue :: MonadIO m => m ActionQueue
 newActionQueue = liftIO $ ActionQueue <$> newEmptyMVar
 enqueueError :: (MonadIO m, Show e) => ActionQueue -> Text -> e -> m ()
 enqueueError q t = liftIO . putMVar (q.unwrap) . curry Left t . Exists
-enqueueAction :: (MonadIO m, Show a) => ActionQueue -> Compound Action a -> m ()
+enqueueAction :: (MonadIO m, Show a) => ActionQueue -> Eff '[Action] a -> m ()
 enqueueAction q = liftIO . putMVar (q.unwrap) . Right . Some
-dequeueActions :: MonadIO m => ActionQueue -> ((Text, Exists Show) -> m ()) -> (forall a. Compound Action a -> m ()) -> m ()
+dequeueActions :: MonadIO m => ActionQueue -> ((Text, Exists Show) -> m ()) -> (forall a. Eff '[Action] a -> m ()) -> m ()
 dequeueActions q h x =
     forever $
         liftIO (takeMVar q.unwrap) >>= \case
             Right (Some a) -> x a
             Left e -> h e
-type ActionOrError = Either (Text, Exists Show) (Some (Compound Action))
+type ActionOrError = Either (Text, Exists Show) (Some (Eff '[Action]))
 
 main :: IO ()
 main = do
@@ -102,15 +102,15 @@ main = do
             forever do
                 bs <- recv sock 4096
                 case decodeAction $ BSL.fromStrict bs of
-                    Right (Some x) -> enqueueAction queue $ Compound.single x
+                    Right (Some x) -> enqueueAction queue $ send x
                     Left e -> enqueueError queue "Decode failure" e
 
     let listenForButton =
             gpioMon opts.buttonDebounce opts.buttonPin . enqueueAction queue $
-                Compound.single ToggleLight >>= \morning@(not -> night) -> do
-                    when morning $ Compound.single $ SetLightColour 30 maxBound 2800
-                    Compound.single $ SetDeskUSBPower morning
-                    when night . void $ Compound.single SuspendBilly
+                send ToggleLight >>= \morning@(not -> night) -> do
+                    when morning $ send $ SetLightColour 30 maxBound 2800
+                    send $ SetDeskUSBPower morning
+                    when night . void $ send SuspendBilly
 
     let handleError :: Show a => Text -> a -> AppM ()
         handleError title body = do
@@ -123,7 +123,7 @@ main = do
     listenOnNetwork `concurrently_` listenForButton `concurrently_` runLifxUntilSuccess (lifxTime opts.lifxTimeout) do
         flip evalStateT mempty . dequeueActions queue (\(s, Exists e) -> handleError s e) $
             either (\(s, Exists e) -> handleError s e) (const $ pure ())
-                <=< runExceptT @(Text, Exists Show) . Compound.run \action -> do
+                <=< runExceptT @(Text, Exists Show) . runM . translate \action -> do
                     pPrint action -- TODO better logging
                     case action of
                         ResetError ->
