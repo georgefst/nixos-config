@@ -107,10 +107,10 @@ main = do
 
     let listenForButton =
             gpioMon opts.buttonDebounce opts.buttonPin . enqueueAction queue $
-                Compound.single ToggleLight >>= \morning -> do
+                Compound.single ToggleLight >>= \morning@(not -> night) -> do
                     when morning $ Compound.single $ SetLightColour 30 maxBound 2800
                     Compound.single $ SetDeskUSBPower morning
-                    unless morning . void $ Compound.single SuspendBilly
+                    when night . void $ Compound.single SuspendBilly
 
     let handleError :: Show a => Text -> a -> AppM ()
         handleError title body = do

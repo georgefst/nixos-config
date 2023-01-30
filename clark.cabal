@@ -25,6 +25,7 @@ executable clark
         OverloadedStrings
         PartialTypeSignatures
         RecordWildCards
+        ViewPatterns
     build-depends:
         base >= 4.16,
         aeson ^>= 2.1.1,
