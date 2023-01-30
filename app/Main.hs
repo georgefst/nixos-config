@@ -30,6 +30,7 @@ import Data.Time
 import Data.Tuple.Extra hiding (first, second)
 import Data.Word
 import Lifx.Lan hiding (SetColor)
+import Lifx.Lan qualified as Lifx
 import MQTT.Meross qualified
 import Network.HTTP.Client
 import Network.Socket
@@ -64,6 +65,7 @@ instance ParseRecord Opts where
 data Action a where
     ResetError :: Action ()
     ToggleLight :: Action Bool -- returns `True` if the light is _now_ on
+    SetLightColour :: NominalDiffTime -> Word16 -> Word16 -> Action () -- brightness and temp
     SetDeskUSBPower :: Bool -> Action ()
     SendEmail :: {subject :: Text, body :: Text} -> Action (Response BSL.ByteString)
     SuspendBilly :: Action (Maybe ExitCode)
@@ -106,6 +108,7 @@ main = do
     let listenForButton =
             gpioMon opts.buttonDebounce opts.buttonPin . enqueueAction queue $
                 Compound.single ToggleLight >>= \morning -> do
+                    when morning $ Compound.single $ SetLightColour 30 maxBound 2800
                     Compound.single $ SetDeskUSBPower morning
                     unless morning . void $ Compound.single SuspendBilly
 
@@ -128,6 +131,11 @@ main = do
                                 Just h -> liftIO (terminateProcess h) >> modify (Map.delete opts.ledErrorPin)
                                 Nothing -> liftIO $ putStrLn "LED is already off"
                         ToggleLight -> toggleLight light
+                        SetLightColour time brightness kelvin -> sendMessage light $ Lifx.SetColor HSBK{..} time
+                          where
+                            -- these have no effect for this type of LIFX bulb
+                            hue = 0
+                            saturation = 0
                         SetDeskUSBPower b -> do
                             (e, out, err) <- MQTT.Meross.send =<< MQTT.Meross.toggle 2 b
                             showOutput out err
@@ -169,6 +177,7 @@ decodeAction =
                 pure $ Some SendEmail{..}
             3 -> pure $ Some SuspendBilly
             4 -> Some . SetDeskUSBPower . (/= 0) <$> B.get @Word8
+            5 -> Some <$> (SetLightColour . secondsToNominalDiffTime <$> B.get <*> B.get <*> B.get)
             n -> fail $ "unknown action: " <> show n
 
 {- Run action -}
