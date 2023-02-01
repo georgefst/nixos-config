@@ -75,7 +75,7 @@ type CompoundAction = Eff '[Action] ()
 sleepOrWake :: CompoundAction
 sleepOrWake =
     send ToggleLight >>= \morning@(not -> night) -> do
-        when morning $ send $ SetLightColour 30 maxBound 2800
+        when morning $ send $ SetLightColour 45 maxBound 2700
         send $ SetDeskUSBPower morning
         when night . void $ send SuspendBilly
 
