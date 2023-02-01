@@ -70,14 +70,10 @@ data Action a where
     SendEmail :: {subject :: Text, body :: Text} -> Action (Response BSL.ByteString)
     SuspendBilly :: Action (Maybe ExitCode)
 deriving instance Show (Action a)
-
-type CompoundAction = Eff '[Action] ()
-sleepOrWake :: CompoundAction
-sleepOrWake =
-    send ToggleLight >>= \morning@(not -> night) -> do
-        when morning $ send $ SetLightColour 45 maxBound 2700
-        send $ SetDeskUSBPower morning
-        when night . void $ send SuspendBilly
+data CompoundAction where
+    SimpleAction :: Action a -> CompoundAction
+    SleepOrWake :: CompoundAction
+deriving instance Show CompoundAction
 
 type AppM x = StateT (Map Int (Process Inherit Inherit Inherit)) (LifxT IO) x
 
@@ -113,7 +109,7 @@ main = do
                     Right x -> enqueueAction queue x
                     Left e -> enqueueError queue "Decode failure" e
 
-    let listenForButton = gpioMon opts.buttonDebounce opts.buttonPin $ enqueueAction queue sleepOrWake
+    let listenForButton = gpioMon opts.buttonDebounce opts.buttonPin $ enqueueAction queue SleepOrWake
 
     let handleError :: Show a => Text -> a -> AppM ()
         handleError title body = do
@@ -126,7 +122,9 @@ main = do
     listenOnNetwork `concurrently_` listenForButton `concurrently_` runLifxUntilSuccess (lifxTime opts.lifxTimeout) do
         flip evalStateT mempty . dequeueActions queue (\(s, Exists e) -> handleError s e) $
             either (\(s, Exists e) -> handleError s e) (const $ pure ())
-                <=< runExceptT @(Text, Exists Show) . runM . translate \action -> do
+                <=< runExceptT @(Text, Exists Show)
+                    . runM
+                    . ( translate \action -> do
                     pPrint action -- TODO better logging
                     case action of
                         ResetError ->
@@ -167,6 +165,15 @@ main = do
                                             , "systemctl suspend"
                                             ]
                                     )
+                      )
+                    . ( \case
+                            SimpleAction a -> void $ send a
+                            SleepOrWake ->
+                                send ToggleLight >>= \morning@(not -> night) -> do
+                                    when morning $ send $ SetLightColour 45 maxBound 2700
+                                    send $ SetDeskUSBPower morning
+                                    when night . void $ send SuspendBilly
+                      )
   where
     showOutput out err = liftIO $ for_ [("stdout", out), ("stderr", err)] \(s, t) ->
         unless (B.null t) $ T.putStrLn ("    " <> s <> ": ") >> B.putStr t
@@ -175,16 +182,16 @@ decodeAction :: BSL.ByteString -> Either (BSL.ByteString, B.ByteOffset, String) 
 decodeAction =
     fmap thd3 . runGetOrFail do
         B.get @Word8 >>= \case
-            0 -> pure $ send ResetError
-            1 -> pure . void $ send ToggleLight
+            0 -> pure $ SimpleAction ResetError
+            1 -> pure $ SimpleAction ToggleLight
             2 -> do
                 subject <- decodeUtf8 <$> (B.getByteString . fromIntegral =<< B.get @Word8)
                 body <- decodeUtf8 <$> (B.getByteString . fromIntegral =<< B.get @Word16)
-                pure . void $ send SendEmail{..}
-            3 -> pure . void $ send SuspendBilly
-            4 -> send . SetDeskUSBPower . (/= 0) <$> B.get @Word8
-            5 -> send <$> (SetLightColour . secondsToNominalDiffTime <$> B.get <*> B.get <*> B.get)
-            6 -> pure sleepOrWake
+                pure $ SimpleAction SendEmail{..}
+            3 -> pure $ SimpleAction SuspendBilly
+            4 -> SimpleAction . SetDeskUSBPower . (/= 0) <$> B.get @Word8
+            5 -> SimpleAction <$> (SetLightColour . secondsToNominalDiffTime <$> B.get <*> B.get <*> B.get)
+            6 -> pure SleepOrWake
             n -> fail $ "unknown action: " <> show n
 
 {- Util -}
