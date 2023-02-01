@@ -95,7 +95,7 @@ main = do
                         -- TODO better logging
                         pPrint action
                             >> runSimpleAction
-                                ((\Opts{..} -> ActionOpts{..}) opts)
+                                (opts & \Opts{..} -> ActionOpts{..})
                                 action
                     )
                 . runAction
@@ -139,7 +139,7 @@ runSimpleAction opts = \case
             ExitFailure n -> throwError ("Failed to set desk USB power", Exists n)
     SendEmail{subject, body} ->
         either (throwError . ("Failed to send email",) . Exists) pure
-            =<< sendEmail ((\ActionOpts{..} -> EmailOpts{..}) opts)
+            =<< sendEmail (opts & \ActionOpts{..} -> EmailOpts{..})
     SuspendBilly ->
         -- TODO restore error throwing once we have a physical button for `ResetError`
         -- common up with `SetDeskUSBPower`
