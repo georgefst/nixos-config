@@ -56,40 +56,9 @@ data Opts = Opts
     }
     deriving (Show, Generic)
 instance ParseRecord Opts where
-    parseRecord =
-        parseRecordWithModifiers
-            defaultModifiers
-                { fieldNameModifier = fieldNameModifier lispCaseModifiers
-                }
-
-data Action a where
-    ResetError :: Action ()
-    ToggleLight :: Action Bool -- returns `True` if the light is _now_ on
-    SetLightColour :: NominalDiffTime -> Word16 -> Word16 -> Action () -- brightness and temp
-    SetDeskUSBPower :: Bool -> Action ()
-    SendEmail :: {subject :: Text, body :: Text} -> Action (Response BSL.ByteString)
-    SuspendBilly :: Action (Maybe ExitCode)
-deriving instance Show (Action a)
-data CompoundAction where
-    SimpleAction :: Action a -> CompoundAction
-    SleepOrWake :: CompoundAction
-deriving instance Show CompoundAction
+    parseRecord = parseRecordWithModifiers defaultModifiers{fieldNameModifier = fieldNameModifier lispCaseModifiers}
 
 type AppM = StateT (Map Int (Process Inherit Inherit Inherit)) (LifxT IO)
-
-newtype ActionQueue = ActionQueue {unwrap :: MVar (Either (Text, Exists Show) CompoundAction)}
-newActionQueue :: MonadIO m => m ActionQueue
-newActionQueue = liftIO $ ActionQueue <$> newEmptyMVar
-enqueueError :: (MonadIO m, Show e) => ActionQueue -> Text -> e -> m ()
-enqueueError q t = liftIO . putMVar (q.unwrap) . curry Left t . Exists
-enqueueAction :: MonadIO m => ActionQueue -> CompoundAction -> m ()
-enqueueAction q = liftIO . putMVar (q.unwrap) . Right
-dequeueActions :: MonadIO m => ActionQueue -> ((Text, Exists Show) -> m ()) -> (CompoundAction -> m ()) -> m ()
-dequeueActions q h x =
-    forever $
-        liftIO (takeMVar q.unwrap) >>= \case
-            Right a -> x a
-            Left e -> h e
 
 main :: IO ()
 main = do
@@ -128,6 +97,14 @@ main = do
                         (\action -> pPrint action >> runAction light opts action)
                     . runCompoundAction
 
+data Action a where
+    ResetError :: Action ()
+    ToggleLight :: Action Bool -- returns `True` if the light is _now_ on
+    SetLightColour :: NominalDiffTime -> Word16 -> Word16 -> Action () -- brightness and temp
+    SetDeskUSBPower :: Bool -> Action ()
+    SendEmail :: {subject :: Text, body :: Text} -> Action (Response BSL.ByteString)
+    SuspendBilly :: Action (Maybe ExitCode)
+deriving instance Show (Action a)
 runAction :: Device -> Opts -> Action a -> ExceptT (Text, Exists Show) AppM a
 runAction light opts = \case
     ResetError ->
@@ -172,6 +149,10 @@ runAction light opts = \case
     showOutput out err = liftIO $ for_ [("stdout", out), ("stderr", err)] \(s, t) ->
         unless (B.null t) $ T.putStrLn ("    " <> s <> ": ") >> B.putStr t
 
+data CompoundAction where
+    SimpleAction :: Action a -> CompoundAction
+    SleepOrWake :: CompoundAction
+deriving instance Show CompoundAction
 runCompoundAction :: CompoundAction -> Eff '[Action] ()
 runCompoundAction = \case
     SimpleAction a -> void $ send a
@@ -180,7 +161,6 @@ runCompoundAction = \case
             when morning $ send $ SetLightColour 45 maxBound 2700
             send $ SetDeskUSBPower morning
             when night . void $ send SuspendBilly
-
 decodeAction :: BSL.ByteString -> Either (BSL.ByteString, B.ByteOffset, String) CompoundAction
 decodeAction =
     fmap thd3 . runGetOrFail do
@@ -196,6 +176,20 @@ decodeAction =
             5 -> SimpleAction <$> (SetLightColour . secondsToNominalDiffTime <$> B.get <*> B.get <*> B.get)
             6 -> pure SleepOrWake
             n -> fail $ "unknown action: " <> show n
+
+newtype ActionQueue = ActionQueue {unwrap :: MVar (Either (Text, Exists Show) CompoundAction)}
+newActionQueue :: MonadIO m => m ActionQueue
+newActionQueue = liftIO $ ActionQueue <$> newEmptyMVar
+enqueueError :: (MonadIO m, Show e) => ActionQueue -> Text -> e -> m ()
+enqueueError q t = liftIO . putMVar (q.unwrap) . curry Left t . Exists
+enqueueAction :: MonadIO m => ActionQueue -> CompoundAction -> m ()
+enqueueAction q = liftIO . putMVar (q.unwrap) . Right
+dequeueActions :: MonadIO m => ActionQueue -> ((Text, Exists Show) -> m ()) -> (CompoundAction -> m ()) -> m ()
+dequeueActions q h x =
+    forever $
+        liftIO (takeMVar q.unwrap) >>= \case
+            Right a -> x a
+            Left e -> h e
 
 {- Util -}
 
