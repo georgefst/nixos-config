@@ -105,7 +105,7 @@ data SimpleAction a where
     SetLightColour :: NominalDiffTime -> Word16 -> Word16 -> SimpleAction () -- brightness and temp
     SetDeskUSBPower :: Bool -> SimpleAction ()
     SendEmail :: {subject :: Text, body :: Text} -> SimpleAction (Response BSL.ByteString)
-    SuspendBilly :: SimpleAction (Maybe ExitCode)
+    SuspendBilly :: SimpleAction ExitCode
 deriving instance Show (SimpleAction a)
 data ActionOpts = ActionOpts
     { ledErrorPin :: Int
@@ -139,10 +139,7 @@ runSimpleAction opts = \case
         either (throwError . ("Failed to send email",) . Exists) pure
             =<< sendEmail (opts & \ActionOpts{..} -> EmailOpts{..})
     SuspendBilly ->
-        -- TODO restore error throwing once we have a physical button for `ResetError`
-        -- common up with `SetDeskUSBPower`
-        {- HLINT ignore runSimpleAction "Monad law, right identity" -}
-        pure
+        maybe (throwError ("SSH timeout", Exists ())) pure
             =<< liftIO
                 ( traverse (\(e, out, err) -> showOutput out err >> pure e)
                     <=< readProcessWithExitCodeTimeout (opts.sshTimeout * 1_000_000)
