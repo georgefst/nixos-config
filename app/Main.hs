@@ -133,7 +133,10 @@ main = do
                             gets (Map.lookup opts.ledErrorPin) >>= \case
                                 Just h -> liftIO (terminateProcess h) >> modify (Map.delete opts.ledErrorPin)
                                 Nothing -> liftIO $ putStrLn "LED is already off"
-                        ToggleLight -> toggleLight light
+                        ToggleLight -> do
+                            r <- not . statePowerToBool <$> sendMessage light GetPower
+                            sendMessage light $ SetPower r
+                            pure r
                         SetLightColour time brightness kelvin -> sendMessage light $ Lifx.SetColor HSBK{..} time
                           where
                             -- these have no effect for this type of LIFX bulb
@@ -184,13 +187,7 @@ decodeAction =
             6 -> pure sleepOrWake
             n -> fail $ "unknown action: " <> show n
 
-{- Run action -}
-
-toggleLight :: MonadLifx m => Device -> m Bool
-toggleLight light = do
-    r <- not . statePowerToBool <$> sendMessage light GetPower
-    sendMessage light $ SetPower r
-    pure r
+{- Util -}
 
 data EmailOpts = EmailOpts
     { mailgunKey :: Text
@@ -213,8 +210,6 @@ sendEmail EmailOpts{..} =
     tryHttpException = tryJust \case
         HttpExceptionRequest _ e -> Just e
         InvalidUrlException _ _ -> Nothing
-
-{- Util -}
 
 -- TODO get a proper Haskell GPIO library (hpio?) working with the modern interface
 gpioSet :: MonadIO m => [Int] -> m (Process Inherit Inherit Inherit)
