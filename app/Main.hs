@@ -72,6 +72,8 @@ main = do
             gets (Map.member opts.ledErrorPin) >>= \case
                 False -> modify . Map.insert opts.ledErrorPin =<< gpioSet [opts.ledErrorPin]
                 True -> liftIO $ putStrLn "LED is already on"
+        -- TODO avoid hardcoding - discovery doesn't currently work on Clark (firewall?)
+        light = deviceFromAddress (192, 168, 1, 190)
     mapConcurrently_
         id
         [ do
@@ -93,8 +95,6 @@ main = do
                         -- TODO better logging
                         pPrint action
                             >> runSimpleAction
-                                -- TODO avoid hardcoding - discovery doesn't currently work on Clark (firewall?)
-                                (deviceFromAddress (192, 168, 1, 190))
                                 ((\Opts{..} -> ActionOpts{..}) opts)
                                 action
                     )
@@ -114,18 +114,19 @@ data ActionOpts = ActionOpts
     , mailgunSandbox :: Text
     , mailgunKey :: Text
     , sshTimeout :: Int
+    , light :: Device
     }
-runSimpleAction :: Device -> ActionOpts -> SimpleAction a -> ExceptT (Text, Exists Show) AppM a
-runSimpleAction light opts = \case
+runSimpleAction :: ActionOpts -> SimpleAction a -> ExceptT (Text, Exists Show) AppM a
+runSimpleAction opts = \case
     ResetError ->
         gets (Map.lookup opts.ledErrorPin) >>= \case
             Just h -> liftIO (terminateProcess h) >> modify (Map.delete opts.ledErrorPin)
             Nothing -> liftIO $ putStrLn "LED is already off"
     ToggleLight -> do
-        r <- not . statePowerToBool <$> sendMessage light GetPower
-        sendMessage light $ SetPower r
+        r <- not . statePowerToBool <$> sendMessage opts.light GetPower
+        sendMessage opts.light $ SetPower r
         pure r
-    SetLightColour time brightness kelvin -> sendMessage light $ Lifx.SetColor HSBK{..} time
+    SetLightColour time brightness kelvin -> sendMessage opts.light $ Lifx.SetColor HSBK{..} time
       where
         -- these have no effect for this type of LIFX bulb
         hue = 0
