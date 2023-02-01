@@ -65,7 +65,16 @@ main = do
     hSetBuffering stdout LineBuffering -- TODO necessary when running as systemd service - why? report upstream
     (opts :: Opts) <- getRecord "Clark"
     queue <- newActionQueue
-    let listenOnNetwork = do
+    let handleError :: Show a => Text -> a -> AppM ()
+        handleError title body = do
+            withSGR' Red $ T.putStrLn $ title <> ":"
+            pPrintOpt CheckColorTty defaultOutputOptionsDarkBg{outputOptionsInitialIndent = 4} body
+            gets (Map.member opts.ledErrorPin) >>= \case
+                False -> modify . Map.insert opts.ledErrorPin =<< gpioSet [opts.ledErrorPin]
+                True -> liftIO $ putStrLn "LED is already on"
+    mapConcurrently_
+        id
+        [ do
             sock <- socket AF_INET Datagram defaultProtocol
             bind sock $ SockAddrInet (fromIntegral opts.receivePort) 0
             forever do
@@ -73,27 +82,24 @@ main = do
                 case decodeAction $ BSL.fromStrict bs of
                     Right x -> enqueueAction queue x
                     Left e -> enqueueError queue "Decode failure" e
-        listenForButton = gpioMon opts.buttonDebounce opts.buttonPin $ enqueueAction queue SleepOrWake
-        processActions = runLifxUntilSuccess (lifxTime opts.lifxTimeout) do
+        , gpioMon opts.buttonDebounce opts.buttonPin $ enqueueAction queue SleepOrWake
+        , runLifxUntilSuccess (lifxTime opts.lifxTimeout) do
             flip evalStateT mempty . dequeueActions queue (\(s, Exists e) -> handleError s e) $
                 either (\(s, Exists e) -> handleError s e) (const $ pure ())
                     <=< runExceptT @(Text, Exists Show)
                         . runM
                         . translate
-                            -- TODO better logging
-                            (\action -> pPrint action >> runSimpleAction light opts action)
+                            ( \action ->
+                                -- TODO better logging
+                                pPrint action
+                                    >> runSimpleAction
+                                        -- TODO avoid hardcoding - discovery doesn't currently work on Clark (firewall?)
+                                        (deviceFromAddress (192, 168, 1, 190))
+                                        opts
+                                        action
+                            )
                         . runAction
-          where
-            handleError :: Show a => Text -> a -> AppM ()
-            handleError title body = do
-                withSGR' Red $ T.putStrLn $ title <> ":"
-                pPrintOpt CheckColorTty defaultOutputOptionsDarkBg{outputOptionsInitialIndent = 4} body
-                gets (Map.member opts.ledErrorPin) >>= \case
-                    False -> modify . Map.insert opts.ledErrorPin =<< gpioSet [opts.ledErrorPin]
-                    True -> liftIO $ putStrLn "LED is already on"
-            -- TODO avoid hardcoding - discovery doesn't currently work on Clark (firewall?)
-            light = deviceFromAddress (192, 168, 1, 190)
-    listenOnNetwork `concurrently_` listenForButton `concurrently_` processActions
+        ]
 
 data SimpleAction a where
     ResetError :: SimpleAction ()
