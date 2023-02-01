@@ -71,6 +71,14 @@ data Action a where
     SuspendBilly :: Action (Maybe ExitCode)
 deriving instance Show (Action a)
 
+type CompoundAction = Eff '[Action] ()
+sleepOrWake :: CompoundAction
+sleepOrWake =
+    send ToggleLight >>= \morning@(not -> night) -> do
+        when morning $ send $ SetLightColour 30 maxBound 2800
+        send $ SetDeskUSBPower morning
+        when night . void $ send SuspendBilly
+
 type AppM x = StateT (Map Int (Process Inherit Inherit Inherit)) (LifxT IO) x
 
 newtype ActionQueue = ActionQueue {unwrap :: MVar ActionOrError}
@@ -78,15 +86,15 @@ newActionQueue :: MonadIO m => m ActionQueue
 newActionQueue = liftIO $ ActionQueue <$> newEmptyMVar
 enqueueError :: (MonadIO m, Show e) => ActionQueue -> Text -> e -> m ()
 enqueueError q t = liftIO . putMVar (q.unwrap) . curry Left t . Exists
-enqueueAction :: (MonadIO m, Show a) => ActionQueue -> Eff '[Action] a -> m ()
-enqueueAction q = liftIO . putMVar (q.unwrap) . Right . Some
-dequeueActions :: MonadIO m => ActionQueue -> ((Text, Exists Show) -> m ()) -> (forall a. Eff '[Action] a -> m ()) -> m ()
+enqueueAction :: MonadIO m => ActionQueue -> CompoundAction -> m ()
+enqueueAction q = liftIO . putMVar (q.unwrap) . Right
+dequeueActions :: MonadIO m => ActionQueue -> ((Text, Exists Show) -> m ()) -> (CompoundAction -> m ()) -> m ()
 dequeueActions q h x =
     forever $
         liftIO (takeMVar q.unwrap) >>= \case
-            Right (Some a) -> x a
+            Right a -> x a
             Left e -> h e
-type ActionOrError = Either (Text, Exists Show) (Some (Eff '[Action]))
+type ActionOrError = Either (Text, Exists Show) CompoundAction
 
 main :: IO ()
 main = do
@@ -102,15 +110,10 @@ main = do
             forever do
                 bs <- recv sock 4096
                 case decodeAction $ BSL.fromStrict bs of
-                    Right (Some x) -> enqueueAction queue $ send x
+                    Right x -> enqueueAction queue x
                     Left e -> enqueueError queue "Decode failure" e
 
-    let listenForButton =
-            gpioMon opts.buttonDebounce opts.buttonPin . enqueueAction queue $
-                send ToggleLight >>= \morning@(not -> night) -> do
-                    when morning $ send $ SetLightColour 30 maxBound 2800
-                    send $ SetDeskUSBPower morning
-                    when night . void $ send SuspendBilly
+    let listenForButton = gpioMon opts.buttonDebounce opts.buttonPin $ enqueueAction queue sleepOrWake
 
     let handleError :: Show a => Text -> a -> AppM ()
         handleError title body = do
@@ -165,19 +168,20 @@ main = do
     showOutput out err = liftIO $ for_ [("stdout", out), ("stderr", err)] \(s, t) ->
         unless (B.null t) $ T.putStrLn ("    " <> s <> ": ") >> B.putStr t
 
-decodeAction :: BSL.ByteString -> Either (BSL.ByteString, B.ByteOffset, String) (Some Action)
+decodeAction :: BSL.ByteString -> Either (BSL.ByteString, B.ByteOffset, String) CompoundAction
 decodeAction =
     fmap thd3 . runGetOrFail do
         B.get @Word8 >>= \case
-            0 -> pure $ Some ResetError
-            1 -> pure $ Some ToggleLight
+            0 -> pure $ send ResetError
+            1 -> pure . void $ send ToggleLight
             2 -> do
                 subject <- decodeUtf8 <$> (B.getByteString . fromIntegral =<< B.get @Word8)
                 body <- decodeUtf8 <$> (B.getByteString . fromIntegral =<< B.get @Word16)
-                pure $ Some SendEmail{..}
-            3 -> pure $ Some SuspendBilly
-            4 -> Some . SetDeskUSBPower . (/= 0) <$> B.get @Word8
-            5 -> Some <$> (SetLightColour . secondsToNominalDiffTime <$> B.get <*> B.get <*> B.get)
+                pure . void $ send SendEmail{..}
+            3 -> pure . void $ send SuspendBilly
+            4 -> send . SetDeskUSBPower . (/= 0) <$> B.get @Word8
+            5 -> send <$> (SetLightColour . secondsToNominalDiffTime <$> B.get <*> B.get <*> B.get)
+            6 -> pure sleepOrWake
             n -> fail $ "unknown action: " <> show n
 
 {- Run action -}
@@ -275,8 +279,6 @@ runLifxUntilSuccess t x = either (\e -> print e >> threadDelay t >> runLifxUntil
 -- TODO replace with first-class existential when they arrive (https://github.com/ghc-proposals/ghc-proposals/pull/473)
 data Exists c where
     Exists :: c a => a -> Exists c
-data Some d where
-    Some :: Show a => d a -> Some d
 
 -- TODO return partial stdout/stderr in timeout case
 
