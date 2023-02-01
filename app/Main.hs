@@ -95,7 +95,7 @@ main = do
                             >> runSimpleAction
                                 -- TODO avoid hardcoding - discovery doesn't currently work on Clark (firewall?)
                                 (deviceFromAddress (192, 168, 1, 190))
-                                opts
+                                ((\Opts{..} -> ActionOpts{..}) opts)
                                 action
                     )
                 . runAction
@@ -109,7 +109,13 @@ data SimpleAction a where
     SendEmail :: {subject :: Text, body :: Text} -> SimpleAction (Response BSL.ByteString)
     SuspendBilly :: SimpleAction (Maybe ExitCode)
 deriving instance Show (SimpleAction a)
-runSimpleAction :: Device -> Opts -> SimpleAction a -> ExceptT (Text, Exists Show) AppM a
+data ActionOpts = ActionOpts
+    { ledErrorPin :: Int
+    , mailgunSandbox :: Text
+    , mailgunKey :: Text
+    , sshTimeout :: Int
+    }
+runSimpleAction :: Device -> ActionOpts -> SimpleAction a -> ExceptT (Text, Exists Show) AppM a
 runSimpleAction light opts = \case
     ResetError ->
         gets (Map.lookup opts.ledErrorPin) >>= \case
@@ -132,7 +138,7 @@ runSimpleAction light opts = \case
             ExitFailure n -> throwError ("Failed to set desk USB power", Exists n)
     SendEmail{subject, body} ->
         either (throwError . ("Failed to send email",) . Exists) pure
-            =<< sendEmail ((\Opts{..} -> EmailOpts{..}) opts)
+            =<< sendEmail ((\ActionOpts{..} -> EmailOpts{..}) opts)
     SuspendBilly ->
         -- TODO restore error throwing once we have a physical button for `ResetError`
         -- common up with `SetDeskUSBPower`
