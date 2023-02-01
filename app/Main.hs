@@ -77,7 +77,7 @@ deriving instance Show CompoundAction
 
 type AppM = StateT (Map Int (Process Inherit Inherit Inherit)) (LifxT IO)
 
-newtype ActionQueue = ActionQueue {unwrap :: MVar ActionOrError}
+newtype ActionQueue = ActionQueue {unwrap :: MVar (Either (Text, Exists Show) CompoundAction)}
 newActionQueue :: MonadIO m => m ActionQueue
 newActionQueue = liftIO $ ActionQueue <$> newEmptyMVar
 enqueueError :: (MonadIO m, Show e) => ActionQueue -> Text -> e -> m ()
@@ -90,7 +90,6 @@ dequeueActions q h x =
         liftIO (takeMVar q.unwrap) >>= \case
             Right a -> x a
             Left e -> h e
-type ActionOrError = Either (Text, Exists Show) CompoundAction
 
 main :: IO ()
 main = do
