@@ -94,19 +94,19 @@ main = do
                     . runM
                     . translate
                         -- TODO better logging
-                        (\action -> pPrint action >> runAction light opts action)
-                    . runCompoundAction
+                        (\action -> pPrint action >> runSimpleAction light opts action)
+                    . runAction
 
-data Action a where
-    ResetError :: Action ()
-    ToggleLight :: Action Bool -- returns `True` if the light is _now_ on
-    SetLightColour :: NominalDiffTime -> Word16 -> Word16 -> Action () -- brightness and temp
-    SetDeskUSBPower :: Bool -> Action ()
-    SendEmail :: {subject :: Text, body :: Text} -> Action (Response BSL.ByteString)
-    SuspendBilly :: Action (Maybe ExitCode)
-deriving instance Show (Action a)
-runAction :: Device -> Opts -> Action a -> ExceptT (Text, Exists Show) AppM a
-runAction light opts = \case
+data SimpleAction a where
+    ResetError :: SimpleAction ()
+    ToggleLight :: SimpleAction Bool -- returns `True` if the light is _now_ on
+    SetLightColour :: NominalDiffTime -> Word16 -> Word16 -> SimpleAction () -- brightness and temp
+    SetDeskUSBPower :: Bool -> SimpleAction ()
+    SendEmail :: {subject :: Text, body :: Text} -> SimpleAction (Response BSL.ByteString)
+    SuspendBilly :: SimpleAction (Maybe ExitCode)
+deriving instance Show (SimpleAction a)
+runSimpleAction :: Device -> Opts -> SimpleAction a -> ExceptT (Text, Exists Show) AppM a
+runSimpleAction light opts = \case
     ResetError ->
         gets (Map.lookup opts.ledErrorPin) >>= \case
             Just h -> liftIO (terminateProcess h) >> modify (Map.delete opts.ledErrorPin)
@@ -132,7 +132,7 @@ runAction light opts = \case
     SuspendBilly ->
         -- TODO restore error throwing once we have a physical button for `ResetError`
         -- common up with `SetDeskUSBPower`
-        {- HLINT ignore runAction "Monad law, right identity" -}
+        {- HLINT ignore runSimpleAction "Monad law, right identity" -}
         pure
             =<< liftIO
                 ( traverse (\(e, out, err) -> showOutput out err >> pure e)
@@ -149,19 +149,19 @@ runAction light opts = \case
     showOutput out err = liftIO $ for_ [("stdout", out), ("stderr", err)] \(s, t) ->
         unless (B.null t) $ T.putStrLn ("    " <> s <> ": ") >> B.putStr t
 
-data CompoundAction where
-    SimpleAction :: Action a -> CompoundAction
-    SleepOrWake :: CompoundAction
-deriving instance Show CompoundAction
-runCompoundAction :: CompoundAction -> Eff '[Action] ()
-runCompoundAction = \case
+data Action where
+    SimpleAction :: SimpleAction a -> Action
+    SleepOrWake :: Action
+deriving instance Show Action
+runAction :: Action -> Eff '[SimpleAction] ()
+runAction = \case
     SimpleAction a -> void $ send a
     SleepOrWake ->
         send ToggleLight >>= \morning@(not -> night) -> do
             when morning $ send $ SetLightColour 45 maxBound 2700
             send $ SetDeskUSBPower morning
             when night . void $ send SuspendBilly
-decodeAction :: BSL.ByteString -> Either (BSL.ByteString, B.ByteOffset, String) CompoundAction
+decodeAction :: BSL.ByteString -> Either (BSL.ByteString, B.ByteOffset, String) Action
 decodeAction =
     fmap thd3 . runGetOrFail do
         B.get @Word8 >>= \case
@@ -177,14 +177,14 @@ decodeAction =
             6 -> pure SleepOrWake
             n -> fail $ "unknown action: " <> show n
 
-newtype ActionQueue = ActionQueue {unwrap :: MVar (Either (Text, Exists Show) CompoundAction)}
+newtype ActionQueue = ActionQueue {unwrap :: MVar (Either (Text, Exists Show) Action)}
 newActionQueue :: MonadIO m => m ActionQueue
 newActionQueue = liftIO $ ActionQueue <$> newEmptyMVar
 enqueueError :: (MonadIO m, Show e) => ActionQueue -> Text -> e -> m ()
 enqueueError q t = liftIO . putMVar (q.unwrap) . curry Left t . Exists
-enqueueAction :: MonadIO m => ActionQueue -> CompoundAction -> m ()
+enqueueAction :: MonadIO m => ActionQueue -> Action -> m ()
 enqueueAction q = liftIO . putMVar (q.unwrap) . Right
-dequeueActions :: MonadIO m => ActionQueue -> ((Text, Exists Show) -> m ()) -> (CompoundAction -> m ()) -> m ()
+dequeueActions :: MonadIO m => ActionQueue -> ((Text, Exists Show) -> m ()) -> (Action -> m ()) -> m ()
 dequeueActions q h x =
     forever $
         liftIO (takeMVar q.unwrap) >>= \case
