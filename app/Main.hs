@@ -94,9 +94,7 @@ main = do
                     ( \action ->
                         -- TODO better logging
                         pPrint action
-                            >> runSimpleAction
-                                (opts & \Opts{..} -> ActionOpts{..})
-                                action
+                            >> runSimpleAction (opts & \Opts{..} -> ActionOpts{..}) action
                     )
                 . runAction
         ]
