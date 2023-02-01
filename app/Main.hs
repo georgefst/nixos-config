@@ -88,17 +88,17 @@ main = do
             . (either (\(s, Exists e) -> handleError s e) pure <=< runExceptT)
             . dequeueActions queue
             $ runM
-                        . translate
-                            ( \action ->
-                                -- TODO better logging
-                                pPrint action
-                                    >> runSimpleAction
-                                        -- TODO avoid hardcoding - discovery doesn't currently work on Clark (firewall?)
-                                        (deviceFromAddress (192, 168, 1, 190))
-                                        opts
-                                        action
-                            )
-                        . runAction
+                . translate
+                    ( \action ->
+                        -- TODO better logging
+                        pPrint action
+                            >> runSimpleAction
+                                -- TODO avoid hardcoding - discovery doesn't currently work on Clark (firewall?)
+                                (deviceFromAddress (192, 168, 1, 190))
+                                opts
+                                action
+                    )
+                . runAction
         ]
 
 data SimpleAction a where
