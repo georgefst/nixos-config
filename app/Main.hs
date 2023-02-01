@@ -83,11 +83,11 @@ main = do
                     Right x -> enqueueAction queue x
                     Left e -> enqueueError queue "Decode failure" e
         , gpioMon opts.buttonDebounce opts.buttonPin $ enqueueAction queue SleepOrWake
-        , runLifxUntilSuccess (lifxTime opts.lifxTimeout) do
-            flip evalStateT mempty . dequeueActions queue (\(s, Exists e) -> handleError s e) $
-                either (\(s, Exists e) -> handleError s e) (const $ pure ())
-                    <=< runExceptT @(Text, Exists Show)
-                        . runM
+        , runLifxUntilSuccess (lifxTime opts.lifxTimeout)
+            . flip evalStateT mempty
+            . (either (\(s, Exists e) -> handleError s e) pure <=< runExceptT)
+            . dequeueActions queue
+            $ runM
                         . translate
                             ( \action ->
                                 -- TODO better logging
@@ -188,12 +188,12 @@ enqueueError :: (MonadIO m, Show e) => ActionQueue -> Text -> e -> m ()
 enqueueError q t = liftIO . putMVar (q.unwrap) . curry Left t . Exists
 enqueueAction :: MonadIO m => ActionQueue -> Action -> m ()
 enqueueAction q = liftIO . putMVar (q.unwrap) . Right
-dequeueActions :: MonadIO m => ActionQueue -> ((Text, Exists Show) -> m ()) -> (Action -> m ()) -> m ()
-dequeueActions q h x =
+dequeueActions :: (MonadIO m, MonadError (Text, Exists Show) m) => ActionQueue -> (Action -> m ()) -> m ()
+dequeueActions q x =
     forever $
         liftIO (takeMVar q.unwrap) >>= \case
             Right a -> x a
-            Left e -> h e
+            Left e -> throwError e
 
 {- Util -}
 
