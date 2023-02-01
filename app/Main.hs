@@ -75,7 +75,7 @@ data CompoundAction where
     SleepOrWake :: CompoundAction
 deriving instance Show CompoundAction
 
-type AppM x = StateT (Map Int (Process Inherit Inherit Inherit)) (LifxT IO) x
+type AppM = StateT (Map Int (Process Inherit Inherit Inherit)) (LifxT IO)
 
 newtype ActionQueue = ActionQueue {unwrap :: MVar ActionOrError}
 newActionQueue :: MonadIO m => m ActionQueue
@@ -124,59 +124,63 @@ main = do
             either (\(s, Exists e) -> handleError s e) (const $ pure ())
                 <=< runExceptT @(Text, Exists Show)
                     . runM
-                    . ( translate \action -> do
-                    pPrint action -- TODO better logging
-                    case action of
-                        ResetError ->
-                            gets (Map.lookup opts.ledErrorPin) >>= \case
-                                Just h -> liftIO (terminateProcess h) >> modify (Map.delete opts.ledErrorPin)
-                                Nothing -> liftIO $ putStrLn "LED is already off"
-                        ToggleLight -> do
-                            r <- not . statePowerToBool <$> sendMessage light GetPower
-                            sendMessage light $ SetPower r
-                            pure r
-                        SetLightColour time brightness kelvin -> sendMessage light $ Lifx.SetColor HSBK{..} time
-                          where
-                            -- these have no effect for this type of LIFX bulb
-                            hue = 0
-                            saturation = 0
-                        SetDeskUSBPower b -> do
-                            (e, out, err) <- MQTT.Meross.send =<< MQTT.Meross.toggle 2 b
-                            showOutput out err
-                            case e of
-                                ExitSuccess -> pure ()
-                                ExitFailure n -> throwError ("Failed to set desk USB power", Exists n)
-                        SendEmail{subject, body} ->
-                            either (throwError . ("Failed to send email",) . Exists) pure
-                                =<< sendEmail ((\Opts{..} -> EmailOpts{..}) opts)
-                        SuspendBilly ->
-                            -- TODO restore error throwing once we have a physical button for `ResetError`
-                            -- common up with `SetDeskUSBPower`
-                            {- HLINT ignore main "Monad law, right identity" -}
-                            pure
-                                =<< liftIO
-                                    ( traverse (\(e, out, err) -> showOutput out err >> pure e)
-                                        <=< readProcessWithExitCodeTimeout (opts.sshTimeout * 1_000_000)
-                                        $ proc
-                                            "ssh"
-                                            [ "-i/home/gthomas/.ssh/id_rsa"
-                                            , "-oUserKnownHostsFile=/home/gthomas/.ssh/known_hosts"
-                                            , "gthomas@billy"
-                                            , "systemctl suspend"
-                                            ]
-                                    )
-                      )
-                    . ( \case
-                            SimpleAction a -> void $ send a
-                            SleepOrWake ->
-                                send ToggleLight >>= \morning@(not -> night) -> do
-                                    when morning $ send $ SetLightColour 45 maxBound 2700
-                                    send $ SetDeskUSBPower morning
-                                    when night . void $ send SuspendBilly
-                      )
+                    . translate
+                        -- TODO better logging
+                        (\action -> pPrint action >> runAction light opts action)
+                    . runCompoundAction
+
+runAction :: Device -> Opts -> Action a -> ExceptT (Text, Exists Show) AppM a
+runAction light opts = \case
+    ResetError ->
+        gets (Map.lookup opts.ledErrorPin) >>= \case
+            Just h -> liftIO (terminateProcess h) >> modify (Map.delete opts.ledErrorPin)
+            Nothing -> liftIO $ putStrLn "LED is already off"
+    ToggleLight -> do
+        r <- not . statePowerToBool <$> sendMessage light GetPower
+        sendMessage light $ SetPower r
+        pure r
+    SetLightColour time brightness kelvin -> sendMessage light $ Lifx.SetColor HSBK{..} time
+      where
+        -- these have no effect for this type of LIFX bulb
+        hue = 0
+        saturation = 0
+    SetDeskUSBPower b -> do
+        (e, out, err) <- MQTT.Meross.send =<< MQTT.Meross.toggle 2 b
+        showOutput out err
+        case e of
+            ExitSuccess -> pure ()
+            ExitFailure n -> throwError ("Failed to set desk USB power", Exists n)
+    SendEmail{subject, body} ->
+        either (throwError . ("Failed to send email",) . Exists) pure
+            =<< sendEmail ((\Opts{..} -> EmailOpts{..}) opts)
+    SuspendBilly ->
+        -- TODO restore error throwing once we have a physical button for `ResetError`
+        -- common up with `SetDeskUSBPower`
+        {- HLINT ignore runAction "Monad law, right identity" -}
+        pure
+            =<< liftIO
+                ( traverse (\(e, out, err) -> showOutput out err >> pure e)
+                    <=< readProcessWithExitCodeTimeout (opts.sshTimeout * 1_000_000)
+                    $ proc
+                        "ssh"
+                        [ "-i/home/gthomas/.ssh/id_rsa"
+                        , "-oUserKnownHostsFile=/home/gthomas/.ssh/known_hosts"
+                        , "gthomas@billy"
+                        , "systemctl suspend"
+                        ]
+                )
   where
     showOutput out err = liftIO $ for_ [("stdout", out), ("stderr", err)] \(s, t) ->
         unless (B.null t) $ T.putStrLn ("    " <> s <> ": ") >> B.putStr t
+
+runCompoundAction :: CompoundAction -> Eff '[Action] ()
+runCompoundAction = \case
+    SimpleAction a -> void $ send a
+    SleepOrWake ->
+        send ToggleLight >>= \morning@(not -> night) -> do
+            when morning $ send $ SetLightColour 45 maxBound 2700
+            send $ SetDeskUSBPower morning
+            when night . void $ send SuspendBilly
 
 decodeAction :: BSL.ByteString -> Either (BSL.ByteString, B.ByteOffset, String) CompoundAction
 decodeAction =
