@@ -113,7 +113,7 @@ data ActionOpts = ActionOpts
     , sshTimeout :: Int
     , light :: Device
     }
-runSimpleAction :: ActionOpts -> SimpleAction a -> ExceptT (Text, Exists Show) AppM a
+runSimpleAction :: ActionOpts -> SimpleAction a -> ExceptT Error AppM a
 runSimpleAction opts = \case
     ResetError ->
         gets (Map.lookup opts.ledErrorPin) >>= \case
@@ -182,14 +182,16 @@ decodeAction =
             6 -> pure SleepOrWake
             n -> fail $ "unknown action: " <> show n
 
-newtype ActionQueue = ActionQueue {unwrap :: MVar (Either (Text, Exists Show) Action)}
+type Error = (Text, Exists Show)
+type Event = Either Error Action
+newtype ActionQueue = ActionQueue {unwrap :: MVar Event}
 newActionQueue :: MonadIO m => m ActionQueue
 newActionQueue = liftIO $ ActionQueue <$> newEmptyMVar
 enqueueError :: (MonadIO m, Show e) => ActionQueue -> Text -> e -> m ()
 enqueueError q t = liftIO . putMVar (q.unwrap) . curry Left t . Exists
 enqueueAction :: MonadIO m => ActionQueue -> Action -> m ()
 enqueueAction q = liftIO . putMVar (q.unwrap) . Right
-dequeueActions :: (MonadIO m, MonadError (Text, Exists Show) m) => ActionQueue -> (Action -> m ()) -> m ()
+dequeueActions :: (MonadIO m, MonadError Error m) => ActionQueue -> (Action -> m ()) -> m ()
 dequeueActions q x =
     forever $
         liftIO (takeMVar q.unwrap) >>= \case
