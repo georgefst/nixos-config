@@ -8,9 +8,9 @@ import Control.Monad.Catch
 import Control.Monad.Except
 import Control.Monad.Freer
 import Control.Monad.Freer.Writer qualified as Eff
+import Control.Monad.Log (MonadLog, logMessage, runLoggingT)
 import Control.Monad.Loops
 import Control.Monad.State
-import Control.Monad.Writer
 import Data.Binary qualified as B
 import Data.Binary.Get (runGetOrFail)
 import Data.Binary.Get qualified as B
@@ -39,6 +39,7 @@ import RawFilePath
 import System.Exit
 import System.IO
 import Text.Pretty.Simple
+import Util.Lifx ()
 
 data Opts = Opts
     { buttonDebounce :: Double
@@ -91,11 +92,11 @@ main = do
         , runLifxUntilSuccess (lifxTime opts.lifxTimeout)
             . flip evalStateT mempty
             . (either handleError pure <=< runExceptT)
-            . ((\((), t) -> liftIO $ T.putStrLn t) <=< runWriterT)
+            . flip runLoggingT (liftIO . T.putStrLn)
             . dequeueEvents queue
-            $ ((\((), t) -> tell t) <=< runM)
+            $ ((\((), t) -> logMessage t) <=< runM)
                 . translate
-                    (\action -> tell (showT action) >> runSimpleAction (opts & \Opts{..} -> ActionOpts{..}) action)
+                    (\action -> logMessage (showT action) >> runSimpleAction (opts & \Opts{..} -> ActionOpts{..}) action)
                 . Eff.runWriter
                 . (\action -> Eff.tell (showT action) >> raise (runAction action))
         ]
@@ -199,12 +200,12 @@ enqueueLog :: (MonadIO m) => EventQueue -> Text -> m ()
 enqueueLog q = liftIO . putMVar (q.unwrap) . LogEvent
 enqueueAction :: MonadIO m => EventQueue -> Action -> m ()
 enqueueAction q = liftIO . putMVar (q.unwrap) . ActionEvent
-dequeueEvents :: (MonadIO m, MonadError Error m, MonadWriter Text m) => EventQueue -> (Action -> m ()) -> m ()
+dequeueEvents :: (MonadIO m, MonadError Error m, MonadLog Text m) => EventQueue -> (Action -> m ()) -> m ()
 dequeueEvents q x =
     forever $
         liftIO (takeMVar q.unwrap) >>= \case
             ActionEvent a -> x a
-            LogEvent t -> tell t
+            LogEvent t -> logMessage t
             ErrorEvent e -> throwError e
 
 {- Util -}
