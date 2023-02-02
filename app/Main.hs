@@ -67,7 +67,7 @@ main = do
     let handleError :: Error -> AppM ()
         handleError err = do
             case err of
-                Error{title, body} -> do
+                BodyError{title, body} -> do
                     withSGR' Red $ T.putStrLn $ title <> ":"
                     pPrintOpt CheckColorTty defaultOutputOptionsDarkBg{outputOptionsInitialIndent = 4} body
                 SimpleError t -> withSGR' Red $ T.putStrLn t
@@ -136,9 +136,9 @@ runSimpleAction opts = \case
         showOutput out err
         case e of
             ExitSuccess -> pure ()
-            ExitFailure n -> throwError $ Error "Failed to set desk USB power" n
+            ExitFailure n -> throwError $ BodyError "Failed to set desk USB power" n
     SendEmail{subject, body} ->
-        either (throwError . Error "Failed to send email") pure
+        either (throwError . BodyError "Failed to send email") pure
             =<< sendEmail (opts & \ActionOpts{..} -> EmailOpts{..})
     SuspendBilly ->
         maybe (throwError $ SimpleError "SSH timeout") pure
@@ -186,14 +186,14 @@ decodeAction =
             n -> fail $ "unknown action: " <> show n
 
 data Error where
-    Error :: Show a => {title :: Text, body :: a} -> Error
+    BodyError :: Show a => {title :: Text, body :: a} -> Error
     SimpleError :: Text -> Error
 type Event = Either Error Action
 newtype EventQueue = EventQueue {unwrap :: MVar Event}
 newEventQueue :: MonadIO m => m EventQueue
 newEventQueue = liftIO $ EventQueue <$> newEmptyMVar
 enqueueError :: (MonadIO m, Show e) => EventQueue -> Text -> e -> m ()
-enqueueError q t = liftIO . putMVar (q.unwrap) . Left . Error t
+enqueueError q t = liftIO . putMVar (q.unwrap) . Left . BodyError t
 enqueueAction :: MonadIO m => EventQueue -> Action -> m ()
 enqueueAction q = liftIO . putMVar (q.unwrap) . Right
 dequeueEvents :: (MonadIO m, MonadError Error m) => EventQueue -> (Action -> m ()) -> m ()
