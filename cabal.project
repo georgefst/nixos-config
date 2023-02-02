@@ -27,8 +27,3 @@ source-repository-package
     location: https://github.com/georgefst/http-client
     subdir: http-client
     tag: bd218eff5faf19333960833e7fd28c211e2aecc4
---TODO waiting for release
-source-repository-package
-    type: git
-    location: https://github.com/georgefst/lifx-lan
-    tag: d67632cc12cf10710151704e715b1be196b99212

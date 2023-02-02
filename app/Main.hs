@@ -39,7 +39,7 @@ import RawFilePath
 import System.Exit
 import System.IO
 import Text.Pretty.Simple
-import Util.Lifx ()
+import Util.Lifx
 
 data Opts = Opts
     { buttonDebounce :: Double
@@ -254,22 +254,10 @@ gpioMon putLine debounce pin x = do
 gpioChip :: ByteString
 gpioChip = "gpiochip0"
 
--- TODO upstream?
-statePowerToBool :: StatePower -> Bool
-statePowerToBool = (/= StatePower 0)
-
 showT :: Show a => a -> Text
 showT = T.pack . show
 showBS :: Show a => a -> ByteString
 showBS = encodeUtf8 . showT
-
--- TODO lifx-lan should probably use a time library type, rather than Int
-lifxTime :: Double -> Int
-lifxTime = round . (* 1_000_000)
-
--- | Run the action. If it fails then just print the error and go again.
-runLifxUntilSuccess :: Int -> Lifx a -> IO a
-runLifxUntilSuccess t x = either (\e -> print e >> threadDelay t >> runLifxUntilSuccess t x) pure =<< runLifxT t x
 
 -- TODO return partial stdout/stderr in timeout case
 
