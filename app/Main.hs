@@ -91,9 +91,9 @@ main = do
         , runLifxUntilSuccess (lifxTime opts.lifxTimeout)
             . flip evalStateT mempty
             . (either handleError pure <=< runExceptT)
-            . ((\(r, t) -> liftIO (T.putStrLn t) >> pure r) <=< runWriterT)
+            . ((\((), t) -> liftIO $ T.putStrLn t) <=< runWriterT)
             . dequeueEvents queue
-            $ ((\(r, t) -> tell t >> pure r) <=< runM)
+            $ ((\((), t) -> tell t) <=< runM)
                 . translate
                     (\action -> tell (showT action) >> runSimpleAction (opts & \Opts{..} -> ActionOpts{..}) action)
                 . Eff.runWriter
