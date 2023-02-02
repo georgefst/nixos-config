@@ -64,8 +64,8 @@ main = do
     hSetBuffering stdout LineBuffering -- TODO necessary when running as systemd service - why? report upstream
     (opts :: Opts) <- getRecord "Clark"
     queue <- newActionQueue
-    let handleError :: Show a => Text -> a -> AppM ()
-        handleError title body = do
+    let handleError :: Error -> AppM ()
+        handleError Error{text = title, extra = Exists body} = do
             withSGR' Red $ T.putStrLn $ title <> ":"
             pPrintOpt CheckColorTty defaultOutputOptionsDarkBg{outputOptionsInitialIndent = 4} body
             gets (Map.member opts.ledErrorPin) >>= \case
@@ -86,7 +86,7 @@ main = do
         , gpioMon opts.buttonDebounce opts.buttonPin $ enqueueAction queue SleepOrWake
         , runLifxUntilSuccess (lifxTime opts.lifxTimeout)
             . flip evalStateT mempty
-            . (either (\Error{text, extra = Exists extra} -> handleError text extra) pure <=< runExceptT)
+            . (either handleError pure <=< runExceptT)
             . dequeueActions queue
             $ runM
                 . translate
