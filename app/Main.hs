@@ -65,13 +65,12 @@ main = do
     (opts :: Opts) <- getRecord "Clark"
     queue <- newActionQueue
     let handleError :: Error -> AppM ()
-        handleError Error{text = title, extra} = do
-            withSGR' Red $ T.putStrLn title
-            case extra of
-                Just (Exists body) -> do
-                    withSGR' Red $ T.putStrLn ":"
+        handleError err = do
+            case err of
+                Error{text = title, extra = body} -> do
+                    withSGR' Red $ T.putStrLn $ title <> ":"
                     pPrintOpt CheckColorTty defaultOutputOptionsDarkBg{outputOptionsInitialIndent = 4} body
-                Nothing -> pure ()
+                SimpleError{text} -> withSGR' Red $ T.putStrLn text
             gets (Map.member opts.ledErrorPin) >>= \case
                 False -> modify . Map.insert opts.ledErrorPin =<< gpioSet [opts.ledErrorPin]
                 True -> liftIO $ putStrLn "LED is already on"
@@ -137,12 +136,12 @@ runSimpleAction opts = \case
         showOutput out err
         case e of
             ExitSuccess -> pure ()
-            ExitFailure n -> throwError $ Error "Failed to set desk USB power" $ Just $ Exists n
+            ExitFailure n -> throwError $ Error "Failed to set desk USB power" n
     SendEmail{subject, body} ->
-        either (throwError . Error "Failed to send email" . Just . Exists) pure
+        either (throwError . Error "Failed to send email") pure
             =<< sendEmail (opts & \ActionOpts{..} -> EmailOpts{..})
     SuspendBilly ->
-        maybe (throwError $ Error "SSH timeout" Nothing) pure
+        maybe (throwError $ SimpleError "SSH timeout") pure
             =<< liftIO
                 ( traverse (\(e, out, err) -> showOutput out err >> pure e)
                     <=< readProcessWithExitCodeTimeout (opts.sshTimeout * 1_000_000)
@@ -186,16 +185,15 @@ decodeAction =
             6 -> pure SleepOrWake
             n -> fail $ "unknown action: " <> show n
 
-data Error = Error
-    { text :: Text
-    , extra :: Maybe (Exists Show)
-    }
+data Error where
+    Error :: Show a => {text :: Text, extra :: a} -> Error
+    SimpleError :: {text :: Text} -> Error
 type Event = Either Error Action
 newtype ActionQueue = ActionQueue {unwrap :: MVar Event}
 newActionQueue :: MonadIO m => m ActionQueue
 newActionQueue = liftIO $ ActionQueue <$> newEmptyMVar
 enqueueError :: (MonadIO m, Show e) => ActionQueue -> Text -> e -> m ()
-enqueueError q t = liftIO . putMVar (q.unwrap) . Left . Error t . Just . Exists
+enqueueError q t = liftIO . putMVar (q.unwrap) . Left . Error t
 enqueueAction :: MonadIO m => ActionQueue -> Action -> m ()
 enqueueAction q = liftIO . putMVar (q.unwrap) . Right
 dequeueActions :: (MonadIO m, MonadError Error m) => ActionQueue -> (Action -> m ()) -> m ()
@@ -286,10 +284,6 @@ withSGR' x = liftIO . withSGR [SetColor Foreground Vivid x, SetConsoleIntensity 
 -- | Run the action. If it fails then just print the error and go again.
 runLifxUntilSuccess :: Int -> Lifx a -> IO a
 runLifxUntilSuccess t x = either (\e -> print e >> threadDelay t >> runLifxUntilSuccess t x) pure =<< runLifxT t x
-
--- TODO replace with first-class existential when they arrive (https://github.com/ghc-proposals/ghc-proposals/pull/473)
-data Exists c where
-    Exists :: c a => a -> Exists c
 
 -- TODO return partial stdout/stderr in timeout case
 
