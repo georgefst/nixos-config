@@ -24,7 +24,6 @@ import Data.Map qualified as Map
 import Data.Text qualified as T
 import Data.Text.Encoding hiding (Some)
 import Data.Text.IO qualified as T
-import Data.Text.Lazy qualified as TL
 import Data.Time
 import Data.Tuple.Extra hiding (first, second)
 import Data.Word
@@ -97,12 +96,12 @@ main = do
             $ ((\(r, t) -> tell t >> pure r) <=< runM)
                 . translate
                     ( \action ->
-                        tell (TL.toStrict $ pShow action)
+                        tell (showT action)
                             >> runSimpleAction (opts & \Opts{..} -> ActionOpts{..}) action
                     )
                 . Eff.runWriter
                 . ( \action ->
-                        Eff.tell (TL.toStrict $ pShow action)
+                        Eff.tell (showT action)
                             >> raise (runAction action)
                   )
         ]
