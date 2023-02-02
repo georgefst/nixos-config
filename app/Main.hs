@@ -89,7 +89,7 @@ main = do
                 case decodeAction $ BSL.fromStrict bs of
                     Right x -> enqueueAction queue x
                     Left e -> enqueueError queue "Decode failure" e
-        , gpioMon opts.buttonDebounce opts.buttonPin $ enqueueAction queue SleepOrWake
+        , gpioMon (enqueueLog queue) opts.buttonDebounce opts.buttonPin $ enqueueAction queue SleepOrWake
         , runLifxUntilSuccess (lifxTime opts.lifxTimeout)
             . flip evalStateT mempty
             . (either handleError pure <=< runExceptT)
@@ -243,24 +243,18 @@ gpioSet xs =
         . startProcess
         . proc "gpioset"
         $ "--mode=signal" : gpioChip : map ((<> "=1") . showBS) xs
-gpioMon :: Double -> Int -> IO () -> IO ()
-gpioMon debounce pin x = do
-    putStrLn "Starting gpiomon process..."
+gpioMon :: (Text -> IO ()) -> Double -> Int -> IO () -> IO ()
+gpioMon putLine debounce pin x = do
     p <-
         startProcess $
             proc "gpiomon" ["-b", "-f", gpioChip, showBS pin]
                 `setStdout` CreatePipe
-    let gpiomonStdout = processStdout p
-    putStrLn "Done!"
     getCurrentTime >>= iterateM_ \t0 -> do
-        line <- hGetLine gpiomonStdout
+        line <- hGetLine $ processStdout p
         t1 <- getCurrentTime
         if diffUTCTime t1 t0 < realToFrac debounce
-            then withSGR' Red $ putStr "Ignoring: "
-            else do
-                withSGR' Green $ putStr "Ok: "
-                x
-        putStrLn line
+            then putLine $ "(Ignoring) " <> T.pack line
+            else putLine (T.pack line) >> x
         pure t1
 gpioChip :: ByteString
 gpioChip = "gpiochip0"
