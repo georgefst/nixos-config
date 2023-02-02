@@ -7,6 +7,7 @@ import Control.Monad
 import Control.Monad.Catch
 import Control.Monad.Except
 import Control.Monad.Freer
+import Control.Monad.Freer.Writer qualified as Eff
 import Control.Monad.Loops
 import Control.Monad.State
 import Control.Monad.Writer
@@ -93,13 +94,17 @@ main = do
             . (either handleError pure <=< runExceptT)
             . ((\(r, t) -> liftIO (T.putStrLn t) >> pure r) <=< runWriterT)
             . dequeueEvents queue
-            $ runM
+            $ ((\(r, t) -> tell t >> pure r) <=< runM)
                 . translate
                     ( \action ->
                         tell (TL.toStrict $ pShow action)
                             >> runSimpleAction (opts & \Opts{..} -> ActionOpts{..}) action
                     )
-                . runAction
+                . Eff.runWriter
+                . ( \action ->
+                        Eff.tell (TL.toStrict $ pShow action)
+                            >> raise (runAction action)
+                  )
         ]
 
 data SimpleAction a where
