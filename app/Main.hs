@@ -95,8 +95,7 @@ main = do
             . flip runLoggingT (liftIO . T.putStrLn)
             . dequeueEvents queue
             $ ((\((), t) -> logMessage t) <=< runM)
-                . translate
-                    (\action -> logMessage (showT action) >> runSimpleAction (opts & \Opts{..} -> ActionOpts{..}) action)
+                . translate (runSimpleAction (opts & \Opts{..} -> ActionOpts{..}))
                 . Eff.runWriter
                 . (\action -> Eff.tell (showT action) >> raise (runAction action))
         ]
