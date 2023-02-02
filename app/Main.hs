@@ -188,20 +188,22 @@ decodeAction =
 data Error where
     BodyError :: Show a => {title :: Text, body :: a} -> Error
     SimpleError :: Text -> Error
-type Event = Either Error Action
+data Event
+    = Error Error
+    | Action Action
 newtype EventQueue = EventQueue {unwrap :: MVar Event}
 newEventQueue :: MonadIO m => m EventQueue
 newEventQueue = liftIO $ EventQueue <$> newEmptyMVar
 enqueueError :: (MonadIO m, Show e) => EventQueue -> Text -> e -> m ()
-enqueueError q t = liftIO . putMVar (q.unwrap) . Left . BodyError t
+enqueueError q t = liftIO . putMVar (q.unwrap) . Error . BodyError t
 enqueueAction :: MonadIO m => EventQueue -> Action -> m ()
-enqueueAction q = liftIO . putMVar (q.unwrap) . Right
+enqueueAction q = liftIO . putMVar (q.unwrap) . Action
 dequeueEvents :: (MonadIO m, MonadError Error m) => EventQueue -> (Action -> m ()) -> m ()
 dequeueEvents q x =
     forever $
         liftIO (takeMVar q.unwrap) >>= \case
-            Right a -> x a
-            Left e -> throwError e
+            Action a -> x a
+            Error e -> throwError e
 
 {- Util -}
 
