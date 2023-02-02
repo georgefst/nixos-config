@@ -57,7 +57,7 @@ data Opts = Opts
 instance ParseRecord Opts where
     parseRecord = parseRecordWithModifiers defaultModifiers{fieldNameModifier = fieldNameModifier lispCaseModifiers}
 
-type AppM = StateT (Map Int (Process Inherit Inherit Inherit)) (LifxT IO)
+type AppState = Map Int (Process Inherit Inherit Inherit)
 data Error where
     Error :: Show a => {title :: Text, body :: a} -> Error
     SimpleError :: Text -> Error
@@ -118,7 +118,9 @@ data ActionOpts = ActionOpts
     , sshTimeout :: Int
     , light :: Device
     }
-runSimpleAction :: ActionOpts -> SimpleAction a -> ExceptT Error AppM a
+
+runSimpleAction ::
+    (MonadIO m, MonadState AppState m, MonadLifx m, MonadError Error m) => ActionOpts -> SimpleAction a -> m a
 runSimpleAction opts = \case
     ResetError ->
         gets (Map.lookup opts.ledErrorPin) >>= \case
