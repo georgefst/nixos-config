@@ -58,6 +58,9 @@ instance ParseRecord Opts where
     parseRecord = parseRecordWithModifiers defaultModifiers{fieldNameModifier = fieldNameModifier lispCaseModifiers}
 
 type AppM = StateT (Map Int (Process Inherit Inherit Inherit)) (LifxT IO)
+data Error where
+    Error :: Show a => {title :: Text, body :: a} -> Error
+    SimpleError :: Text -> Error
 
 main :: IO ()
 main = do
@@ -185,9 +188,6 @@ decodeAction =
             6 -> pure SleepOrWake
             n -> fail $ "unknown action: " <> show n
 
-data Error where
-    Error :: Show a => {title :: Text, body :: a} -> Error
-    SimpleError :: Text -> Error
 data Event
     = ErrorEvent Error
     | ActionEvent Action
