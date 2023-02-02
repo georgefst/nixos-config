@@ -1,8 +1,5 @@
 module Main (main) where
 
--- TODO this is in its own section due to a Fourmolu bug with reordering comments in import lists
-import Text.Pretty.Simple hiding (Color (..), Intensity (..)) -- TODO https://github.com/quchen/prettyprinter/issues/233
-
 import Control.Concurrent
 import Control.Concurrent.Async
 import Control.Lens
@@ -39,9 +36,9 @@ import Network.Socket.ByteString hiding (send)
 import Network.Wreq hiding (get, put)
 import Options.Generic
 import RawFilePath
-import System.Console.ANSI
 import System.Exit
 import System.IO
+import Text.Pretty.Simple
 
 data Opts = Opts
     { buttonDebounce :: Double
@@ -72,9 +69,9 @@ main = do
     let handleError err = do
             case err of
                 Error{title, body} -> do
-                    withSGR' Red $ T.putStrLn $ title <> ":"
+                    liftIO . T.putStrLn $ title <> ":"
                     pPrintOpt CheckColorTty defaultOutputOptionsDarkBg{outputOptionsInitialIndent = 4} body
-                SimpleError t -> withSGR' Red $ T.putStrLn t
+                SimpleError t -> liftIO $ T.putStrLn t
             gets (Map.member opts.ledErrorPin) >>= \case
                 False -> modify . Map.insert opts.ledErrorPin =<< gpioSet [opts.ledErrorPin]
                 True -> liftIO $ putStrLn "LED is already on"
@@ -271,18 +268,6 @@ showBS = encodeUtf8 . showT
 -- TODO lifx-lan should probably use a time library type, rather than Int
 lifxTime :: Double -> Int
 lifxTime = round . (* 1_000_000)
-
--- TODO upstream? not the first time I've defined this
-withSGR :: [SGR] -> IO a -> IO a
-withSGR sgr x = do
-    setSGR sgr
-    r <- x
-    setSGR [Reset]
-    pure r
-
--- A special case of 'withSGR'
-withSGR' :: MonadIO m => Color -> IO a -> m a
-withSGR' x = liftIO . withSGR [SetColor Foreground Vivid x, SetConsoleIntensity BoldIntensity]
 
 -- | Run the action. If it fails then just print the error and go again.
 runLifxUntilSuccess :: Int -> Lifx a -> IO a
