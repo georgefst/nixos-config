@@ -97,12 +97,11 @@ main = do
             $ ((\((), t) -> logMessage t) <=< runM)
                 . translate (runSimpleAction (opts & \Opts{..} -> ActionOpts{..}))
                 . Eff.runWriter
-                . ( \action -> do
-                        case action of
-                            SimpleAction a -> Eff.tell $ showT a
-                            a -> Eff.tell $ showT a
-                        raise $ runAction action
-                  )
+                . \action -> do
+                    case action of
+                        SimpleAction a -> Eff.tell $ showT a
+                        a -> Eff.tell $ showT a
+                    raise $ runAction action
         ]
 
 data SimpleAction a where
