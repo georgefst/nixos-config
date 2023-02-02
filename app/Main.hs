@@ -189,8 +189,8 @@ decodeAction =
             n -> fail $ "unknown action: " <> show n
 
 data Event
-    = ErrorEvent Error
-    | ActionEvent Action
+    = ActionEvent Action
+    | ErrorEvent Error
 newtype EventQueue = EventQueue {unwrap :: MVar Event}
 newEventQueue :: MonadIO m => m EventQueue
 newEventQueue = liftIO $ EventQueue <$> newEmptyMVar
