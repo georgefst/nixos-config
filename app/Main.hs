@@ -67,8 +67,7 @@ main = do
     hSetBuffering stdout LineBuffering -- TODO necessary when running as systemd service - why? report upstream
     (opts :: Opts) <- getRecord "Clark"
     queue <- newEventQueue
-    let handleError :: Error -> AppM ()
-        handleError err = do
+    let handleError err = do
             case err of
                 Error{title, body} -> do
                     withSGR' Red $ T.putStrLn $ title <> ":"
