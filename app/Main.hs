@@ -67,7 +67,7 @@ main = do
     let handleError :: Error -> AppM ()
         handleError err = do
             case err of
-                BodyError{title, body} -> do
+                Error{title, body} -> do
                     withSGR' Red $ T.putStrLn $ title <> ":"
                     pPrintOpt CheckColorTty defaultOutputOptionsDarkBg{outputOptionsInitialIndent = 4} body
                 SimpleError t -> withSGR' Red $ T.putStrLn t
@@ -136,9 +136,9 @@ runSimpleAction opts = \case
         showOutput out err
         case e of
             ExitSuccess -> pure ()
-            ExitFailure n -> throwError $ BodyError "Failed to set desk USB power" n
+            ExitFailure n -> throwError $ Error "Failed to set desk USB power" n
     SendEmail{subject, body} ->
-        either (throwError . BodyError "Failed to send email") pure
+        either (throwError . Error "Failed to send email") pure
             =<< sendEmail (opts & \ActionOpts{..} -> EmailOpts{..})
     SuspendBilly ->
         maybe (throwError $ SimpleError "SSH timeout") pure
@@ -186,24 +186,24 @@ decodeAction =
             n -> fail $ "unknown action: " <> show n
 
 data Error where
-    BodyError :: Show a => {title :: Text, body :: a} -> Error
+    Error :: Show a => {title :: Text, body :: a} -> Error
     SimpleError :: Text -> Error
 data Event
-    = Error Error
-    | Action Action
+    = ErrorEvent Error
+    | ActionEvent Action
 newtype EventQueue = EventQueue {unwrap :: MVar Event}
 newEventQueue :: MonadIO m => m EventQueue
 newEventQueue = liftIO $ EventQueue <$> newEmptyMVar
 enqueueError :: (MonadIO m, Show e) => EventQueue -> Text -> e -> m ()
-enqueueError q t = liftIO . putMVar (q.unwrap) . Error . BodyError t
+enqueueError q t = liftIO . putMVar (q.unwrap) . ErrorEvent . Error t
 enqueueAction :: MonadIO m => EventQueue -> Action -> m ()
-enqueueAction q = liftIO . putMVar (q.unwrap) . Action
+enqueueAction q = liftIO . putMVar (q.unwrap) . ActionEvent
 dequeueEvents :: (MonadIO m, MonadError Error m) => EventQueue -> (Action -> m ()) -> m ()
 dequeueEvents q x =
     forever $
         liftIO (takeMVar q.unwrap) >>= \case
-            Action a -> x a
-            Error e -> throwError e
+            ActionEvent a -> x a
+            ErrorEvent e -> throwError e
 
 {- Util -}
 
