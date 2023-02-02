@@ -86,7 +86,7 @@ main = do
         , gpioMon opts.buttonDebounce opts.buttonPin $ enqueueAction queue SleepOrWake
         , runLifxUntilSuccess (lifxTime opts.lifxTimeout)
             . flip evalStateT mempty
-            . (either (\(s, Exists e) -> handleError s e) pure <=< runExceptT)
+            . (either (\Error{text, extra = Exists extra} -> handleError text extra) pure <=< runExceptT)
             . dequeueActions queue
             $ runM
                 . translate
@@ -133,12 +133,12 @@ runSimpleAction opts = \case
         showOutput out err
         case e of
             ExitSuccess -> pure ()
-            ExitFailure n -> throwError ("Failed to set desk USB power", Exists n)
+            ExitFailure n -> throwError $ Error "Failed to set desk USB power" $ Exists n
     SendEmail{subject, body} ->
-        either (throwError . ("Failed to send email",) . Exists) pure
+        either (throwError . Error "Failed to send email" . Exists) pure
             =<< sendEmail (opts & \ActionOpts{..} -> EmailOpts{..})
     SuspendBilly ->
-        maybe (throwError ("SSH timeout", Exists ())) pure
+        maybe (throwError $ Error "SSH timeout" $ Exists ()) pure
             =<< liftIO
                 ( traverse (\(e, out, err) -> showOutput out err >> pure e)
                     <=< readProcessWithExitCodeTimeout (opts.sshTimeout * 1_000_000)
@@ -182,13 +182,16 @@ decodeAction =
             6 -> pure SleepOrWake
             n -> fail $ "unknown action: " <> show n
 
-type Error = (Text, Exists Show)
+data Error = Error
+    { text :: Text
+    , extra :: Exists Show
+    }
 type Event = Either Error Action
 newtype ActionQueue = ActionQueue {unwrap :: MVar Event}
 newActionQueue :: MonadIO m => m ActionQueue
 newActionQueue = liftIO $ ActionQueue <$> newEmptyMVar
 enqueueError :: (MonadIO m, Show e) => ActionQueue -> Text -> e -> m ()
-enqueueError q t = liftIO . putMVar (q.unwrap) . curry Left t . Exists
+enqueueError q t = liftIO . putMVar (q.unwrap) . Left . Error t . Exists
 enqueueAction :: MonadIO m => ActionQueue -> Action -> m ()
 enqueueAction q = liftIO . putMVar (q.unwrap) . Right
 dequeueActions :: (MonadIO m, MonadError Error m) => ActionQueue -> (Action -> m ()) -> m ()
