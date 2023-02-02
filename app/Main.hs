@@ -236,17 +236,16 @@ gpioMon debounce pin x = do
                 `setStdout` CreatePipe
     let gpiomonStdout = processStdout p
     putStrLn "Done!"
-
     getCurrentTime >>= iterateM_ \t0 -> do
-            line <- hGetLine gpiomonStdout
-            t1 <- getCurrentTime
-            if diffUTCTime t1 t0 < realToFrac debounce
-                then withSGR' Red $ putStr "Ignoring: "
-                else do
-                    withSGR' Green $ putStr "Ok: "
-                    x
-            putStrLn line
-            pure t1
+        line <- hGetLine gpiomonStdout
+        t1 <- getCurrentTime
+        if diffUTCTime t1 t0 < realToFrac debounce
+            then withSGR' Red $ putStr "Ignoring: "
+            else do
+                withSGR' Green $ putStr "Ok: "
+                x
+        putStrLn line
+        pure t1
 gpioChip :: ByteString
 gpioChip = "gpiochip0"
 
