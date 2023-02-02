@@ -12,6 +12,7 @@ import Control.Monad.Except
 import Control.Monad.Freer
 import Control.Monad.Loops
 import Control.Monad.State
+import Control.Monad.Writer
 import Data.Binary qualified as B
 import Data.Binary.Get (runGetOrFail)
 import Data.Binary.Get qualified as B
@@ -92,6 +93,7 @@ main = do
         , runLifxUntilSuccess (lifxTime opts.lifxTimeout)
             . flip evalStateT mempty
             . (either handleError pure <=< runExceptT)
+            . ((\(r, t) -> liftIO (T.putStrLn t) >> pure r) <=< runWriterT)
             . dequeueEvents queue
             $ runM
                 . translate
@@ -191,19 +193,23 @@ decodeAction =
 
 data Event
     = ActionEvent Action
+    | LogEvent Text
     | ErrorEvent Error
 newtype EventQueue = EventQueue {unwrap :: MVar Event}
 newEventQueue :: MonadIO m => m EventQueue
 newEventQueue = liftIO $ EventQueue <$> newEmptyMVar
 enqueueError :: (MonadIO m, Show e) => EventQueue -> Text -> e -> m ()
 enqueueError q t = liftIO . putMVar (q.unwrap) . ErrorEvent . Error t
+enqueueLog :: (MonadIO m) => EventQueue -> Text -> m ()
+enqueueLog q = liftIO . putMVar (q.unwrap) . LogEvent
 enqueueAction :: MonadIO m => EventQueue -> Action -> m ()
 enqueueAction q = liftIO . putMVar (q.unwrap) . ActionEvent
-dequeueEvents :: (MonadIO m, MonadError Error m) => EventQueue -> (Action -> m ()) -> m ()
+dequeueEvents :: (MonadIO m, MonadError Error m, MonadWriter Text m) => EventQueue -> (Action -> m ()) -> m ()
 dequeueEvents q x =
     forever $
         liftIO (takeMVar q.unwrap) >>= \case
             ActionEvent a -> x a
+            LogEvent t -> tell t
             ErrorEvent e -> throwError e
 
 {- Util -}
