@@ -95,15 +95,9 @@ main = do
             . dequeueEvents queue
             $ ((\(r, t) -> tell t >> pure r) <=< runM)
                 . translate
-                    ( \action ->
-                        tell (showT action)
-                            >> runSimpleAction (opts & \Opts{..} -> ActionOpts{..}) action
-                    )
+                    (\action -> tell (showT action) >> runSimpleAction (opts & \Opts{..} -> ActionOpts{..}) action)
                 . Eff.runWriter
-                . ( \action ->
-                        Eff.tell (showT action)
-                            >> raise (runAction action)
-                  )
+                . (\action -> Eff.tell (showT action) >> raise (runAction action))
         ]
 
 data SimpleAction a where
