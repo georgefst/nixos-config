@@ -63,7 +63,7 @@ main :: IO ()
 main = do
     hSetBuffering stdout LineBuffering -- TODO necessary when running as systemd service - why? report upstream
     (opts :: Opts) <- getRecord "Clark"
-    queue <- newActionQueue
+    queue <- newEventQueue
     let handleError :: Error -> AppM ()
         handleError err = do
             case err of
@@ -90,7 +90,7 @@ main = do
         , runLifxUntilSuccess (lifxTime opts.lifxTimeout)
             . flip evalStateT mempty
             . (either handleError pure <=< runExceptT)
-            . dequeueActions queue
+            . dequeueEvents queue
             $ runM
                 . translate
                     ( \action ->
@@ -189,15 +189,15 @@ data Error where
     Error :: Show a => {text :: Text, extra :: a} -> Error
     SimpleError :: {text :: Text} -> Error
 type Event = Either Error Action
-newtype ActionQueue = ActionQueue {unwrap :: MVar Event}
-newActionQueue :: MonadIO m => m ActionQueue
-newActionQueue = liftIO $ ActionQueue <$> newEmptyMVar
-enqueueError :: (MonadIO m, Show e) => ActionQueue -> Text -> e -> m ()
+newtype EventQueue = EventQueue {unwrap :: MVar Event}
+newEventQueue :: MonadIO m => m EventQueue
+newEventQueue = liftIO $ EventQueue <$> newEmptyMVar
+enqueueError :: (MonadIO m, Show e) => EventQueue -> Text -> e -> m ()
 enqueueError q t = liftIO . putMVar (q.unwrap) . Left . Error t
-enqueueAction :: MonadIO m => ActionQueue -> Action -> m ()
+enqueueAction :: MonadIO m => EventQueue -> Action -> m ()
 enqueueAction q = liftIO . putMVar (q.unwrap) . Right
-dequeueActions :: (MonadIO m, MonadError Error m) => ActionQueue -> (Action -> m ()) -> m ()
-dequeueActions q x =
+dequeueEvents :: (MonadIO m, MonadError Error m) => EventQueue -> (Action -> m ()) -> m ()
+dequeueEvents q x =
     forever $
         liftIO (takeMVar q.unwrap) >>= \case
             Right a -> x a
