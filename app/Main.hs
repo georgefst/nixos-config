@@ -67,10 +67,10 @@ main = do
     let handleError :: Error -> AppM ()
         handleError err = do
             case err of
-                Error{text = title, extra = body} -> do
+                Error{title, body} -> do
                     withSGR' Red $ T.putStrLn $ title <> ":"
                     pPrintOpt CheckColorTty defaultOutputOptionsDarkBg{outputOptionsInitialIndent = 4} body
-                SimpleError{text} -> withSGR' Red $ T.putStrLn text
+                SimpleError t -> withSGR' Red $ T.putStrLn t
             gets (Map.member opts.ledErrorPin) >>= \case
                 False -> modify . Map.insert opts.ledErrorPin =<< gpioSet [opts.ledErrorPin]
                 True -> liftIO $ putStrLn "LED is already on"
@@ -186,8 +186,8 @@ decodeAction =
             n -> fail $ "unknown action: " <> show n
 
 data Error where
-    Error :: Show a => {text :: Text, extra :: a} -> Error
-    SimpleError :: {text :: Text} -> Error
+    Error :: Show a => {title :: Text, body :: a} -> Error
+    SimpleError :: Text -> Error
 type Event = Either Error Action
 newtype EventQueue = EventQueue {unwrap :: MVar Event}
 newEventQueue :: MonadIO m => m EventQueue
