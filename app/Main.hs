@@ -5,7 +5,6 @@ import Text.Pretty.Simple hiding (Color (..), Intensity (..)) -- TODO https://gi
 
 import Control.Concurrent
 import Control.Concurrent.Async
-import Control.Exception (IOException)
 import Control.Lens
 import Control.Monad
 import Control.Monad.Catch
@@ -238,8 +237,7 @@ gpioMon debounce pin x = do
     let gpiomonStdout = processStdout p
     putStrLn "Done!"
 
-    handle (\(e :: IOException) -> print e >> terminateProcess p >> hClose gpiomonStdout) $
-        getCurrentTime >>= iterateM_ \t0 -> do
+    getCurrentTime >>= iterateM_ \t0 -> do
             line <- hGetLine gpiomonStdout
             t1 <- getCurrentTime
             if diffUTCTime t1 t0 < realToFrac debounce
