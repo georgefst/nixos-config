@@ -26,6 +26,7 @@ import Data.Map qualified as Map
 import Data.Text qualified as T
 import Data.Text.Encoding hiding (Some)
 import Data.Text.IO qualified as T
+import Data.Text.Lazy qualified as TL
 import Data.Time
 import Data.Tuple.Extra hiding (first, second)
 import Data.Word
@@ -98,8 +99,7 @@ main = do
             $ runM
                 . translate
                     ( \action ->
-                        -- TODO better logging
-                        pPrint action
+                        tell (TL.toStrict $ pShow action)
                             >> runSimpleAction (opts & \Opts{..} -> ActionOpts{..}) action
                     )
                 . runAction
