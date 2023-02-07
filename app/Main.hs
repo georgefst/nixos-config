@@ -110,7 +110,7 @@ data SimpleAction a where
     SetLightColour :: NominalDiffTime -> Word16 -> Word16 -> SimpleAction () -- brightness and temp
     SetDeskUSBPower :: Bool -> SimpleAction ()
     SendEmail :: {subject :: Text, body :: Text} -> SimpleAction (Response BSL.ByteString)
-    SuspendBilly :: SimpleAction ExitCode
+    SuspendBilly :: SimpleAction ()
 deriving instance Show (SimpleAction a)
 data ActionOpts = ActionOpts
     { ledErrorPin :: Int
@@ -146,7 +146,8 @@ runSimpleAction opts = \case
         either (throwError . Error "Failed to send email") pure
             =<< sendEmail (opts & \ActionOpts{..} -> EmailOpts{..})
     SuspendBilly ->
-        maybe (throwError $ SimpleError "SSH timeout") pure
+        maybe (throwError $ SimpleError "SSH timeout")
+            (\ec -> unless (ec == ExitSuccess) $ throwError $ Error "SSH failure" ec)
             =<< liftIO
                 ( traverse (\(e, out, err) -> showOutput out err >> pure e)
                     <=< readProcessWithExitCodeTimeout (opts.sshTimeout * 1_000_000)
