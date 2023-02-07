@@ -150,11 +150,7 @@ runSimpleAction opts = \case
             =<< liftIO
                 ( traverse (\(e, out, err) -> showOutput out err >> pure e)
                     <=< readProcessWithExitCodeTimeout (opts.sshTimeout * 1_000_000)
-                    $ proc
-                        "ssh"
-                        [ "billy"
-                        , "systemctl suspend"
-                        ]
+                    $ proc "ssh" ["billy", "systemctl suspend"]
                 )
   where
     showOutput out err = liftIO $ for_ [("stdout", out), ("stderr", err)] \(s, t) ->
