@@ -152,9 +152,7 @@ runSimpleAction opts = \case
                     <=< readProcessWithExitCodeTimeout (opts.sshTimeout * 1_000_000)
                     $ proc
                         "ssh"
-                        [ "-i/home/gthomas/.ssh/id_rsa"
-                        , "-oUserKnownHostsFile=/home/gthomas/.ssh/known_hosts"
-                        , "gthomas@billy"
+                        [ "billy"
                         , "systemctl suspend"
                         ]
                 )
