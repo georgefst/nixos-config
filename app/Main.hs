@@ -137,18 +137,16 @@ runSimpleAction opts = \case
         hue = 0
         saturation = 0
     SetDeskUSBPower b -> do
-        (e, out, err) <- MQTT.Meross.send =<< MQTT.Meross.toggle 2 b
+        (ec, out, err) <- MQTT.Meross.send =<< MQTT.Meross.toggle 2 b
         showOutput out err
-        case e of
-            ExitSuccess -> pure ()
-            ExitFailure n -> throwError $ Error "Failed to set desk USB power" n
+        throwWhenFailureExitCode "Failed to set desk USB power" ec
     SendEmail{subject, body} ->
         either (throwError . Error "Failed to send email") pure
             =<< sendEmail (opts & \ActionOpts{..} -> EmailOpts{..})
     SuspendBilly ->
         maybe
             (throwError $ SimpleError "SSH timeout")
-            (\ec -> unless (ec == ExitSuccess) $ throwError $ Error "SSH failure" ec)
+            (throwWhenFailureExitCode "SSH failure")
             =<< liftIO
                 ( traverse (\(e, out, err) -> showOutput out err >> pure e)
                     <=< readProcessWithExitCodeTimeout (opts.sshTimeout * 1_000_000)
@@ -157,6 +155,8 @@ runSimpleAction opts = \case
   where
     showOutput out err = liftIO $ for_ [("stdout", out), ("stderr", err)] \(s, t) ->
         unless (B.null t) $ T.putStrLn ("    " <> s <> ": ") >> B.putStr t
+    throwWhenFailureExitCode s ec =
+        unless (ec == ExitSuccess) $ throwError $ Error s ec
 
 data Action where
     SimpleAction :: SimpleAction a -> Action
