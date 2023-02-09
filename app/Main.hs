@@ -85,11 +85,9 @@ main = do
         [ do
             sock <- socket AF_INET Datagram defaultProtocol
             bind sock $ SockAddrInet (fromIntegral opts.receivePort) 0
-            forever do
-                bs <- recv sock 4096
-                case decodeAction $ BSL.fromStrict bs of
-                    Right x -> enqueueAction queue x
-                    Left e -> enqueueError queue "Decode failure" e
+            forever $
+                either (enqueueError queue "Decode failure") (enqueueAction queue) . decodeAction . BSL.fromStrict
+                    =<< recv sock 4096
         , gpioMon (enqueueLog queue) opts.buttonDebounce opts.buttonPin $ enqueueAction queue SleepOrWake
         , runLifxUntilSuccess (lifxTime opts.lifxTimeout)
             . flip evalStateT mempty
