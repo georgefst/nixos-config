@@ -67,7 +67,9 @@ main = do
     hSetBuffering stdout LineBuffering -- TODO necessary when running as systemd service - why? report upstream
     (opts :: Opts) <- getRecord "Clark"
     queue <- newEventQueue
-    let handleError err = do
+    let
+        handleError :: (MonadIO m, MonadState AppState m) => Error -> m ()
+        handleError err = do
             case err of
                 Error{title, body} -> do
                     liftIO . T.putStrLn $ title <> ":"
@@ -93,7 +95,7 @@ main = do
             . flip evalStateT mempty
             . (either handleError pure <=< runExceptT)
             . flip runLoggingT (liftIO . T.putStrLn)
-            . dequeueEvents queue
+            . dequeueEvents queue handleError
             $ ((\((), t) -> logMessage t) <=< runM)
                 . translate (runSimpleAction (opts & \Opts{..} -> ActionOpts{..}))
                 . Eff.runWriter
@@ -199,13 +201,13 @@ enqueueLog :: (MonadIO m) => EventQueue -> Text -> m ()
 enqueueLog q = liftIO . putMVar (q.unwrap) . LogEvent
 enqueueAction :: MonadIO m => EventQueue -> Action -> m ()
 enqueueAction q = liftIO . putMVar (q.unwrap) . ActionEvent
-dequeueEvents :: (MonadIO m, MonadError Error m, MonadLog Text m) => EventQueue -> (Action -> m ()) -> m ()
-dequeueEvents q x =
+dequeueEvents :: (MonadIO m, MonadLog Text m) => EventQueue -> (Error -> m ()) -> (Action -> m ()) -> m ()
+dequeueEvents q h x =
     forever $
         liftIO (takeMVar q.unwrap) >>= \case
             ActionEvent a -> x a
             LogEvent t -> logMessage t
-            ErrorEvent e -> throwError e
+            ErrorEvent e -> h e
 
 {- Util -}
 
