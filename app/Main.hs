@@ -93,10 +93,10 @@ main = do
         , gpioMon (enqueueLog queue) opts.buttonDebounce opts.buttonPin $ enqueueAction queue SleepOrWake
         , runLifxUntilSuccess (lifxTime opts.lifxTimeout)
             . flip evalStateT mempty
-            . (either handleError pure <=< runExceptT)
             . flip runLoggingT (liftIO . T.putStrLn)
             . dequeueEvents queue handleError
-            $ ((\((), t) -> logMessage t) <=< runM)
+            $ (either handleError pure <=< runExceptT)
+                . ((\((), t) -> logMessage t) <=< runM)
                 . translate (runSimpleAction (opts & \Opts{..} -> ActionOpts{..}))
                 . Eff.runWriter
                 . \action -> do
