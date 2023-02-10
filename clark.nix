@@ -131,6 +131,7 @@ in
     clark = {
       script = ''
         ${home}/clark \
+          --gpio-chip gpiochip0 \
           --button-debounce 1 \
           --button-pin 27 \
           --led-error-pin 19 \
@@ -140,7 +141,12 @@ in
           --receive-port ${builtins.toString clark-script-port} \
           --mailgun-sandbox ${secrets.mailgun.sandbox} \
           --mailgun-key ${secrets.mailgun.key} \
+          --email-address georgefsthomas@gmail.com \
+          --laptop-host-name billy \
           --ssh-timeout 3 \
+          --lifx-morning-seconds 45 \
+          --lifx-morning-kelvin 2700 \
+          --desk-usb-port 2 \
       '';
       description = "clark script";
       path = [ pkgs.libgpiod pkgs.mosquitto pkgs.openssh ];
