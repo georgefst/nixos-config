@@ -79,10 +79,17 @@ main = do
                 True -> liftIO $ putStrLn "LED is already on"
         -- TODO avoid hardcoding - discovery doesn't currently work on Clark (firewall?)
         light = deviceFromAddress (192, 168, 1, 190)
-    sock <- socket AF_INET Datagram defaultProtocol
-    bind sock $ SockAddrInet (fromIntegral opts.receivePort) 0
-    m <- newEmptyMVar
-    race_ (gpioMon (putMVar m . LogEvent) opts.buttonDebounce opts.buttonPin $ putMVar m $ ActionEvent SleepOrWake)
+
+    -- TODO initialisation stuff - encapsulate this better somehow, without it being killed by LIFX failure
+    eventSocket <- socket AF_INET Datagram defaultProtocol
+    bind eventSocket $ SockAddrInet (fromIntegral opts.receivePort) 0
+    gpioEventMVar <- newEmptyMVar
+    let gpioMonitor =
+            gpioMon (putMVar gpioEventMVar . LogEvent) opts.buttonDebounce opts.buttonPin
+                . putMVar gpioEventMVar
+                $ ActionEvent SleepOrWake
+
+    race_ gpioMonitor
         . flip evalStateT mempty
         . flip runLoggingT (liftIO . T.putStrLn)
         . runLifxUntilSuccess (lifxTime opts.lifxTimeout)
@@ -104,8 +111,8 @@ main = do
         $ mconcat
             [ S.repeatM $
                 either (ErrorEvent . Error "Decode failure") ActionEvent . decodeAction . BSL.fromStrict
-                    <$> recv sock 4096
-            , S.repeatM $ takeMVar m
+                    <$> recv eventSocket 4096
+            , S.repeatM $ takeMVar gpioEventMVar
             ]
 
 data SimpleAction a where
