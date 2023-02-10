@@ -13,6 +13,8 @@ import Options.Generic (Text)
 data Opts = Opts
     { key :: Text
     , sandbox :: Text
+    , from :: Text
+    , to :: Text
     , subject :: Text
     , body :: Text
     }
@@ -24,8 +26,8 @@ send Opts{..} =
     postOpts = defaults & auth ?~ basicAuth "api" (encodeUtf8 key)
     url = "https://api.mailgun.net/v3/sandbox" <> T.unpack sandbox <> ".mailgun.org/messages"
     formParams =
-        [ "from" := "Mailgun Sandbox <postmaster@sandbox" <> sandbox <> ".mailgun.org>"
-        , "to" := ("George Thomas <georgefsthomas@gmail.com>" :: Text)
+        [ "from" := from
+        , "to" := to
         , "subject" := subject
         , "text" := body
         ]
