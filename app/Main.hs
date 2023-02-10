@@ -87,7 +87,7 @@ main = do
             LogEvent t -> logMessage t
             ActionEvent action ->
                 (either handleError pure <=< runExceptT)
-                    . ((\((), t) -> logMessage t) <=< runM)
+                    . (logMessage . snd @() <=< runM)
                     . translate (runSimpleAction (opts & \Opts{..} -> ActionOpts{..}))
                     . Eff.runWriter
                     $ do
@@ -108,7 +108,7 @@ main = do
                 m <- S.fromEffect newEmptyMVar
                 S.mapMaybe id
                     . S.fromAsync
-                    $ (Just <$> S.repeatM ( takeMVar m))
+                    $ (Just <$> S.repeatM (takeMVar m))
                         <> ( (Nothing <$)
                                 . S.fromEffect
                                 . gpioMon (putMVar m . LogEvent) opts.buttonDebounce opts.buttonPin
