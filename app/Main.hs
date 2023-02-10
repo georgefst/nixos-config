@@ -1,7 +1,7 @@
 module Main (main) where
 
-import Email qualified
 import GPIO qualified
+import Mailgun qualified
 import Util
 import Util.Lifx
 
@@ -152,7 +152,7 @@ runSimpleAction opts = \case
         throwWhenFailureExitCode "Failed to set desk USB power" ec
     SendEmail{subject, body} ->
         either (throwError . Error "Failed to send email") pure
-            =<< Email.send (opts & \ActionOpts{..} -> Email.Opts{..})
+            =<< Mailgun.send Mailgun.Opts{key = opts.mailgunKey, sandbox = opts.mailgunSandbox, subject, body}
     SuspendBilly ->
         maybe
             (throwError $ SimpleError "SSH timeout")

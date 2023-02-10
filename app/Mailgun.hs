@@ -1,4 +1,4 @@
-module Email (send, Opts (..)) where
+module Mailgun (send, Opts (..)) where
 
 import Control.Lens ((&), (?~))
 import Control.Monad.Catch (tryJust)
@@ -11,8 +11,8 @@ import Network.Wreq (FormParam ((:=)), auth, basicAuth, defaults, postWith)
 import Options.Generic (Text)
 
 data Opts = Opts
-    { mailgunKey :: Text
-    , mailgunSandbox :: Text
+    { key :: Text
+    , sandbox :: Text
     , subject :: Text
     , body :: Text
     }
@@ -21,10 +21,10 @@ send :: MonadIO m => Opts -> m (Either HttpExceptionContent (Response BSL.ByteSt
 send Opts{..} =
     liftIO $ tryHttpException $ postWith postOpts url formParams
   where
-    postOpts = defaults & auth ?~ basicAuth "api" (encodeUtf8 mailgunKey)
-    url = "https://api.mailgun.net/v3/sandbox" <> T.unpack mailgunSandbox <> ".mailgun.org/messages"
+    postOpts = defaults & auth ?~ basicAuth "api" (encodeUtf8 key)
+    url = "https://api.mailgun.net/v3/sandbox" <> T.unpack sandbox <> ".mailgun.org/messages"
     formParams =
-        [ "from" := "Mailgun Sandbox <postmaster@sandbox" <> mailgunSandbox <> ".mailgun.org>"
+        [ "from" := "Mailgun Sandbox <postmaster@sandbox" <> sandbox <> ".mailgun.org>"
         , "to" := ("George Thomas <georgefsthomas@gmail.com>" :: Text)
         , "subject" := subject
         , "text" := body
