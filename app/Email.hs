@@ -1,4 +1,4 @@
-module Email where
+module Email (send, Opts (..)) where
 
 import Control.Lens ((&), (?~))
 import Control.Monad.Catch (tryJust)
@@ -10,14 +10,15 @@ import Network.HTTP.Client (HttpException (HttpExceptionRequest, InvalidUrlExcep
 import Network.Wreq (FormParam ((:=)), auth, basicAuth, defaults, postWith)
 import Options.Generic (Text)
 
-data EmailOpts = EmailOpts
+data Opts = Opts
     { mailgunKey :: Text
     , mailgunSandbox :: Text
     , subject :: Text
     , body :: Text
     }
-sendEmail :: MonadIO m => EmailOpts -> m (Either HttpExceptionContent (Response BSL.ByteString))
-sendEmail EmailOpts{..} =
+
+send :: MonadIO m => Opts -> m (Either HttpExceptionContent (Response BSL.ByteString))
+send Opts{..} =
     liftIO $ tryHttpException $ postWith postOpts url formParams
   where
     postOpts = defaults & auth ?~ basicAuth "api" (encodeUtf8 mailgunKey)
