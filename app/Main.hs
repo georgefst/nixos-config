@@ -42,7 +42,8 @@ import System.IO
 import Text.Pretty.Simple
 
 data Opts = Opts
-    { buttonDebounce :: Double
+    { gpioChip :: Text
+    , buttonDebounce :: Double
     , buttonPin :: Int
     , ledErrorPin :: Int
     , ledOtherPin :: Int
@@ -51,7 +52,12 @@ data Opts = Opts
     , receivePort :: Word16
     , mailgunSandbox :: Text
     , mailgunKey :: Text
+    , emailAddress :: Text
+    , laptopHostName :: Text
     , sshTimeout :: Int
+    , lifxMorningSeconds :: Int
+    , lifxMorningKelvin :: Word16
+    , deskUsbPort :: Int
     }
     deriving (Show, Generic)
 instance ParseRecord Opts where
@@ -74,18 +80,17 @@ main = do
                     pPrintOpt CheckColorTty defaultOutputOptionsDarkBg{outputOptionsInitialIndent = 4} body
                 SimpleError t -> liftIO $ T.putStrLn t
             gets (Map.member opts.ledErrorPin) >>= \case
-                False -> modify . Map.insert opts.ledErrorPin =<< GPIO.set gpioChip [opts.ledErrorPin]
+                False -> modify . Map.insert opts.ledErrorPin =<< GPIO.set (encodeUtf8 opts.gpioChip) [opts.ledErrorPin]
                 True -> liftIO $ putStrLn "LED is already on"
         -- TODO avoid hardcoding - discovery doesn't currently work on Clark (firewall?)
         light = deviceFromAddress (192, 168, 1, 190)
-        gpioChip = "gpiochip0"
 
     -- TODO initialisation stuff - encapsulate this better somehow, without it being killed by LIFX failure
     eventSocket <- socket AF_INET Datagram defaultProtocol
     bind eventSocket $ SockAddrInet (fromIntegral opts.receivePort) 0
     gpioEventMVar <- newEmptyMVar
     let gpioMonitor =
-            GPIO.mon gpioChip (putMVar gpioEventMVar . LogEvent) opts.buttonDebounce opts.buttonPin
+            GPIO.mon (encodeUtf8 opts.gpioChip) (putMVar gpioEventMVar . LogEvent) opts.buttonDebounce opts.buttonPin
                 . putMVar gpioEventMVar
                 $ ActionEvent SleepOrWake
 
@@ -99,13 +104,13 @@ main = do
             ActionEvent action ->
                 (either handleError pure <=< runExceptT)
                     . (logMessage . snd @() <=< runM)
-                    . translate (runSimpleAction (opts & \Opts{..} -> ActionOpts{..}))
+                    . translate (runSimpleAction (opts & \Opts{..} -> SimpleActionOpts{..}))
                     . Eff.runWriter
                     $ do
                         case action of
                             SimpleAction a -> Eff.tell $ showT a
                             a -> Eff.tell $ showT a
-                        raise $ runAction action
+                        raise $ runAction (opts & \Opts{..} -> ActionOpts{..}) action
         . S.hoist liftIO
         . S.fromAsync
         $ mconcat
@@ -123,16 +128,19 @@ data SimpleAction a where
     SendEmail :: {subject :: Text, body :: Text} -> SimpleAction (Response BSL.ByteString)
     SuspendBilly :: SimpleAction ()
 deriving instance Show (SimpleAction a)
-data ActionOpts = ActionOpts
+data SimpleActionOpts = SimpleActionOpts
     { ledErrorPin :: Int
     , mailgunSandbox :: Text
     , mailgunKey :: Text
     , sshTimeout :: Int
     , light :: Device
+    , emailAddress :: Text
+    , laptopHostName :: Text
+    , deskUsbPort :: Int
     }
 
 runSimpleAction ::
-    (MonadIO m, MonadState AppState m, MonadLifx m, MonadError Error m) => ActionOpts -> SimpleAction a -> m a
+    (MonadIO m, MonadState AppState m, MonadLifx m, MonadError Error m) => SimpleActionOpts -> SimpleAction a -> m a
 runSimpleAction opts = \case
     ResetError ->
         gets (Map.lookup opts.ledErrorPin) >>= \case
@@ -148,7 +156,7 @@ runSimpleAction opts = \case
         hue = 0
         saturation = 0
     SetDeskUSBPower b -> do
-        (ec, out, err) <- MQTT.Meross.send =<< MQTT.Meross.toggle 2 b
+        (ec, out, err) <- MQTT.Meross.send =<< MQTT.Meross.toggle opts.deskUsbPort b
         showOutput out err
         throwWhenFailureExitCode "Failed to set desk USB power" ec
     SendEmail{subject, body} ->
@@ -157,13 +165,11 @@ runSimpleAction opts = \case
                 Mailgun.Opts
                     { key = opts.mailgunKey
                     , sandbox = opts.mailgunSandbox
-                    , from = address
-                    , to = address
+                    , from = opts.emailAddress
+                    , to = opts.emailAddress
                     , subject
                     , body
                     }
-      where
-        address = "georgefsthomas@gmail.com"
     SuspendBilly ->
         maybe
             (throwError $ SimpleError "SSH timeout")
@@ -171,7 +177,7 @@ runSimpleAction opts = \case
             =<< liftIO
                 ( traverse (\(e, out, err) -> showOutput out err >> pure e)
                     <=< readProcessWithExitCodeTimeout (opts.sshTimeout * 1_000_000)
-                    $ proc "ssh" ["billy", "systemctl suspend"]
+                    $ proc "ssh" [encodeUtf8 opts.laptopHostName, "systemctl suspend"]
                 )
   where
     showOutput out err = liftIO $ for_ [("stdout", out), ("stderr", err)] \(s, t) ->
@@ -183,12 +189,16 @@ data Action where
     SimpleAction :: SimpleAction a -> Action
     SleepOrWake :: Action
 deriving instance Show Action
-runAction :: Action -> Eff '[SimpleAction] ()
-runAction = \case
+data ActionOpts = ActionOpts
+    { lifxMorningSeconds :: Int
+    , lifxMorningKelvin :: Word16
+    }
+runAction :: ActionOpts -> Action -> Eff '[SimpleAction] ()
+runAction opts = \case
     SimpleAction a -> void $ send a
     SleepOrWake ->
         send ToggleLight >>= \morning@(not -> night) -> do
-            when morning $ send $ SetLightColour 45 maxBound 2700
+            when morning $ send $ SetLightColour (fromIntegral opts.lifxMorningSeconds) maxBound opts.lifxMorningKelvin
             send $ SetDeskUSBPower morning
             when night . void $ send SuspendBilly
 decodeAction :: BSL.ByteString -> Either (BSL.ByteString, B.ByteOffset, String) Action
