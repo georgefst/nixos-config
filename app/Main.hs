@@ -79,6 +79,8 @@ main = do
                 True -> liftIO $ putStrLn "LED is already on"
         -- TODO avoid hardcoding - discovery doesn't currently work on Clark (firewall?)
         light = deviceFromAddress (192, 168, 1, 190)
+    sock <- socket AF_INET Datagram defaultProtocol
+    bind sock $ SockAddrInet (fromIntegral opts.receivePort) 0
     flip evalStateT mempty
         . flip runLoggingT (liftIO . T.putStrLn)
         . runLifxUntilSuccess (lifxTime opts.lifxTimeout)
@@ -99,8 +101,6 @@ main = do
         . S.fromAsync
         $ mconcat
             [ do
-                sock <- S.fromEffect $ socket AF_INET Datagram defaultProtocol
-                S.fromEffect $ bind sock $ SockAddrInet (fromIntegral opts.receivePort) 0
                 S.repeatM $
                     either (ErrorEvent . Error "Decode failure") ActionEvent . decodeAction . BSL.fromStrict
                         <$> recv sock 4096
