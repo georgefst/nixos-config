@@ -81,7 +81,9 @@ main = do
         light = deviceFromAddress (192, 168, 1, 190)
     sock <- socket AF_INET Datagram defaultProtocol
     bind sock $ SockAddrInet (fromIntegral opts.receivePort) 0
-    flip evalStateT mempty
+    m <- newEmptyMVar
+    race_ (gpioMon (putMVar m . LogEvent) opts.buttonDebounce opts.buttonPin $ putMVar m $ ActionEvent SleepOrWake)
+        . flip evalStateT mempty
         . flip runLoggingT (liftIO . T.putStrLn)
         . runLifxUntilSuccess (lifxTime opts.lifxTimeout)
         . S.mapM_ \case
@@ -103,17 +105,7 @@ main = do
             [ S.repeatM $
                 either (ErrorEvent . Error "Decode failure") ActionEvent . decodeAction . BSL.fromStrict
                     <$> recv sock 4096
-            , do
-                m <- S.fromEffect newEmptyMVar
-                S.mapMaybe id
-                    . S.fromAsync
-                    $ (Just <$> S.repeatM (takeMVar m))
-                        <> ( (Nothing <$)
-                                . S.fromEffect
-                                . gpioMon (putMVar m . LogEvent) opts.buttonDebounce opts.buttonPin
-                                . putMVar m
-                                $ ActionEvent SleepOrWake
-                           )
+            , S.repeatM $ takeMVar m
             ]
 
 data SimpleAction a where
