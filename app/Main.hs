@@ -99,18 +99,18 @@ main = do
         . S.fromAsync
         $ mconcat
             [ do
-                sock <- liftIO $ socket AF_INET Datagram defaultProtocol
-                liftIO $ bind sock $ SockAddrInet (fromIntegral opts.receivePort) 0
+                sock <- S.fromEffect $ socket AF_INET Datagram defaultProtocol
+                S.fromEffect $ bind sock $ SockAddrInet (fromIntegral opts.receivePort) 0
                 S.repeatM $
                     either (ErrorEvent . Error "Decode failure") ActionEvent . decodeAction . BSL.fromStrict
                         <$> recv sock 4096
             , do
-                m <- liftIO newEmptyMVar
+                m <- S.fromEffect newEmptyMVar
                 S.mapMaybe id
                     . S.fromAsync
-                    $ (Just <$> S.repeatM (liftIO $ takeMVar m))
+                    $ (Just <$> S.repeatM ( takeMVar m))
                         <> ( (Nothing <$)
-                                . liftIO
+                                . S.fromEffect
                                 . gpioMon (putMVar m . LogEvent) opts.buttonDebounce opts.buttonPin
                                 . putMVar m
                                 $ ActionEvent SleepOrWake
