@@ -9,7 +9,10 @@ maintainer:         georgefsthomas@gmail.com
 executable clark
     main-is: Main.hs
     other-modules:
+        Email
+        GPIO
         MQTT.Meross
+        Util
         Util.Lifx
     default-extensions:
         BlockArguments

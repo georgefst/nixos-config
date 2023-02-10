@@ -1,27 +1,27 @@
 module Main (main) where
 
+import Email
+import GPIO
+import Util
+import Util.Lifx
+
 import Control.Concurrent
 import Control.Concurrent.Async
 import Control.Lens
 import Control.Monad
-import Control.Monad.Catch
 import Control.Monad.Except
 import Control.Monad.Freer
 import Control.Monad.Freer.Writer qualified as Eff
 import Control.Monad.Log (logMessage, runLoggingT)
-import Control.Monad.Loops
 import Control.Monad.State
 import Data.Binary qualified as B
 import Data.Binary.Get (runGetOrFail)
 import Data.Binary.Get qualified as B
-import Data.ByteString (ByteString)
 import Data.ByteString qualified as B
 import Data.ByteString.Lazy qualified as BSL
-import Data.Either.Extra
 import Data.Foldable (for_)
 import Data.Map (Map)
 import Data.Map qualified as Map
-import Data.Text qualified as T
 import Data.Text.Encoding hiding (Some)
 import Data.Text.IO qualified as T
 import Data.Time
@@ -33,7 +33,6 @@ import MQTT.Meross qualified
 import Network.HTTP.Client
 import Network.Socket
 import Network.Socket.ByteString hiding (send)
-import Network.Wreq hiding (get, put)
 import Options.Generic
 import RawFilePath
 import Streamly.Internal.Data.Stream.IsStream qualified as S (hoist)
@@ -41,7 +40,6 @@ import Streamly.Prelude qualified as S
 import System.Exit
 import System.IO
 import Text.Pretty.Simple
-import Util.Lifx
 
 data Opts = Opts
     { buttonDebounce :: Double
@@ -202,72 +200,3 @@ data Event
     = ActionEvent Action
     | LogEvent Text
     | ErrorEvent Error
-
-{- Util -}
-
-data EmailOpts = EmailOpts
-    { mailgunKey :: Text
-    , mailgunSandbox :: Text
-    , subject :: Text
-    , body :: Text
-    }
-sendEmail :: MonadIO m => EmailOpts -> m (Either HttpExceptionContent (Response BSL.ByteString))
-sendEmail EmailOpts{..} =
-    liftIO $ tryHttpException $ postWith postOpts url formParams
-  where
-    postOpts = defaults & auth ?~ basicAuth "api" (encodeUtf8 mailgunKey)
-    url = "https://api.mailgun.net/v3/sandbox" <> T.unpack mailgunSandbox <> ".mailgun.org/messages"
-    formParams =
-        [ "from" := "Mailgun Sandbox <postmaster@sandbox" <> mailgunSandbox <> ".mailgun.org>"
-        , "to" := ("George Thomas <georgefsthomas@gmail.com>" :: Text)
-        , "subject" := subject
-        , "text" := body
-        ]
-    tryHttpException = tryJust \case
-        HttpExceptionRequest _ e -> Just e
-        InvalidUrlException _ _ -> Nothing
-
--- TODO get a proper Haskell GPIO library (hpio?) working with the modern interface
-gpioSet :: MonadIO m => [Int] -> m (Process Inherit Inherit Inherit)
-gpioSet xs =
-    liftIO
-        . startProcess
-        . proc "gpioset"
-        $ "--mode=signal" : gpioChip : map ((<> "=1") . showBS) xs
-gpioMon :: (Text -> IO ()) -> Double -> Int -> IO () -> IO ()
-gpioMon putLine debounce pin x = do
-    p <-
-        startProcess $
-            proc "gpiomon" ["-b", "-f", gpioChip, showBS pin]
-                `setStdout` CreatePipe
-    getCurrentTime >>= iterateM_ \t0 -> do
-        line <- hGetLine $ processStdout p
-        t1 <- getCurrentTime
-        if diffUTCTime t1 t0 < realToFrac debounce
-            then putLine $ "(Ignoring) " <> T.pack line
-            else putLine (T.pack line) >> x
-        pure t1
-gpioChip :: ByteString
-gpioChip = "gpiochip0"
-
-showT :: Show a => a -> Text
-showT = T.pack . show
-showBS :: Show a => a -> ByteString
-showBS = encodeUtf8 . showT
-
--- TODO return partial stdout/stderr in timeout case
-
-{- | Essentially `\t -> timeout t . readProcessWithExitCode`, except that it actually works since it uses `SIGTERM`,
-whereas `timeout` uses an async exception, and thus isn't good at terminating foreign code.
-Time is in microseconds, as with `threadDelay` and `timeout`.
--}
-readProcessWithExitCodeTimeout :: Int -> ProcessConf stdin stdout stderr -> IO (Maybe (ExitCode, ByteString, ByteString))
-readProcessWithExitCodeTimeout t conf = do
-    p <-
-        startProcess $
-            conf
-                `setStdin` NoStream
-                `setStdout` CreatePipe
-                `setStderr` CreatePipe
-    eitherToMaybe @() <$> ((threadDelay t >> terminateProcess p) `race` waitForProcess p)
-        >>= traverse \exitCode -> (exitCode,,) <$> B.hGetContents (processStdout p) <*> B.hGetContents (processStderr p)
