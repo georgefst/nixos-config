@@ -33,8 +33,8 @@ lifxTime :: Double -> Int
 lifxTime = round . (* 1_000_000)
 
 -- | Run the action. If it fails then just print the error and go again.
-runLifxUntilSuccess :: MonadIO m => Int -> LifxT m a -> m a
-runLifxUntilSuccess t x = either (\e -> liftIO (print e >> threadDelay t) >> runLifxUntilSuccess t x) pure =<< runLifxT t x
+runLifxUntilSuccess :: MonadIO m => (LifxError -> m ()) -> Int -> LifxT m a -> m a
+runLifxUntilSuccess p t x = either (\e -> p e >> liftIO (threadDelay t) >> runLifxUntilSuccess p t x) pure =<< runLifxT t x
 
 -- already upstreamed, just not yet in a release
 instance (MonadLifx m, Monoid t) => MonadLifx (WriterT t m) where

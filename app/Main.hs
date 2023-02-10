@@ -68,7 +68,8 @@ main :: IO ()
 main = do
     hSetBuffering stdout LineBuffering -- TODO necessary when running as systemd service - why? report upstream
     (opts :: Opts) <- getRecord "Clark"
-    let handleError err = do
+    let handleError :: (MonadIO m, MonadState AppState m) => Error -> m ()
+        handleError err = do
             case err of
                 Error{title, body} -> do
                     liftIO . T.putStrLn $ title <> ":"
@@ -92,7 +93,7 @@ main = do
     race_ gpioMonitor
         . flip evalStateT mempty
         . flip runLoggingT (liftIO . T.putStrLn)
-        . runLifxUntilSuccess (lifxTime opts.lifxTimeout)
+        . runLifxUntilSuccess (handleError . Error "LIFX error") (lifxTime opts.lifxTimeout)
         . S.mapM_ \case
             ErrorEvent e -> handleError e
             LogEvent t -> logMessage t
