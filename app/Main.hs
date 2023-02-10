@@ -114,10 +114,10 @@ main = do
         . S.hoist liftIO
         . S.fromAsync
         $ mconcat
-            [ S.repeatM $
+            [ S.fromSerial . S.repeatM $
                 either (ErrorEvent . Error "Decode failure") ActionEvent . decodeAction . BSL.fromStrict
                     <$> recv eventSocket 4096
-            , S.repeatM $ takeMVar gpioEventMVar
+            , S.fromSerial . S.repeatM $ takeMVar gpioEventMVar
             ]
 
 data SimpleAction a where
