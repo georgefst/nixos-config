@@ -1,6 +1,7 @@
-module GPIO where
+-- TODO get a proper Haskell GPIO library (hpio?) working with the modern interface
+module GPIO (Handle, reset, set, mon) where
 
-import Util (showBS)
+import Util
 
 import Control.Monad.Except (MonadIO (..))
 import Control.Monad.Loops (iterateM_)
@@ -8,18 +9,24 @@ import Data.ByteString (ByteString)
 import Data.Text qualified as T
 import Data.Time (diffUTCTime, getCurrentTime)
 import Options.Generic (Text)
-import RawFilePath (CreatePipe (CreatePipe), Inherit, Process, proc, processStdout, setStdout, startProcess)
+import RawFilePath (CreatePipe (CreatePipe), Inherit, Process, proc, processStdout, setStdout, startProcess, terminateProcess)
 import System.IO (hGetLine)
 
--- TODO get a proper Haskell GPIO library (hpio?) working with the modern interface
-gpioSet :: MonadIO m => [Int] -> m (Process Inherit Inherit Inherit)
-gpioSet xs =
+newtype Handle = Handle {unwrap :: Process Inherit Inherit Inherit}
+
+reset :: Handle -> IO ()
+reset h = terminateProcess h.unwrap
+
+set :: MonadIO m => [Int] -> m Handle
+set xs =
     liftIO
+        . fmap Handle
         . startProcess
         . proc "gpioset"
         $ "--mode=signal" : gpioChip : map ((<> "=1") . showBS) xs
-gpioMon :: (Text -> IO ()) -> Double -> Int -> IO () -> IO ()
-gpioMon putLine debounce pin x = do
+
+mon :: (Text -> IO ()) -> Double -> Int -> IO () -> IO ()
+mon putLine debounce pin x = do
     p <-
         startProcess $
             proc "gpiomon" ["-b", "-f", gpioChip, showBS pin]
@@ -31,5 +38,6 @@ gpioMon putLine debounce pin x = do
             then putLine $ "(Ignoring) " <> T.pack line
             else putLine (T.pack line) >> x
         pure t1
+
 gpioChip :: ByteString
 gpioChip = "gpiochip0"

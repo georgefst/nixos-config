@@ -2,7 +2,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
--- TODO upstream everything in this module
 module Util.Lifx where
 
 import Lifx.Lan

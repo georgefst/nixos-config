@@ -1,7 +1,7 @@
 module Main (main) where
 
 import Email
-import GPIO
+import GPIO qualified
 import Util
 import Util.Lifx
 
@@ -57,7 +57,7 @@ data Opts = Opts
 instance ParseRecord Opts where
     parseRecord = parseRecordWithModifiers defaultModifiers{fieldNameModifier = fieldNameModifier lispCaseModifiers}
 
-type AppState = Map Int (Process Inherit Inherit Inherit)
+type AppState = Map Int GPIO.Handle
 data Error where
     Error :: Show a => {title :: Text, body :: a} -> Error
     SimpleError :: Text -> Error
@@ -74,7 +74,7 @@ main = do
                     pPrintOpt CheckColorTty defaultOutputOptionsDarkBg{outputOptionsInitialIndent = 4} body
                 SimpleError t -> liftIO $ T.putStrLn t
             gets (Map.member opts.ledErrorPin) >>= \case
-                False -> modify . Map.insert opts.ledErrorPin =<< gpioSet [opts.ledErrorPin]
+                False -> modify . Map.insert opts.ledErrorPin =<< GPIO.set [opts.ledErrorPin]
                 True -> liftIO $ putStrLn "LED is already on"
         -- TODO avoid hardcoding - discovery doesn't currently work on Clark (firewall?)
         light = deviceFromAddress (192, 168, 1, 190)
@@ -84,7 +84,7 @@ main = do
     bind eventSocket $ SockAddrInet (fromIntegral opts.receivePort) 0
     gpioEventMVar <- newEmptyMVar
     let gpioMonitor =
-            gpioMon (putMVar gpioEventMVar . LogEvent) opts.buttonDebounce opts.buttonPin
+            GPIO.mon (putMVar gpioEventMVar . LogEvent) opts.buttonDebounce opts.buttonPin
                 . putMVar gpioEventMVar
                 $ ActionEvent SleepOrWake
 
@@ -135,7 +135,7 @@ runSimpleAction ::
 runSimpleAction opts = \case
     ResetError ->
         gets (Map.lookup opts.ledErrorPin) >>= \case
-            Just h -> liftIO (terminateProcess h) >> modify (Map.delete opts.ledErrorPin)
+            Just h -> liftIO (GPIO.reset h) >> modify (Map.delete opts.ledErrorPin)
             Nothing -> liftIO $ putStrLn "LED is already off"
     ToggleLight -> do
         r <- not . statePowerToBool <$> sendMessage opts.light GetPower
