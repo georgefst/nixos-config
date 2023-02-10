@@ -79,9 +79,9 @@ main = do
                 True -> liftIO $ putStrLn "LED is already on"
         -- TODO avoid hardcoding - discovery doesn't currently work on Clark (firewall?)
         light = deviceFromAddress (192, 168, 1, 190)
-    runLifxUntilSuccess (lifxTime opts.lifxTimeout)
-        . flip evalStateT mempty
+    flip evalStateT mempty
         . flip runLoggingT (liftIO . T.putStrLn)
+        . runLifxUntilSuccess (lifxTime opts.lifxTimeout)
         . S.mapM_ \case
             ErrorEvent e -> handleError e
             LogEvent t -> logMessage t
