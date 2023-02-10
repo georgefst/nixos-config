@@ -8,7 +8,7 @@ import Control.Monad.Catch
 import Control.Monad.Except
 import Control.Monad.Freer
 import Control.Monad.Freer.Writer qualified as Eff
-import Control.Monad.Log (MonadLog, logMessage, runLoggingT)
+import Control.Monad.Log (logMessage, runLoggingT)
 import Control.Monad.Loops
 import Control.Monad.State
 import Data.Binary qualified as B
@@ -36,6 +36,8 @@ import Network.Socket.ByteString hiding (send)
 import Network.Wreq hiding (get, put)
 import Options.Generic
 import RawFilePath
+import Streamly.Internal.Data.Stream.IsStream qualified as S (hoist)
+import Streamly.Prelude qualified as S
 import System.Exit
 import System.IO
 import Text.Pretty.Simple
@@ -66,10 +68,7 @@ main :: IO ()
 main = do
     hSetBuffering stdout LineBuffering -- TODO necessary when running as systemd service - why? report upstream
     (opts :: Opts) <- getRecord "Clark"
-    queue <- newEventQueue
-    let
-        handleError :: (MonadIO m, MonadState AppState m) => Error -> m ()
-        handleError err = do
+    let handleError err = do
             case err of
                 Error{title, body} -> do
                     liftIO . T.putStrLn $ title <> ":"
@@ -80,29 +79,43 @@ main = do
                 True -> liftIO $ putStrLn "LED is already on"
         -- TODO avoid hardcoding - discovery doesn't currently work on Clark (firewall?)
         light = deviceFromAddress (192, 168, 1, 190)
-    mapConcurrently_
-        id
-        [ do
-            sock <- socket AF_INET Datagram defaultProtocol
-            bind sock $ SockAddrInet (fromIntegral opts.receivePort) 0
-            forever $
-                either (enqueueError queue "Decode failure") (enqueueAction queue) . decodeAction . BSL.fromStrict
-                    =<< recv sock 4096
-        , gpioMon (enqueueLog queue) opts.buttonDebounce opts.buttonPin $ enqueueAction queue SleepOrWake
-        , runLifxUntilSuccess (lifxTime opts.lifxTimeout)
+    runLifxUntilSuccess (lifxTime opts.lifxTimeout)
             . flip evalStateT mempty
             . flip runLoggingT (liftIO . T.putStrLn)
-            . dequeueEvents queue handleError
-            $ (either handleError pure <=< runExceptT)
+        . S.mapM_ \case
+            ErrorEvent e -> handleError e
+            LogEvent t -> logMessage t
+            ActionEvent action ->
+                (either handleError pure <=< runExceptT)
                 . ((\((), t) -> logMessage t) <=< runM)
                 . translate (runSimpleAction (opts & \Opts{..} -> ActionOpts{..}))
                 . Eff.runWriter
-                . \action -> do
+                $ do
                     case action of
                         SimpleAction a -> Eff.tell $ showT a
                         a -> Eff.tell $ showT a
                     raise $ runAction action
-        ]
+        . S.hoist liftIO
+        . S.fromAsync
+        $ mconcat
+            [ do
+                sock <- liftIO $ socket AF_INET Datagram defaultProtocol
+                liftIO $ bind sock $ SockAddrInet (fromIntegral opts.receivePort) 0
+                S.repeatM $
+                    either (ErrorEvent . Error "Decode failure") ActionEvent . decodeAction . BSL.fromStrict
+                        <$> recv sock 4096
+            , do
+                m <- liftIO newEmptyMVar
+                S.mapMaybe id
+                    . S.fromAsync
+                    $ (Just <$> S.repeatM (liftIO $ takeMVar m))
+                        <> ( (Nothing <$)
+                                . liftIO
+                                . gpioMon (putMVar m . LogEvent) opts.buttonDebounce opts.buttonPin
+                                . putMVar m
+                                $ ActionEvent SleepOrWake
+                           )
+            ]
 
 data SimpleAction a where
     ResetError :: SimpleAction ()
@@ -190,22 +203,6 @@ data Event
     = ActionEvent Action
     | LogEvent Text
     | ErrorEvent Error
-newtype EventQueue = EventQueue {unwrap :: MVar Event}
-newEventQueue :: MonadIO m => m EventQueue
-newEventQueue = liftIO $ EventQueue <$> newEmptyMVar
-enqueueError :: (MonadIO m, Show e) => EventQueue -> Text -> e -> m ()
-enqueueError q t = liftIO . putMVar (q.unwrap) . ErrorEvent . Error t
-enqueueLog :: (MonadIO m) => EventQueue -> Text -> m ()
-enqueueLog q = liftIO . putMVar (q.unwrap) . LogEvent
-enqueueAction :: MonadIO m => EventQueue -> Action -> m ()
-enqueueAction q = liftIO . putMVar (q.unwrap) . ActionEvent
-dequeueEvents :: (MonadIO m, MonadLog Text m) => EventQueue -> (Error -> m ()) -> (Action -> m ()) -> m ()
-dequeueEvents q h x =
-    forever $
-        liftIO (takeMVar q.unwrap) >>= \case
-            ActionEvent a -> x a
-            LogEvent t -> logMessage t
-            ErrorEvent e -> h e
 
 {- Util -}
 
