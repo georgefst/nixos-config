@@ -17,16 +17,16 @@ newtype Handle = Handle {unwrap :: Process Inherit Inherit Inherit}
 reset :: Handle -> IO ()
 reset h = terminateProcess h.unwrap
 
-set :: MonadIO m => [Int] -> m Handle
-set xs =
+set :: MonadIO m => ByteString -> [Int] -> m Handle
+set gpioChip xs =
     liftIO
         . fmap Handle
         . startProcess
         . proc "gpioset"
         $ "--mode=signal" : gpioChip : map ((<> "=1") . showBS) xs
 
-mon :: (Text -> IO ()) -> Double -> Int -> IO () -> IO ()
-mon putLine debounce pin x = do
+mon :: ByteString -> (Text -> IO ()) -> Double -> Int -> IO () -> IO ()
+mon gpioChip putLine debounce pin x = do
     p <-
         startProcess $
             proc "gpiomon" ["-b", "-f", gpioChip, showBS pin]
@@ -38,6 +38,3 @@ mon putLine debounce pin x = do
             then putLine $ "(Ignoring) " <> T.pack line
             else putLine (T.pack line) >> x
         pure t1
-
-gpioChip :: ByteString
-gpioChip = "gpiochip0"

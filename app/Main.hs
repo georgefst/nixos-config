@@ -74,17 +74,18 @@ main = do
                     pPrintOpt CheckColorTty defaultOutputOptionsDarkBg{outputOptionsInitialIndent = 4} body
                 SimpleError t -> liftIO $ T.putStrLn t
             gets (Map.member opts.ledErrorPin) >>= \case
-                False -> modify . Map.insert opts.ledErrorPin =<< GPIO.set [opts.ledErrorPin]
+                False -> modify . Map.insert opts.ledErrorPin =<< GPIO.set gpioChip [opts.ledErrorPin]
                 True -> liftIO $ putStrLn "LED is already on"
         -- TODO avoid hardcoding - discovery doesn't currently work on Clark (firewall?)
         light = deviceFromAddress (192, 168, 1, 190)
+        gpioChip = "gpiochip0"
 
     -- TODO initialisation stuff - encapsulate this better somehow, without it being killed by LIFX failure
     eventSocket <- socket AF_INET Datagram defaultProtocol
     bind eventSocket $ SockAddrInet (fromIntegral opts.receivePort) 0
     gpioEventMVar <- newEmptyMVar
     let gpioMonitor =
-            GPIO.mon (putMVar gpioEventMVar . LogEvent) opts.buttonDebounce opts.buttonPin
+            GPIO.mon gpioChip (putMVar gpioEventMVar . LogEvent) opts.buttonDebounce opts.buttonPin
                 . putMVar gpioEventMVar
                 $ ActionEvent SleepOrWake
 
@@ -156,9 +157,13 @@ runSimpleAction opts = \case
                 Mailgun.Opts
                     { key = opts.mailgunKey
                     , sandbox = opts.mailgunSandbox
+                    , from = address
+                    , to = address
                     , subject
                     , body
                     }
+      where
+        address = "georgefsthomas@gmail.com"
     SuspendBilly ->
         maybe
             (throwError $ SimpleError "SSH timeout")
