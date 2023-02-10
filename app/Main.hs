@@ -152,7 +152,13 @@ runSimpleAction opts = \case
         throwWhenFailureExitCode "Failed to set desk USB power" ec
     SendEmail{subject, body} ->
         either (throwError . Error "Failed to send email") pure
-            =<< Mailgun.send Mailgun.Opts{key = opts.mailgunKey, sandbox = opts.mailgunSandbox, subject, body}
+            =<< Mailgun.send
+                Mailgun.Opts
+                    { key = opts.mailgunKey
+                    , sandbox = opts.mailgunSandbox
+                    , subject
+                    , body
+                    }
     SuspendBilly ->
         maybe
             (throwError $ SimpleError "SSH timeout")
