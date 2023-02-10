@@ -9,7 +9,7 @@ import Lifx.Lan
 import Lifx.Lan.Internal (LifxT (LifxT))
 
 import Control.Concurrent (threadDelay)
-import Control.Monad.Log (LoggingT, MonadLog (logMessageFree))
+import Control.Monad.Log (LoggingT, MonadLog)
 import Control.Monad.State (MonadState (state))
 import Control.Monad.Trans (MonadIO (liftIO), MonadTrans, lift)
 import Control.Monad.Writer (WriterT)
@@ -22,8 +22,7 @@ instance MonadLifx m => MonadLifx (LoggingT t m) where
     broadcastMessage = lift . broadcastMessage
     discoverDevices = lift . discoverDevices
     lifxThrow = lift . lifxThrow
-instance MonadLog s m => MonadLog s (LifxT m) where
-    logMessageFree = lift . logMessageFree
+instance MonadLog s m => MonadLog s (LifxT m)
 
 statePowerToBool :: StatePower -> Bool
 statePowerToBool = (/= StatePower 0)
