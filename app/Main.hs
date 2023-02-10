@@ -100,10 +100,9 @@ main = do
         . S.hoist liftIO
         . S.fromAsync
         $ mconcat
-            [ do
-                S.repeatM $
-                    either (ErrorEvent . Error "Decode failure") ActionEvent . decodeAction . BSL.fromStrict
-                        <$> recv sock 4096
+            [ S.repeatM $
+                either (ErrorEvent . Error "Decode failure") ActionEvent . decodeAction . BSL.fromStrict
+                    <$> recv sock 4096
             , do
                 m <- S.fromEffect newEmptyMVar
                 S.mapMaybe id
