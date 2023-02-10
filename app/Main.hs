@@ -80,21 +80,21 @@ main = do
         -- TODO avoid hardcoding - discovery doesn't currently work on Clark (firewall?)
         light = deviceFromAddress (192, 168, 1, 190)
     runLifxUntilSuccess (lifxTime opts.lifxTimeout)
-            . flip evalStateT mempty
-            . flip runLoggingT (liftIO . T.putStrLn)
+        . flip evalStateT mempty
+        . flip runLoggingT (liftIO . T.putStrLn)
         . S.mapM_ \case
             ErrorEvent e -> handleError e
             LogEvent t -> logMessage t
             ActionEvent action ->
                 (either handleError pure <=< runExceptT)
-                . ((\((), t) -> logMessage t) <=< runM)
-                . translate (runSimpleAction (opts & \Opts{..} -> ActionOpts{..}))
-                . Eff.runWriter
-                $ do
-                    case action of
-                        SimpleAction a -> Eff.tell $ showT a
-                        a -> Eff.tell $ showT a
-                    raise $ runAction action
+                    . ((\((), t) -> logMessage t) <=< runM)
+                    . translate (runSimpleAction (opts & \Opts{..} -> ActionOpts{..}))
+                    . Eff.runWriter
+                    $ do
+                        case action of
+                            SimpleAction a -> Eff.tell $ showT a
+                            a -> Eff.tell $ showT a
+                        raise $ runAction action
         . S.hoist liftIO
         . S.fromAsync
         $ mconcat
