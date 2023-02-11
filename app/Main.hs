@@ -122,7 +122,8 @@ main = do
 
 data SimpleAction a where
     ResetError :: SimpleAction ()
-    ToggleLight :: SimpleAction Bool -- returns `True` if the light is _now_ on
+    GetCeilingLightPower :: SimpleAction Bool
+    SetCeilingLightPower :: Bool -> SimpleAction ()
     SetLightColour :: NominalDiffTime -> Word16 -> Word16 -> SimpleAction () -- brightness and temp
     SetDeskUSBPower :: Bool -> SimpleAction ()
     SendEmail :: {subject :: Text, body :: Text} -> SimpleAction (Response BSL.ByteString)
@@ -146,10 +147,8 @@ runSimpleAction opts = \case
         gets (Map.lookup opts.ledErrorPin) >>= \case
             Just h -> liftIO (GPIO.reset h) >> modify (Map.delete opts.ledErrorPin)
             Nothing -> liftIO $ putStrLn "LED is already off"
-    ToggleLight -> do
-        r <- not . statePowerToBool <$> sendMessage opts.light GetPower
-        sendMessage opts.light $ SetPower r
-        pure r
+    GetCeilingLightPower -> statePowerToBool <$> sendMessage opts.light GetPower
+    SetCeilingLightPower p -> sendMessage opts.light $ SetPower p
     SetLightColour time brightness kelvin -> sendMessage opts.light $ Lifx.SetColor HSBK{..} time
       where
         -- these have no effect for this type of LIFX bulb
@@ -187,6 +186,7 @@ runSimpleAction opts = \case
 
 data Action where
     SimpleAction :: SimpleAction a -> Action
+    ToggleLight :: Action
     SleepOrWake :: Action
 deriving instance Show Action
 data ActionOpts = ActionOpts
@@ -196,8 +196,10 @@ data ActionOpts = ActionOpts
 runAction :: ActionOpts -> Action -> Eff '[SimpleAction] ()
 runAction opts = \case
     SimpleAction a -> void $ send a
+    ToggleLight -> send . SetCeilingLightPower . not =<< send GetCeilingLightPower
     SleepOrWake ->
-        send ToggleLight >>= \morning@(not -> night) -> do
+        send GetCeilingLightPower >>= \morning@(not -> night) -> do
+            send $ SetCeilingLightPower morning
             when morning $ send $ SetLightColour (fromIntegral opts.lifxMorningSeconds) maxBound opts.lifxMorningKelvin
             send $ SetDeskUSBPower morning
             when night . void $ send SuspendBilly
@@ -206,7 +208,7 @@ decodeAction =
     fmap thd3 . runGetOrFail do
         B.get @Word8 >>= \case
             0 -> pure $ SimpleAction ResetError
-            1 -> pure $ SimpleAction ToggleLight
+            1 -> pure ToggleLight
             2 -> do
                 subject <- decodeUtf8 <$> (B.getByteString . fromIntegral =<< B.get @Word8)
                 body <- decodeUtf8 <$> (B.getByteString . fromIntegral =<< B.get @Word16)
@@ -215,6 +217,8 @@ decodeAction =
             4 -> SimpleAction . SetDeskUSBPower . (/= 0) <$> B.get @Word8
             5 -> SimpleAction <$> (SetLightColour . secondsToNominalDiffTime <$> B.get <*> B.get <*> B.get)
             6 -> pure SleepOrWake
+            7 -> SimpleAction . SetCeilingLightPower . (/= 0) <$> B.get @Word8
+            8 -> pure $ SimpleAction GetCeilingLightPower
             n -> fail $ "unknown action: " <> show n
 
 data Event
