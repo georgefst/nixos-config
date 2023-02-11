@@ -124,10 +124,10 @@ data SimpleAction a where
     ResetError :: SimpleAction ()
     GetCeilingLightPower :: SimpleAction Bool
     SetCeilingLightPower :: Bool -> SimpleAction ()
-    SetLightColour :: NominalDiffTime -> Word16 -> Word16 -> SimpleAction () -- brightness and temp
+    SetCeilingLightColour :: NominalDiffTime -> Word16 -> Word16 -> SimpleAction () -- brightness and temp
     SetDeskUSBPower :: Bool -> SimpleAction ()
     SendEmail :: {subject :: Text, body :: Text} -> SimpleAction (Response BSL.ByteString)
-    SuspendBilly :: SimpleAction ()
+    SuspendLaptop :: SimpleAction ()
 deriving instance Show (SimpleAction a)
 data SimpleActionOpts = SimpleActionOpts
     { ledErrorPin :: Int
@@ -149,7 +149,7 @@ runSimpleAction opts = \case
             Nothing -> liftIO $ putStrLn "LED is already off"
     GetCeilingLightPower -> statePowerToBool <$> sendMessage opts.light GetPower
     SetCeilingLightPower p -> sendMessage opts.light $ SetPower p
-    SetLightColour time brightness kelvin -> sendMessage opts.light $ Lifx.SetColor HSBK{..} time
+    SetCeilingLightColour time brightness kelvin -> sendMessage opts.light $ Lifx.SetColor HSBK{..} time
       where
         -- these have no effect for this type of LIFX bulb
         hue = 0
@@ -169,7 +169,7 @@ runSimpleAction opts = \case
                     , subject
                     , body
                     }
-    SuspendBilly ->
+    SuspendLaptop ->
         maybe
             (throwError $ SimpleError "SSH timeout")
             (throwWhenFailureExitCode "SSH failure")
@@ -200,9 +200,9 @@ runAction opts = \case
     SleepOrWake ->
         send GetCeilingLightPower >>= \morning@(not -> night) -> do
             send $ SetCeilingLightPower morning
-            when morning $ send $ SetLightColour (fromIntegral opts.lifxMorningSeconds) maxBound opts.lifxMorningKelvin
+            when morning $ send $ SetCeilingLightColour (fromIntegral opts.lifxMorningSeconds) maxBound opts.lifxMorningKelvin
             send $ SetDeskUSBPower morning
-            when night . void $ send SuspendBilly
+            when night . void $ send SuspendLaptop
 decodeAction :: BSL.ByteString -> Either (BSL.ByteString, B.ByteOffset, String) Action
 decodeAction =
     fmap thd3 . runGetOrFail do
@@ -213,9 +213,9 @@ decodeAction =
                 subject <- decodeUtf8 <$> (B.getByteString . fromIntegral =<< B.get @Word8)
                 body <- decodeUtf8 <$> (B.getByteString . fromIntegral =<< B.get @Word16)
                 pure $ SimpleAction SendEmail{..}
-            3 -> pure $ SimpleAction SuspendBilly
+            3 -> pure $ SimpleAction SuspendLaptop
             4 -> SimpleAction . SetDeskUSBPower <$> B.get @Bool
-            5 -> SimpleAction <$> (SetLightColour . secondsToNominalDiffTime <$> B.get <*> B.get <*> B.get)
+            5 -> SimpleAction <$> (SetCeilingLightColour . secondsToNominalDiffTime <$> B.get <*> B.get <*> B.get)
             6 -> pure SleepOrWake
             7 -> SimpleAction . SetCeilingLightPower <$> B.get @Bool
             8 -> pure $ SimpleAction GetCeilingLightPower
