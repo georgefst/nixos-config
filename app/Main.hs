@@ -214,10 +214,10 @@ decodeAction =
                 body <- decodeUtf8 <$> (B.getByteString . fromIntegral =<< B.get @Word16)
                 pure $ SimpleAction SendEmail{..}
             3 -> pure $ SimpleAction SuspendBilly
-            4 -> SimpleAction . SetDeskUSBPower . (/= 0) <$> B.get @Word8
+            4 -> SimpleAction . SetDeskUSBPower <$> B.get @Bool
             5 -> SimpleAction <$> (SetLightColour . secondsToNominalDiffTime <$> B.get <*> B.get <*> B.get)
             6 -> pure SleepOrWake
-            7 -> SimpleAction . SetCeilingLightPower . (/= 0) <$> B.get @Word8
+            7 -> SimpleAction . SetCeilingLightPower <$> B.get @Bool
             8 -> pure $ SimpleAction GetCeilingLightPower
             n -> fail $ "unknown action: " <> show n
 
