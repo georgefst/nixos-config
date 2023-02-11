@@ -128,30 +128,6 @@ in
 
   # systemd
   systemd.user.services = {
-    clark = {
-      script = ''
-        ${home}/clark \
-          --gpio-chip gpiochip0 \
-          --button-debounce 1 \
-          --button-pin 27 \
-          --led-error-pin 19 \
-          --led-other-pin 26 \
-          --light-name Ceiling \
-          --lifx-timeout 5 \
-          --receive-port ${builtins.toString clark-script-port} \
-          --mailgun-sandbox ${secrets.mailgun.sandbox} \
-          --mailgun-key ${secrets.mailgun.key} \
-          --email-address georgefsthomas@gmail.com \
-          --laptop-host-name billy \
-          --ssh-timeout 3 \
-          --lifx-morning-seconds 45 \
-          --lifx-morning-kelvin 2700 \
-          --desk-usb-port 2 \
-      '';
-      description = "clark script";
-      path = [ pkgs.libgpiod pkgs.mosquitto pkgs.openssh ];
-      wantedBy = startup;
-    };
     email-ip = {
       script = ''
         IP=""
@@ -218,6 +194,30 @@ in
   };
   # for whatever reason (e.g. binding to port 80), these need to be run as root
   systemd.services = {
+    clark = {
+      script = ''
+        ${home}/clark \
+          --gpio-chip gpiochip0 \
+          --button-debounce 1 \
+          --button-pin 27 \
+          --led-error-pin 19 \
+          --led-other-pin 26 \
+          --light-name Ceiling \
+          --lifx-timeout 5 \
+          --receive-port ${builtins.toString clark-script-port} \
+          --mailgun-sandbox ${secrets.mailgun.sandbox} \
+          --mailgun-key ${secrets.mailgun.key} \
+          --email-address georgefsthomas@gmail.com \
+          --laptop-host-name billy \
+          --ssh-timeout 3 \
+          --lifx-morning-seconds 45 \
+          --lifx-morning-kelvin 2700 \
+          --desk-usb-port 2 \
+      '';
+      description = "clark script";
+      path = [ pkgs.libgpiod pkgs.mosquitto pkgs.openssh ];
+      wantedBy = startup-root;
+    };
     droopy = {
       script = ''
         mkdir -p ${file-server-dir}
