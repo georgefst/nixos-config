@@ -128,6 +128,7 @@ data SimpleAction a where
     SetDeskUSBPower :: Bool -> SimpleAction ()
     SendEmail :: {subject :: Text, body :: Text} -> SimpleAction (Response BSL.ByteString)
     SuspendLaptop :: SimpleAction ()
+    SetSystemLEDs :: Bool -> SimpleAction ()
 deriving instance Show (SimpleAction a)
 data SimpleActionOpts = SimpleActionOpts
     { ledErrorPin :: Int
@@ -178,6 +179,9 @@ runSimpleAction opts = \case
                     <=< readProcessWithExitCodeTimeout (opts.sshTimeout * 1_000_000)
                     $ proc "ssh" [encodeUtf8 opts.laptopHostName, "systemctl suspend"]
                 )
+    SetSystemLEDs b -> for_
+        [("/sys/class/leds/" <> "mmc1::", "mmc1"), ("/sys/class/leds/" <> "ACT", "heartbeat")]
+        \(led, val) -> liftIO $ T.writeFile (led <> "/trigger") if b then val else "none"
   where
     showOutput out err = liftIO $ for_ [("stdout", out), ("stderr", err)] \(s, t) ->
         unless (B.null t) $ T.putStrLn ("    " <> s <> ": ") >> B.putStr t
@@ -199,6 +203,7 @@ runAction opts = \case
     ToggleLight -> send . SetCeilingLightPower . not =<< send GetCeilingLightPower
     SleepOrWake ->
         send GetCeilingLightPower >>= \morning@(not -> night) -> do
+            send $ SetSystemLEDs morning
             send $ SetCeilingLightPower morning
             when morning . send $
                 SetCeilingLightColour
@@ -224,6 +229,7 @@ decodeAction =
             6 -> pure SleepOrWake
             7 -> SimpleAction . SetCeilingLightPower <$> B.get @Bool
             8 -> pure $ SimpleAction GetCeilingLightPower
+            9 -> SimpleAction . SetSystemLEDs <$> B.get @Bool
             n -> fail $ "unknown action: " <> show n
 
 data Event
