@@ -124,7 +124,7 @@ data SimpleAction a where
     ResetError :: SimpleAction ()
     GetCeilingLightPower :: SimpleAction Bool
     SetCeilingLightPower :: Bool -> SimpleAction ()
-    SetCeilingLightColour :: NominalDiffTime -> Word16 -> Word16 -> SimpleAction () -- brightness and temp
+    SetCeilingLightColour :: {delay :: NominalDiffTime, brightness :: Word16, kelvin :: Word16} -> SimpleAction ()
     SetDeskUSBPower :: Bool -> SimpleAction ()
     SendEmail :: {subject :: Text, body :: Text} -> SimpleAction (Response BSL.ByteString)
     SuspendLaptop :: SimpleAction ()
@@ -149,7 +149,7 @@ runSimpleAction opts = \case
             Nothing -> liftIO $ putStrLn "LED is already off"
     GetCeilingLightPower -> statePowerToBool <$> sendMessage opts.light GetPower
     SetCeilingLightPower p -> sendMessage opts.light $ SetPower p
-    SetCeilingLightColour time brightness kelvin -> sendMessage opts.light $ Lifx.SetColor HSBK{..} time
+    SetCeilingLightColour{delay, brightness, kelvin} -> sendMessage opts.light $ Lifx.SetColor HSBK{..} delay
       where
         -- these have no effect for this type of LIFX bulb
         hue = 0
@@ -200,7 +200,12 @@ runAction opts = \case
     SleepOrWake ->
         send GetCeilingLightPower >>= \morning@(not -> night) -> do
             send $ SetCeilingLightPower morning
-            when morning $ send $ SetCeilingLightColour (fromIntegral opts.lifxMorningSeconds) maxBound opts.lifxMorningKelvin
+            when morning . send $
+                SetCeilingLightColour
+                    { delay = fromIntegral opts.lifxMorningSeconds
+                    , brightness = maxBound
+                    , kelvin = opts.lifxMorningKelvin
+                    }
             send $ SetDeskUSBPower morning
             when night . void $ send SuspendLaptop
 decodeAction :: BSL.ByteString -> Either (BSL.ByteString, B.ByteOffset, String) Action
