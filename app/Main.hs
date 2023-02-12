@@ -202,7 +202,7 @@ runAction opts = \case
     SimpleAction a -> void $ send a
     ToggleLight -> send . SetCeilingLightPower . not =<< send GetCeilingLightPower
     SleepOrWake ->
-        send GetCeilingLightPower >>= \morning@(not -> night) -> do
+        send GetCeilingLightPower >>= \night@(not -> morning) -> do
             send $ SetSystemLEDs morning
             send $ SetCeilingLightPower morning
             when morning . send $
