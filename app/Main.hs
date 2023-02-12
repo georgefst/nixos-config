@@ -177,7 +177,13 @@ runSimpleAction opts = \case
             =<< liftIO
                 ( traverse (\(e, out, err) -> showOutput out err >> pure e)
                     <=< readProcessWithExitCodeTimeout (opts.sshTimeout * 1_000_000)
-                    $ proc "ssh" [encodeUtf8 opts.laptopHostName, "systemctl suspend"]
+                    $ proc
+                        "ssh"
+                        [ "-i/home/gthomas/.ssh/id_rsa"
+                        , "-oUserKnownHostsFile=/home/gthomas/.ssh/known_hosts"
+                        , "gthomas@" <> encodeUtf8 opts.laptopHostName
+                        , "systemctl suspend"
+                        ]
                 )
     SetSystemLEDs b -> for_
         [("/sys/class/leds/" <> "mmc1::", "mmc1"), ("/sys/class/leds/" <> "ACT", "heartbeat")]
