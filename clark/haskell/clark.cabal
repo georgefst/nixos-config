@@ -1,0 +1,63 @@
+cabal-version:      3.0
+name:               clark
+version:            0.1.0.0
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             George Thomas
+maintainer:         georgefsthomas@gmail.com
+
+executable clark
+    main-is: Main.hs
+    other-modules:
+        GPIO
+        Mailgun
+        MQTT.Meross
+        Util
+        Util.Lifx
+    default-extensions:
+        BlockArguments
+        DataKinds
+        DeriveAnyClass
+        DerivingStrategies
+        DuplicateRecordFields
+        GADTs
+        LambdaCase
+        ImpredicativeTypes
+        NoFieldSelectors
+        NoMonomorphismRestriction
+        OverloadedRecordDot
+        OverloadedStrings
+        PartialTypeSignatures
+        RecordWildCards
+        ViewPatterns
+    build-depends:
+        base >= 4.16,
+        aeson ^>= 2.1.1,
+        ansi-terminal >= 0.11,
+        async >= 2.2.4,
+        binary >= 0.8.9,
+        bytestring >= 0.10.12,
+        containers >= 0.6,
+        exceptions >= 0.10,
+        extra >= 1.7.10,
+        freer-simple >= 1.2.1.2,
+        http-client >= 0.7.11,
+        lens >= 5.2,
+        lifx-lan >= 0.8.0,
+        logging-effect >= 1.3.13,
+        monad-loops >= 0.4.3,
+        mtl >= 2.2.2,
+        network >= 3.1.2,
+        optparse-generic >= 1.4.6,
+        pretty-simple >= 4.1,
+        rawfilepath >= 1.0,
+        streamly >= 0.8.3,
+        text >= 1.2.4,
+        time >= 1.9.3,
+        transformers >= 0.5.6,
+        wreq >= 0.5.3,
+    hs-source-dirs: app
+    default-language: GHC2021
+    ghc-options:
+        -Wall
+        -threaded
