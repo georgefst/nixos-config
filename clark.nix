@@ -1,7 +1,7 @@
 # https://nixos.org/manual/nixos/stable/options.html
 # https://nixos.wiki/wiki/NixOS_on_ARM
 # https://nixos.wiki/wiki/NixOS_on_ARM/Raspberry_Pi_3
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, extraPkgs, ... }:
 let
   secrets = import ./secrets.nix;
 
@@ -157,7 +157,7 @@ in
     };
     tennis-scraper = {
       script = ''
-        ${home}/tennis-scraper \
+        tennis-scraper \
           --username georgefst \
           --password ${secrets.passwords.lta} \
           --dhall ${home}/sync/config/tennis-scraper.dhall \
@@ -176,7 +176,7 @@ in
           --wait-multiplier 3 \
       '';
       description = "tennis scraper";
-      path = [ pkgs.curl ];
+      path = [ pkgs.curl extraPkgs.tennis-scraper ];
       wantedBy = startup;
       wants = [ "geckodriver.service" ];
     };
