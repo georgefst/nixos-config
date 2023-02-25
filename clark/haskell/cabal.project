@@ -1,0 +1,29 @@
+packages: .
+
+--TODO https://github.com/Gabriel439/Haskell-Optparse-Generic-Library/issues/15
+source-repository-package
+    type: git
+    location: https://github.com/georgefst/haskell-filesystem
+    subdir: system-filepath
+    tag: 524acc5be3d5c1c97d3e861ac1dca0b0381e9fdb
+--TODO https://github.com/cdepillabout/pretty-simple/issues/82#issuecomment-921094150
+source-repository-package
+    type: git
+    location: https://github.com/cdepillabout/pretty-simple
+    tag: 15a67c3d22aa1bb97063058667c0121566e53131
+--TODO https://github.com/TomMD/entropy/pull/20#issuecomment-1100221632
+source-repository-package
+    type: git
+    location: https://github.com/georgefst/entropy
+    tag: 14d3ccf09e8f94b5541aeefc01df54bfcd825a96
+--TODO https://github.com/haskell/wreq/pull/147
+source-repository-package
+    type: git
+    location: https://github.com/georgefst/wreq
+    tag: c21ecf7ada18643a0b21bda4363e157010238668
+--TODO exposes stuff so that `wreq` fork above can make lenses without TH: https://github.com/georgefst/http-client/tree/expose-internals
+source-repository-package
+    type: git
+    location: https://github.com/georgefst/http-client
+    subdir: http-client
+    tag: bd218eff5faf19333960833e7fd28c211e2aecc4
