@@ -43,7 +43,7 @@ executable clark
         freer-simple >= 1.2.1.2,
         http-client >= 0.7.11,
         lens >= 5.2,
-        lifx-lan >= 0.5.0,
+        lifx-lan >= 0.8.0,
         logging-effect >= 1.3.13,
         monad-loops >= 0.4.3,
         mtl >= 2.2.2,
