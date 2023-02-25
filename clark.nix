@@ -289,6 +289,5 @@ in
         # enable for the subset of declared users
         ${lib.concatStringsSep "\n" (lib.mapAttrsToList touchUserLinger config.users.users)}
       '';
-
   };
 }
