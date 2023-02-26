@@ -58,6 +58,7 @@ data Opts = Opts
     , lifxMorningSeconds :: Int
     , lifxMorningKelvin :: Word16
     , deskUsbPort :: Int
+    , systemLedPipe :: FilePath
     }
     deriving (Show, Generic)
 instance ParseRecord Opts where
@@ -139,6 +140,7 @@ data SimpleActionOpts = SimpleActionOpts
     , emailAddress :: Text
     , laptopHostName :: Text
     , deskUsbPort :: Int
+    , systemLedPipe :: FilePath
     }
 
 runSimpleAction ::
@@ -177,17 +179,9 @@ runSimpleAction opts = \case
             =<< liftIO
                 ( traverse (\(e, out, err) -> showOutput out err >> pure e)
                     <=< readProcessWithExitCodeTimeout (opts.sshTimeout * 1_000_000)
-                    $ proc
-                        "ssh"
-                        [ "-i/home/gthomas/.ssh/id_rsa"
-                        , "-oUserKnownHostsFile=/home/gthomas/.ssh/known_hosts"
-                        , "gthomas@" <> encodeUtf8 opts.laptopHostName
-                        , "systemctl suspend"
-                        ]
+                    $ proc "ssh" ["billy", "systemctl suspend"]
                 )
-    SetSystemLEDs b -> for_
-        [("mmc1::", "mmc1"), ("ACT", "heartbeat")]
-        \(led, val) -> liftIO $ T.writeFile ("/sys/class/leds/" <> led <> "/trigger") if b then val else "none"
+    SetSystemLEDs b -> liftIO . writeFile opts.systemLedPipe . show $ fromEnum b
   where
     showOutput out err = liftIO $ for_ [("stdout", out), ("stderr", err)] \(s, t) ->
         unless (B.null t) $ T.putStrLn ("    " <> s <> ": ") >> B.putStr t
