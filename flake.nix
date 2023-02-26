@@ -17,7 +17,7 @@
                 final.haskell-nix.hix.project {
                   src = ./.;
                   compiler-nix-name = "ghc926";
-                  index-state = "2023-02-25T00:00:00Z"; # TODO somehow we still get traces saying this isn't specified
+                  index-state = "2023-02-26T00:00:00Z"; # TODO somehow we still get traces saying this isn't specified
                   evalSystem = "x86_64-linux";
                 };
             })
