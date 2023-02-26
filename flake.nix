@@ -6,12 +6,12 @@
     nixpkgs-haskell.follows = "haskellNix/nixpkgs-unstable";
     tennis-scraper.url = "/home/gthomas/code/tennis-scraper";
   };
-  outputs = { self, nixpkgs, flake-utils, haskellNix, nixpkgs-haskell, tennis-scraper }: rec {
+  outputs = inputs@{ self, nixpkgs, flake-utils, ... }: rec {
     haskell = {
       clark = flake-utils.lib.eachSystem [ "aarch64-linux" ] (system:
         let
           overlays = [
-            haskellNix.overlay
+            inputs.haskellNix.overlay
             (final: prev: {
               hixProject =
                 final.haskell-nix.hix.project {
@@ -22,7 +22,7 @@
                 };
             })
           ];
-          pkgs = import nixpkgs-haskell { inherit system overlays; inherit (haskellNix) config; };
+          pkgs = import inputs.nixpkgs-haskell { inherit system overlays; inherit (inputs.haskellNix) config; };
           flake = pkgs.hixProject.flake { };
         in
         flake // {
@@ -40,7 +40,7 @@
         specialArgs = {
           extraPkgs = {
             clark = haskell.clark.packages.aarch64-linux.default;
-            tennis-scraper = tennis-scraper.packages.aarch64-linux.default;
+            tennis-scraper = inputs.tennis-scraper.packages.aarch64-linux.default;
           };
         };
       };
