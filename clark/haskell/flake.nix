@@ -12,6 +12,7 @@
               final.haskell-nix.hix.project {
                 src = ./.;
                 compiler-nix-name = "ghc926";
+                index-state = "2023-02-25T00:00:00Z";
                 evalSystem = "x86_64-linux";
               };
           })
