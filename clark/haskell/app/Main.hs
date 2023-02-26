@@ -186,8 +186,8 @@ runSimpleAction opts = \case
                         ]
                 )
     SetSystemLEDs b -> for_
-        [("/sys/class/leds/" <> "mmc1::", "mmc1"), ("/sys/class/leds/" <> "ACT", "heartbeat")]
-        \(led, val) -> liftIO $ T.writeFile (led <> "/trigger") if b then val else "none"
+        [("mmc1::", "mmc1"), ("ACT", "heartbeat")]
+        \(led, val) -> liftIO $ T.writeFile ("/sys/class/leds/" <> led <> "/trigger") if b then val else "none"
   where
     showOutput out err = liftIO $ for_ [("stdout", out), ("stderr", err)] \(s, t) ->
         unless (B.null t) $ T.putStrLn ("    " <> s <> ": ") >> B.putStr t
