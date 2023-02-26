@@ -196,7 +196,7 @@ in
   systemd.services = {
     clark = {
       script = ''
-        ${home}/clark \
+        clark \
           --gpio-chip gpiochip0 \
           --button-debounce 1 \
           --button-pin 27 \
@@ -215,7 +215,7 @@ in
           --desk-usb-port 2 \
       '';
       description = "clark script";
-      path = [ pkgs.libgpiod pkgs.mosquitto pkgs.openssh ];
+      path = [ extraPkgs.clark pkgs.libgpiod pkgs.mosquitto pkgs.openssh ];
       wantedBy = startup-root;
     };
     droopy = {

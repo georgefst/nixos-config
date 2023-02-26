@@ -1,9 +1,10 @@
 {
   inputs = {
     nixpkgs.url = "nixpkgs/nixos-22.11";
+    clark.url = "path:./clark/haskell";
     tennis-scraper.url = "/home/gthomas/code/tennis-scraper";
   };
-  outputs = { self, nixpkgs, tennis-scraper }: rec {
+  outputs = { self, nixpkgs, clark, tennis-scraper }: rec {
     nixosConfigurations = {
       clark = nixpkgs.lib.nixosSystem {
         system = "aarch64-linux";
@@ -13,6 +14,7 @@
         ];
         specialArgs = {
           extraPkgs = {
+            clark = clark.packages.aarch64-linux.default;
             tennis-scraper = tennis-scraper.packages.aarch64-linux.default;
           };
         };
