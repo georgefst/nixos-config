@@ -1,4 +1,6 @@
-packages: .
+--TODO we would put this down in the folder with the cabal file, but HLS still needs it to be at the workspace root
+
+packages: clark/haskell
 
 --TODO 0.8 is not in Haskell.Nix's view of Hackage at time of writing
 source-repository-package
