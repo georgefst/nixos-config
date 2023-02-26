@@ -17,6 +17,7 @@ let
   droopy-port = 80;
   mqtt-port = 8883; # actually the default port, and probably implicitly assumed all over, including outside this file
   extra-ports = [ 56720 ]; # for temporary scripts etc.
+  system-led-pipe = "/tmp/system-led-pipe";
 
   file-server-dir = home + "/serve";
   syncthing-main-dir = home + "/sync";
@@ -128,6 +129,31 @@ in
 
   # systemd
   systemd.user.services = {
+    clark = {
+      script = ''
+        clark \
+          --gpio-chip gpiochip0 \
+          --button-debounce 1 \
+          --button-pin 27 \
+          --led-error-pin 19 \
+          --led-other-pin 26 \
+          --light-name Ceiling \
+          --lifx-timeout 5 \
+          --receive-port ${builtins.toString clark-script-port} \
+          --mailgun-sandbox ${secrets.mailgun.sandbox} \
+          --mailgun-key ${secrets.mailgun.key} \
+          --email-address georgefsthomas@gmail.com \
+          --laptop-host-name billy \
+          --ssh-timeout 3 \
+          --lifx-morning-seconds 45 \
+          --lifx-morning-kelvin 2700 \
+          --desk-usb-port 2 \
+          --system-led-pipe ${system-led-pipe} \
+      '';
+      description = "clark script";
+      path = [ extraPkgs.clark pkgs.libgpiod pkgs.mosquitto pkgs.openssh ];
+      wantedBy = startup;
+    };
     email-ip = {
       script = ''
         IP=""
@@ -194,28 +220,24 @@ in
   };
   # for whatever reason (e.g. binding to port 80), these need to be run as root
   systemd.services = {
-    clark = {
+    system-leds = {
       script = ''
-        clark \
-          --gpio-chip gpiochip0 \
-          --button-debounce 1 \
-          --button-pin 27 \
-          --led-error-pin 19 \
-          --led-other-pin 26 \
-          --light-name Ceiling \
-          --lifx-timeout 5 \
-          --receive-port ${builtins.toString clark-script-port} \
-          --mailgun-sandbox ${secrets.mailgun.sandbox} \
-          --mailgun-key ${secrets.mailgun.key} \
-          --email-address georgefsthomas@gmail.com \
-          --laptop-host-name billy \
-          --ssh-timeout 3 \
-          --lifx-morning-seconds 45 \
-          --lifx-morning-kelvin 2700 \
-          --desk-usb-port 2 \
+        if [[ ! -e ${system-led-pipe} ]]; then mkfifo ${system-led-pipe} && chown gthomas:users ${system-led-pipe} ; fi
+        while true
+        do
+          data=$(</tmp/system-led-pipe)
+          echo $data
+          if [[ $data == 0 ]]
+          then
+            echo none > /sys/class/leds/mmc1::/trigger
+            echo none > /sys/class/leds/ACT/trigger
+          else
+            echo mmc1 > /sys/class/leds/mmc1::/trigger
+            echo heartbeat > /sys/class/leds/ACT/trigger
+          fi
+        done
       '';
-      description = "clark script";
-      path = [ extraPkgs.clark pkgs.libgpiod pkgs.mosquitto pkgs.openssh ];
+      description = "system led server";
       wantedBy = startup-root;
     };
     droopy = {
