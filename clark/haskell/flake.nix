@@ -3,10 +3,7 @@
   inputs.nixpkgs-haskell.follows = "haskellNix/nixpkgs-unstable";
   inputs.flake-utils.url = "github:numtide/flake-utils";
   outputs = { self, nixpkgs-haskell, flake-utils, haskellNix }:
-    let
-      supportedSystems = [ "aarch64-linux" ];
-    in
-    flake-utils.lib.eachSystem supportedSystems (system:
+    flake-utils.lib.eachSystem [ "aarch64-linux" ] (system:
       let
         overlays = [
           haskellNix.overlay
