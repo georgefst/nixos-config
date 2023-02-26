@@ -1,8 +1,8 @@
 {
   inputs.haskellNix.url = "github:input-output-hk/haskell.nix";
-  inputs.nixpkgs.follows = "haskellNix/nixpkgs-unstable";
+  inputs.nixpkgs-haskell.follows = "haskellNix/nixpkgs-unstable";
   inputs.flake-utils.url = "github:numtide/flake-utils";
-  outputs = { self, nixpkgs, flake-utils, haskellNix }:
+  outputs = { self, nixpkgs-haskell, flake-utils, haskellNix }:
     let
       supportedSystems = [ "aarch64-linux" ];
     in
@@ -19,7 +19,7 @@
               };
           })
         ];
-        pkgs = import nixpkgs { inherit system overlays; inherit (haskellNix) config; };
+        pkgs = import nixpkgs-haskell { inherit system overlays; inherit (haskellNix) config; };
         flake = pkgs.hixProject.flake { };
       in
       flake // {
