@@ -661,11 +661,11 @@
         "tullia": "tullia"
       },
       "locked": {
-        "lastModified": 1677286287,
-        "narHash": "sha256-DUoduM2v8P+JcuPvAxnqvmHUk+I9r6rsEPUmtLyoE7w=",
+        "lastModified": 1677369922,
+        "narHash": "sha256-//SHBGbyFqDFdt6932pDT2mMsmOT/sOCTGpky5nNpy4=",
         "owner": "input-output-hk",
         "repo": "haskell.nix",
-        "rev": "fc8852afce751eaab557f218124546e7f2e53374",
+        "rev": "c1f09d8ce4d84e1b19258628f0f2adadb2d4cd05",
         "type": "github"
       },
       "original": {
