@@ -300,16 +300,12 @@ in
     '';
     enableLingering =
       # stops user services from being killed when all SSH sessions close
-      # taken from https://github.com/NixOS/nixpkgs/issues/183629#issuecomment-1199256913
+      # inspired by https://github.com/NixOS/nixpkgs/issues/183629#issuecomment-1199256913
       # as discussed in that thread, there'll hopefully be a proper NixOS option for this eventually
-      let touchUserLinger = username: _: "touch /var/lib/systemd/linger/${username}";
-      in
       ''
-        # remove all existing lingering users
         rm -rf /var/lib/systemd/linger
         mkdir -p /var/lib/systemd/linger
-        # enable for the subset of declared users
-        ${lib.concatStringsSep "\n" (lib.mapAttrsToList touchUserLinger config.users.users)}
+        touch /var/lib/systemd/linger/gthomas
       '';
   };
 }
