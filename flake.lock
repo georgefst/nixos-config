@@ -1748,13 +1748,13 @@
       "locked": {
         "lastModified": 1678021221,
         "narHash": "sha256-z19ULwGtlsfxP1uAw50LFYNmU9Zjd6pBgToryijIHt0=",
+        "ref": "refs/heads/master",
         "rev": "6dd1ba68a1b73c121ff033f5450694dc776fefee",
         "revCount": 220,
         "type": "git",
         "url": "ssh://git@github.com/georgefst/tennis-scraper"
       },
       "original": {
-        "rev": "6dd1ba68a1b73c121ff033f5450694dc776fefee",
         "type": "git",
         "url": "ssh://git@github.com/georgefst/tennis-scraper"
       }
