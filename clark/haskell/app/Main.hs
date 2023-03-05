@@ -1,7 +1,6 @@
 module Main (main) where
 
 import GPIO qualified
-import Mailgun qualified
 import Util
 import Util.Lifx
 
@@ -22,6 +21,7 @@ import Data.ByteString.Lazy qualified as BSL
 import Data.Foldable (for_)
 import Data.Map (Map)
 import Data.Map qualified as Map
+import Data.Text qualified as T
 import Data.Text.Encoding hiding (Some)
 import Data.Text.IO qualified as T
 import Data.Time
@@ -30,7 +30,6 @@ import Data.Word
 import Lifx.Lan hiding (SetColor)
 import Lifx.Lan qualified as Lifx
 import MQTT.Meross qualified
-import Network.HTTP.Client
 import Network.Socket
 import Network.Socket.ByteString hiding (send)
 import Options.Generic
@@ -50,9 +49,7 @@ data Opts = Opts
     , lightName :: Text
     , lifxTimeout :: Double
     , receivePort :: Word16
-    , mailgunSandbox :: Text
-    , mailgunKey :: Text
-    , emailAddress :: Text
+    , emailPipe :: FilePath
     , laptopHostName :: Text
     , sshTimeout :: Int
     , lifxMorningSeconds :: Int
@@ -127,17 +124,15 @@ data SimpleAction a where
     SetCeilingLightPower :: Bool -> SimpleAction ()
     SetCeilingLightColour :: {delay :: NominalDiffTime, brightness :: Word16, kelvin :: Word16} -> SimpleAction ()
     SetDeskUSBPower :: Bool -> SimpleAction ()
-    SendEmail :: {subject :: Text, body :: Text} -> SimpleAction (Response BSL.ByteString)
+    SendEmail :: {subject :: Text, body :: Text} -> SimpleAction ()
     SuspendLaptop :: SimpleAction ()
     SetSystemLEDs :: Bool -> SimpleAction ()
 deriving instance Show (SimpleAction a)
 data SimpleActionOpts = SimpleActionOpts
     { ledErrorPin :: Int
-    , mailgunSandbox :: Text
-    , mailgunKey :: Text
+    , emailPipe :: FilePath
     , sshTimeout :: Int
     , light :: Device
-    , emailAddress :: Text
     , laptopHostName :: Text
     , deskUsbPort :: Int
     , systemLedPipe :: FilePath
@@ -162,16 +157,7 @@ runSimpleAction opts = \case
         showOutput out err
         throwWhenFailureExitCode "Failed to set desk USB power" ec
     SendEmail{subject, body} ->
-        either (throwError . Error "Failed to send email") pure
-            =<< Mailgun.send
-                Mailgun.Opts
-                    { key = opts.mailgunKey
-                    , sandbox = opts.mailgunSandbox
-                    , from = opts.emailAddress
-                    , to = opts.emailAddress
-                    , subject
-                    , body
-                    }
+        liftIO . T.writeFile opts.emailPipe $ T.unlines [subject, body]
     SuspendLaptop ->
         maybe
             (throwError $ SimpleError "SSH timeout")

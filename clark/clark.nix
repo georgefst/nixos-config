@@ -18,6 +18,7 @@ let
   mqtt-port = 8883; # actually the default port, and probably implicitly assumed all over, including outside this file
   extra-ports = [ 56720 ]; # for temporary scripts etc.
   system-led-pipe = "/tmp/system-led-pipe";
+  email-pipe = "/tmp/email-pipe";
 
   file-server-dir = home + "/serve";
   syncthing-main-dir = home + "/sync";
@@ -140,9 +141,7 @@ in
           --light-name Ceiling \
           --lifx-timeout 5 \
           --receive-port ${builtins.toString clark-script-port} \
-          --mailgun-sandbox ${secrets.mailgun.sandbox} \
-          --mailgun-key ${secrets.mailgun.key} \
-          --email-address georgefsthomas@gmail.com \
+          --email-pipe ${email-pipe} \
           --laptop-host-name billy \
           --ssh-timeout 3 \
           --lifx-morning-seconds 45 \
@@ -163,13 +162,7 @@ in
           if [[ $NEW_IP != $IP ]]
           then
             echo "Changed: $NEW_IP"
-            curl -s --user 'api:${secrets.mailgun.key}' \
-              https://api.mailgun.net/v3/sandbox${secrets.mailgun.sandbox}.mailgun.org/messages \
-              -F from='Mailgun Sandbox <postmaster@sandbox${secrets.mailgun.sandbox}.mailgun.org>' \
-              -F to='George Thomas <georgefsthomas@gmail.com>' \
-              -F subject='Public IP address changed' \
-              -F text="Old: $IP, New: $NEW_IP" \
-            || sed -i "1iClark IP checker failed to send email: $(date)" ${syncthing-main-dir}/notes/todo.md
+            printf "Public IP address changed\nOld:\n$IP\n\nNew:\n$NEW_IP" > ${email-pipe}
           else
             echo "No change"
           fi
@@ -189,13 +182,7 @@ in
           --dhall ${home}/sync/config/tennis-scraper.dhall \
           --notify ${
             pkgs.writeShellScript "notify" ''
-              curl -s --user 'api:${secrets.mailgun.key}' \
-                https://api.mailgun.net/v3/sandbox${secrets.mailgun.sandbox}.mailgun.org/messages \
-                -F from='Mailgun Sandbox <postmaster@sandbox${secrets.mailgun.sandbox}.mailgun.org>' \
-                -F to='George Thomas <georgefsthomas@gmail.com>' \
-                -F subject="$1" \
-                -F text="$2" \
-              || sed -i "1iClark tennis scraper failed to send email: $(date)" ${syncthing-main-dir}/notes/todo.md
+              printf "$1"\n"$2" > ${email-pipe}
             ''
           } \
           --headless \
@@ -205,6 +192,28 @@ in
       path = [ pkgs.curl extraPkgs.tennis-scraper ];
       wantedBy = startup;
       wants = [ "geckodriver.service" ];
+    };
+    email-handler = {
+      script = ''
+        if [[ ! -e ${email-pipe} ]]; then mkfifo ${email-pipe} && chown gthomas:users ${email-pipe} ; fi
+        while true
+        do
+          data=$(<${email-pipe})
+          subject=$(head -n1 <<< "$data")
+          body=$(tail -n+2 <<< "$data")
+          echo "Sending: $subject"
+          curl -s --user 'api:${secrets.mailgun.key}' \
+            https://api.mailgun.net/v3/sandbox${secrets.mailgun.sandbox}.mailgun.org/messages \
+            -F from='Mailgun Sandbox <postmaster@sandbox${secrets.mailgun.sandbox}.mailgun.org>' \
+            -F to='George Thomas <georgefsthomas@gmail.com>' \
+            -F subject="$subject" \
+            -F text="$body" \
+          || sed -i "1iClark failed to send email: $(date)" ${syncthing-main-dir}/notes/todo.md
+        done
+      '';
+      description = "pipe for sending myself emails";
+      path = [ pkgs.curl ];
+      wantedBy = startup;
     };
     geckodriver = {
       script = "geckodriver";
