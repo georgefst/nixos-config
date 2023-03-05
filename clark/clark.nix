@@ -182,7 +182,7 @@ in
           --dhall ${home}/sync/config/tennis-scraper.dhall \
           --notify ${
             pkgs.writeShellScript "notify" ''
-              printf "$1"\n"$2" > ${email-pipe}
+              printf "$1\n$2" > ${email-pipe}
             ''
           } \
           --headless \
