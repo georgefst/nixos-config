@@ -4,7 +4,7 @@
     flake-utils.url = "github:numtide/flake-utils";
     haskellNix.url = "github:input-output-hk/haskell.nix";
     nixpkgs-haskell.follows = "haskellNix/nixpkgs-unstable";
-    tennis-scraper.url = "/home/gthomas/code/tennis-scraper";
+    tennis-scraper.url = "git+ssh://git@github.com/georgefst/tennis-scraper?rev=6dd1ba68a1b73c121ff033f5450694dc776fefee";
   };
   outputs = inputs@{ self, nixpkgs, flake-utils, ... }: rec {
     haskell = {
