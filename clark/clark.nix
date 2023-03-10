@@ -205,7 +205,7 @@ in
             -F to='George Thomas <georgefsthomas@gmail.com>' \
             -F subject="$subject" \
             -F text="$body" \
-          || sed -i "1iClark failed to send email: $(date)" ${syncthing-main-dir}/notes/todo.md
+          || sed -i "1iClark failed to send email ($(date)): $subject" ${syncthing-main-dir}/notes/todo.md
         done
       '';
       description = "pipe for sending myself emails";
