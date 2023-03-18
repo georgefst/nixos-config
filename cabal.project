@@ -1,3 +1,10 @@
 --TODO we would put this down in the folder with the cabal file, but HLS still needs it to be at the workspace root
 
 packages: clark/haskell
+
+allow-newer:
+    -- https://github.com/lexi-lambda/freer-simple/pull/44
+    freer-simple:template-haskell,
+    -- https://github.com/ocharles/logging-effect/pull/36
+    logging-effect:base,
+    logging-effect:text,
