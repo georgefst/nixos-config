@@ -30,6 +30,7 @@
           packages.default = flake.packages."clark:exe:clark";
         });
     };
+
     nixosConfigurations = {
       clark = nixpkgs.lib.nixosSystem {
         system = "aarch64-linux";
@@ -45,6 +46,7 @@
         };
       };
     };
+
     images.clark = nixosConfigurations.clark.config.system.build.sdImage;
 
     packages.x86_64-linux.default = nixosConfigurations.clark.config.system.build.toplevel;
