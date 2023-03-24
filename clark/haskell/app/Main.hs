@@ -217,8 +217,9 @@ decodeAction =
             5 -> SimpleAction <$> (SetCeilingLightColour . secondsToNominalDiffTime <$> B.get <*> B.get <*> B.get)
             6 -> pure SleepOrWake
             7 -> SimpleAction . SetCeilingLightPower <$> B.get @Bool
-            8 -> pure $ SimpleAction GetCeilingLightPower
-            9 -> SimpleAction . SetSystemLEDs <$> B.get @Bool
+            8 -> SimpleAction . SetSystemLEDs <$> B.get @Bool
+            -- actions which wouldn't be useful to run remotely/standalone
+            255 -> pure $ SimpleAction GetCeilingLightPower
             n -> fail $ "unknown action: " <> show n
 
 data Event
