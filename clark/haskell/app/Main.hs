@@ -34,8 +34,11 @@ import Network.Socket
 import Network.Socket.ByteString hiding (send)
 import Options.Generic
 import RawFilePath
-import Streamly.Internal.Data.Stream.IsStream qualified as S (hoist)
-import Streamly.Prelude qualified as S
+import Streamly.Data.Fold qualified as SF
+import Streamly.Data.Stream qualified as S
+import Streamly.Data.Stream.Prelude qualified as S
+import Streamly.Data.StreamK qualified as SK
+import Streamly.Internal.Data.Stream.StreamK qualified as SK (hoist)
 import System.Exit
 import System.IO
 import Text.Pretty.Simple
@@ -96,7 +99,7 @@ main = do
         . flip evalStateT mempty
         . flip runLoggingT (liftIO . T.putStrLn)
         . runLifxUntilSuccess (handleError . Error "LIFX error") (lifxTime opts.lifxTimeout)
-        . S.mapM_ \case
+        . (S.fold . SF.drainMapM) \case
             ErrorEvent e -> handleError e
             LogEvent t -> logMessage t
             ActionEvent action ->
@@ -109,13 +112,13 @@ main = do
                             SimpleAction a -> Eff.tell $ showT a
                             a -> Eff.tell $ showT a
                         raise $ runAction (opts & \Opts{..} -> ActionOpts{..}) action
-        . S.hoist liftIO
-        . S.fromAsync
-        $ mconcat
-            [ S.fromSerial . S.repeatM $
+        . (SK.toStream . SK.hoist liftIO . SK.fromStream)
+        $ S.parList
+            id
+            [ S.repeatM $
                 either (ErrorEvent . Error "Decode failure") ActionEvent . decodeAction . BSL.fromStrict
                     <$> recv eventSocket 4096
-            , S.fromSerial . S.repeatM $ takeMVar gpioEventMVar
+            , S.repeatM $ takeMVar gpioEventMVar
             ]
 
 data SimpleAction a where
