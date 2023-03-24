@@ -1,4 +1,7 @@
---TODO we would put this down in the folder with the cabal file, but HLS still needs it to be at the workspace root
+-- We put this here, rather than down in the folder with the cabal file, because:
+-- - HLS needs it to be at the workspace root (this is the deal breaker).
+-- - It allows us to `cabal build all` from the root.
+-- - We might eventually want to share utilities between multiple Haskell packages in this project.
 
 packages: clark/haskell
 
