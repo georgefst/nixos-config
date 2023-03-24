@@ -47,8 +47,8 @@
       };
     };
 
-    images.clark = nixosConfigurations.clark.config.system.build.sdImage;
-
-    packages.x86_64-linux.default = nixosConfigurations.clark.config.system.build.toplevel;
+    images = builtins.mapAttrs (_: system: system.config.system.build.sdImage) nixosConfigurations;
+    configs = builtins.mapAttrs (_: system: system.config.system.build.toplevel) nixosConfigurations;
+    packages.x86_64-linux.default = configs.clark;
   };
 }
