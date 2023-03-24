@@ -46,5 +46,7 @@
       };
     };
     images.clark = nixosConfigurations.clark.config.system.build.sdImage;
+
+    packages.x86_64-linux.default = nixosConfigurations.clark.config.system.build.toplevel;
   };
 }
