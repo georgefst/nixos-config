@@ -194,7 +194,14 @@ runAction opts = \case
         send GetCeilingLightPower >>= \night@(not -> morning) -> do
             send $ SetSystemLEDs morning
             send $ SetCeilingLightPower morning
-            when morning . send $
+            when morning do
+              send
+                SetCeilingLightColour
+                    { delay = 0
+                    , brightness = 0
+                    , kelvin = 0
+                    }
+              send
                 SetCeilingLightColour
                     { delay = fromIntegral opts.lifxMorningSeconds
                     , brightness = maxBound
