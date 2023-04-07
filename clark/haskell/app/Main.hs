@@ -195,18 +195,18 @@ runAction opts = \case
             send $ SetSystemLEDs morning
             send $ SetCeilingLightPower morning
             when morning do
-              send
-                SetCeilingLightColour
-                    { delay = 0
-                    , brightness = 0
-                    , kelvin = 0
-                    }
-              send
-                SetCeilingLightColour
-                    { delay = fromIntegral opts.lifxMorningSeconds
-                    , brightness = maxBound
-                    , kelvin = opts.lifxMorningKelvin
-                    }
+                send
+                    SetCeilingLightColour
+                        { delay = 0
+                        , brightness = 0
+                        , kelvin = 0
+                        }
+                send
+                    SetCeilingLightColour
+                        { delay = fromIntegral opts.lifxMorningSeconds
+                        , brightness = maxBound
+                        , kelvin = opts.lifxMorningKelvin
+                        }
             send $ SetDeskUSBPower morning
             when night . void $ send SuspendLaptop
 decodeAction :: BSL.ByteString -> Either (BSL.ByteString, B.ByteOffset, String) Action
