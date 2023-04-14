@@ -9,7 +9,7 @@
   outputs = inputs@{ self, nixpkgs, flake-utils, ... }: rec {
     haskell =
       builtins.mapAttrs
-        (name: src: flake-utils.lib.eachSystem [ "aarch64-linux" ] (system:
+        (name: src: (flake-utils.lib.eachSystem [ "aarch64-linux" ] (system:
           let
             overlays = [
               inputs.haskellNix.overlay
@@ -28,7 +28,7 @@
           in
           flake // {
             packages.default = flake.packages."${name}:exe:${name}";
-          })
+          })).packages.aarch64-linux.default
         )
         {
           clark = ./.;
@@ -44,8 +44,8 @@
         ];
         specialArgs = {
           extraPkgs = {
-            clark = haskell.clark.packages.aarch64-linux.default;
-            tennis-scraper = haskell.tennis-scraper.packages.aarch64-linux.default;
+            clark = haskell.clark;
+            tennis-scraper = haskell.tennis-scraper;
           };
         };
       };
