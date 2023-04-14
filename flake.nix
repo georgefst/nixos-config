@@ -26,10 +26,8 @@
             pkgs = import inputs.nixpkgs-haskell { inherit system overlays; inherit (inputs.haskellNix) config; };
             flake = pkgs.hixProject.flake { };
           in
-          flake // {
-            packages.default = flake.packages."${name}:exe:${name}";
-          })).packages.aarch64-linux.default
-        )
+          flake
+        )).packages.aarch64-linux."${name}:exe:${name}")
         {
           clark = ./.;
           tennis-scraper = inputs.tennis-scraper;
