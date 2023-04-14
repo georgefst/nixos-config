@@ -10,7 +10,8 @@
     haskell =
       builtins.mapAttrs
         (name: src: (flake-utils.lib.eachSystem [ "aarch64-linux" ] (system:
-          let
+          (import inputs.nixpkgs-haskell {
+            inherit system;
             overlays = [
               inputs.haskellNix.overlay
               (final: prev: {
@@ -23,10 +24,8 @@
                   };
               })
             ];
-            pkgs = import inputs.nixpkgs-haskell { inherit system overlays; inherit (inputs.haskellNix) config; };
-            flake = pkgs.hixProject.flake { };
-          in
-          flake
+            inherit (inputs.haskellNix) config;
+          }).hixProject.flake { }
         )).packages.aarch64-linux."${name}:exe:${name}")
         {
           clark = ./.;
