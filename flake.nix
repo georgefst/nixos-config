@@ -44,8 +44,9 @@
         ];
         specialArgs = {
           extraPkgs = {
-            clark = haskell.clark;
-            tennis-scraper = haskell.tennis-scraper;
+            inherit (haskell)
+              clark
+              tennis-scraper;
           };
         };
       };
