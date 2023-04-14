@@ -9,7 +9,7 @@
   outputs = inputs@{ self, nixpkgs, flake-utils, ... }: rec {
     haskell =
       builtins.mapAttrs
-        (name: { src }: flake-utils.lib.eachSystem [ "aarch64-linux" ] (system:
+        (name: src: flake-utils.lib.eachSystem [ "aarch64-linux" ] (system:
           let
             overlays = [
               inputs.haskellNix.overlay
@@ -31,8 +31,8 @@
           })
         )
         {
-          clark = { src = ./.; };
-          tennis-scraper = { src = inputs.tennis-scraper; };
+          clark = ./.;
+          tennis-scraper = inputs.tennis-scraper;
         };
 
     nixosConfigurations = {
