@@ -27,7 +27,6 @@
             flake = pkgs.hixProject.flake { };
           in
           flake // {
-            legacyPackages = pkgs;
             packages.default = flake.packages."${default}";
           })
         )
