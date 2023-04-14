@@ -184,6 +184,7 @@ in
           } \
           --headless \
           --wait-multiplier 3 \
+          --failure-limit 10 \
       '';
       description = "tennis scraper";
       path = [ pkgs.curl extraPkgs.tennis-scraper ];
