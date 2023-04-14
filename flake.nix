@@ -51,6 +51,8 @@
 
     images = builtins.mapAttrs (_: system: system.config.system.build.sdImage) nixosConfigurations;
     configs = builtins.mapAttrs (_: system: system.config.system.build.toplevel) nixosConfigurations;
+
+    # This is convenient while we only actually have one system, but will need changing eventually.
     packages.x86_64-linux.default = configs.clark;
   };
 }
