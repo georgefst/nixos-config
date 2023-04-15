@@ -875,11 +875,11 @@
     "tennis-scraper": {
       "flake": false,
       "locked": {
-        "lastModified": 1681515970,
-        "narHash": "sha256-Lz0d7dRnmOnexVxwkah6ooHOwoM7em2nauF2dUARhWE=",
+        "lastModified": 1681554594,
+        "narHash": "sha256-JqSMlSOe0IwkRug5WqzIRkicwBuzZ0fXXfcfmTF4/qI=",
         "ref": "refs/heads/master",
-        "rev": "8a6540079aa3e576fd0da0a24a121faf249b7817",
-        "revCount": 230,
+        "rev": "7ef4008ec4e7c29be87c715587143cc79c881951",
+        "revCount": 232,
         "type": "git",
         "url": "ssh://git@github.com/georgefst/tennis-scraper"
       },
