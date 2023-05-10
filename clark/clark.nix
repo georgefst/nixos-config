@@ -156,7 +156,10 @@ in
         IP=""
         while true
         do
-          NEW_IP=$(curl -s https://ipinfo.io/ip)
+          NEW_IP=$(
+            curl -s https://ipinfo.io/ip ||
+              printf "Public IP address lookup failed\nWill try again on next iteration." > ${email-pipe}
+          )
           if [[ $NEW_IP != $IP ]]
           then
             echo "Changed: $NEW_IP"
