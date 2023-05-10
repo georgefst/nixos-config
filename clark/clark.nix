@@ -281,7 +281,7 @@ in
     devices = {
       # Billy will introduce us to all others, so there's no need to list them here
       billy = {
-        id = "SNTZHCK-IRIPPLQ-4QHR7T6-PCTRUZ3-TVGFDJS-RJOE5VP-GJQI43B-TFQ7GQM";
+        id = "3WIFNUH-VIST5DA-RROQ732-DDCKOQK-PWVERCB-7RNNG5R-JGRZX3M-WMAUQQP";
         introducer = true;
       };
     };
