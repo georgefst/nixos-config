@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "nixpkgs/nixos-22.11";
+    nixpkgs.url = "nixpkgs/nixos-23.05";
     flake-utils.url = "github:numtide/flake-utils";
     haskellNix.url = "github:input-output-hk/haskell.nix";
     nixpkgs-haskell.follows = "haskellNix/nixpkgs-unstable";
@@ -18,8 +18,8 @@
                 hixProject =
                   final.haskell-nix.hix.project {
                     inherit src;
-                    compiler-nix-name = "ghc927";
-                    index-state = "2023-03-19T00:00:00Z";
+                    compiler-nix-name = "ghc928";
+                    index-state = "2023-06-28T00:00:00Z";
                     evalSystem = "x86_64-linux";
                   };
               })
