@@ -170,7 +170,7 @@ runSimpleAction opts = \case
                     <=< readProcessWithExitCodeTimeout (opts.sshTimeout * 1_000_000)
                     $ proc "ssh" ["billy", "systemctl suspend"]
                 )
-    SetSystemLEDs b -> liftIO . writeFile opts.systemLedPipe . show $ fromEnum b
+    SetSystemLEDs b -> liftIO . B.writeFile opts.systemLedPipe . showBS $ fromEnum b
   where
     showOutput out err = liftIO $ for_ [("stdout", out), ("stderr", err)] \(s, t) ->
         unless (B.null t) $ T.putStrLn ("    " <> s <> ": ") >> B.putStr t
