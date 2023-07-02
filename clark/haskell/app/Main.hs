@@ -59,6 +59,7 @@ data Opts = Opts
     , lifxMorningKelvin :: Word16
     , deskUsbPort :: Int
     , systemLedPipe :: FilePath
+    , rootCmdPipe :: FilePath
     }
     deriving (Show, Generic)
 instance ParseRecord Opts where
@@ -130,6 +131,7 @@ data SimpleAction a where
     SendEmail :: {subject :: Text, body :: Text} -> SimpleAction ()
     SuspendLaptop :: SimpleAction ()
     SetSystemLEDs :: Bool -> SimpleAction ()
+    RootCommand :: Text -> SimpleAction ()
 deriving instance Show (SimpleAction a)
 data SimpleActionOpts = SimpleActionOpts
     { ledErrorPin :: Int
@@ -139,6 +141,7 @@ data SimpleActionOpts = SimpleActionOpts
     , laptopHostName :: Text
     , deskUsbPort :: Int
     , systemLedPipe :: FilePath
+    , rootCmdPipe :: FilePath
     }
 
 runSimpleAction ::
@@ -171,6 +174,7 @@ runSimpleAction opts = \case
                     $ proc "ssh" ["billy", "systemctl suspend"]
                 )
     SetSystemLEDs b -> liftIO . B.writeFile opts.systemLedPipe . showBS $ fromEnum b
+    RootCommand t -> liftIO $ T.writeFile opts.rootCmdPipe t
   where
     showOutput out err = liftIO $ for_ [("stdout", out), ("stderr", err)] \(s, t) ->
         unless (B.null t) $ T.putStrLn ("    " <> s <> ": ") >> B.putStr t

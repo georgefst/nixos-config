@@ -15,6 +15,7 @@ let
   mqtt-port = 8883; # actually the default port, and probably implicitly assumed all over, including outside this file
   extra-ports = [ 56720 ]; # for temporary scripts etc.
   system-led-pipe = "/tmp/system-led-pipe";
+  root-cmd-pipe = "/tmp/root-cmd-pipe";
   email-pipe = "/tmp/email-pipe";
 
   file-server-dir = home + "/serve";
@@ -146,6 +147,7 @@ in
           --lifx-morning-kelvin 2700 \
           --desk-usb-port 2 \
           --system-led-pipe ${system-led-pipe} \
+          --root-cmd-pipe ${root-cmd-pipe} \
       '';
       description = "clark script";
       path = [ extraPkgs.clark pkgs.libgpiod pkgs.mosquitto pkgs.openssh ];
@@ -249,6 +251,19 @@ in
         done
       '';
       description = "system led server";
+      wantedBy = startup-root;
+    };
+    root-cmd = {
+      script = ''
+        if [[ ! -e ${root-cmd-pipe} ]]; then mkfifo ${root-cmd-pipe} && chown gthomas:users ${root-cmd-pipe} ; fi
+        while true
+        do
+          data=$(<${root-cmd-pipe})
+          echo $data
+          $data
+        done
+      '';
+      description = "root command server";
       wantedBy = startup-root;
     };
     droopy = {
