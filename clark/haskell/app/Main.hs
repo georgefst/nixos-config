@@ -66,7 +66,7 @@ instance ParseRecord Opts where
 
 type AppState = Map Int GPIO.Handle
 data Error where
-    Error :: Show a => {title :: Text, body :: a} -> Error
+    Error :: (Show a) => {title :: Text, body :: a} -> Error
     SimpleError :: Text -> Error
 
 main :: IO ()
