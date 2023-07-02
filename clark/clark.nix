@@ -236,7 +236,7 @@ in
         if [[ ! -e ${system-led-pipe} ]]; then mkfifo ${system-led-pipe} && chown gthomas:users ${system-led-pipe} ; fi
         while true
         do
-          data=$(</tmp/system-led-pipe)
+          data=$(<${system-led-pipe})
           echo $data
           if [[ $data == 0 ]]
           then
