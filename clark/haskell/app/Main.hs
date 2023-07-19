@@ -16,6 +16,7 @@ import Control.Monad.State
 import Data.Binary qualified as B
 import Data.Binary.Get (runGetOrFail)
 import Data.Binary.Get qualified as B
+import Data.Bool
 import Data.ByteString qualified as B
 import Data.ByteString.Lazy qualified as BSL
 import Data.Foldable (for_)
@@ -39,6 +40,7 @@ import Streamly.Data.Stream qualified as S
 import Streamly.Data.Stream.Prelude qualified as S
 import Streamly.Data.StreamK qualified as SK
 import Streamly.Internal.Data.Stream.StreamK qualified as SK (hoist)
+import System.Directory qualified as Dir
 import System.Exit
 import System.IO
 import Text.Pretty.Simple
@@ -163,7 +165,7 @@ runSimpleAction opts = \case
         showOutput out err
         throwWhenFailureExitCode "Failed to set desk USB power" ec
     SendEmail{subject, body} ->
-        liftIO . T.writeFile opts.emailPipe $ T.unlines [subject, body]
+        writePipe opts.emailPipe $ T.unlines [subject, body]
     SuspendLaptop ->
         maybe
             (throwError $ SimpleError "SSH timeout")
@@ -173,13 +175,16 @@ runSimpleAction opts = \case
                     <=< readProcessWithExitCodeTimeout (opts.sshTimeout * 1_000_000)
                     $ proc "ssh" ["billy", "systemctl suspend"]
                 )
-    SetSystemLEDs b -> liftIO . B.writeFile opts.systemLedPipe . showBS $ fromEnum b
-    RootCommand t -> liftIO $ T.writeFile opts.rootCmdPipe t
+    SetSystemLEDs b -> writePipe opts.systemLedPipe . showT $ fromEnum b
+    RootCommand t -> writePipe opts.rootCmdPipe t
   where
     showOutput out err = liftIO $ for_ [("stdout", out), ("stderr", err)] \(s, t) ->
         unless (B.null t) $ T.putStrLn ("    " <> s <> ": ") >> B.putStr t
     throwWhenFailureExitCode s ec =
         unless (ec == ExitSuccess) $ throwError $ Error s ec
+    writePipe p t =
+        bool (throwError $ SimpleError "Pipe doesn't exist") (liftIO $ T.writeFile p t)
+            =<< liftIO (Dir.doesFileExist p)
 
 data Action where
     SimpleAction :: SimpleAction a -> Action

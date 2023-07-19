@@ -37,6 +37,7 @@ executable clark
         binary >= 0.8.9,
         bytestring >= 0.10.12,
         containers >= 0.6,
+        directory >= 1.2,
         exceptions >= 0.10,
         extra >= 1.7.10,
         freer-simple >= 1.2.1.2,
