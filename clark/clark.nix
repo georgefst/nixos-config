@@ -199,7 +199,6 @@ in
     };
     email-handler = {
       script = ''
-        if [[ ! -e ${email-pipe} ]]; then mkfifo ${email-pipe} && chown gthomas:users ${email-pipe} ; fi
         while true
         do
           data=$(<${email-pipe})
@@ -235,7 +234,6 @@ in
   systemd.services = {
     system-leds = {
       script = ''
-        if [[ ! -e ${system-led-pipe} ]]; then mkfifo ${system-led-pipe} && chown gthomas:users ${system-led-pipe} ; fi
         while true
         do
           data=$(<${system-led-pipe})
@@ -255,7 +253,6 @@ in
     };
     root-cmd = {
       script = ''
-        if [[ ! -e ${root-cmd-pipe} ]]; then mkfifo ${root-cmd-pipe} && chown gthomas:users ${root-cmd-pipe} ; fi
         while true
         do
           data=$(<${root-cmd-pipe})
@@ -318,6 +315,12 @@ in
     };
   };
   system.activationScripts = {
+    # these pipes are used from multiple services, so we set them up as early as possible
+    make-pipes = ''
+      if [[ ! -e ${email-pipe} ]]; then mkfifo ${email-pipe} && chown gthomas:users ${email-pipe} ; fi
+      if [[ ! -e ${root-cmd-pipe} ]]; then mkfifo ${root-cmd-pipe} && chown gthomas:users ${root-cmd-pipe} ; fi
+      if [[ ! -e ${system-led-pipe} ]]; then mkfifo ${system-led-pipe} && chown gthomas:users ${system-led-pipe} ; fi
+    '';
     # allows certain scripts and config files to be compatible across my devices
     syncthing-root-link = ''
       if [[ ! -e /syncthing ]]; then
