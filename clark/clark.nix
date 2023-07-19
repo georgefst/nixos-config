@@ -40,6 +40,11 @@ in
     "billy.george_____t-1:ysBHZMnX/3Gtqi1CR/3Y2qrJg7mmna1ETAM7Akyj3ek="
     "billy.george.fst-1:fgYMFJlaXSY7PVn+DTqB8xd8Difv9X4g1Repc2j77A0="
   ];
+  nix.settings.substituters = [
+    "https://cache.nixos.org"
+    "https://cache.iog.io"
+    "https://cache.zw3rk.com"
+  ];
 
   # stuff I'm probably never going to change
   networking.hostName = "clark";
