@@ -89,6 +89,7 @@ main = do
                 True -> liftIO $ putStrLn "LED is already on"
 
     -- TODO initialisation stuff - encapsulate this better somehow, without it being killed by LIFX failure
+    -- TODO even discounting LIFX issue, unclear how to do this in Streamly 0.9, as there's no `Monad (Stream IO)`
     eventSocket <- socket AF_INET Datagram defaultProtocol
     bind eventSocket $ SockAddrInet (fromIntegral opts.receivePort) 0
     gpioEventMVar <- newEmptyMVar
