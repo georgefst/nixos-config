@@ -17,7 +17,7 @@ newtype Handle = Handle {unwrap :: Process Inherit Inherit Inherit}
 reset :: Handle -> IO ()
 reset h = terminateProcess h.unwrap
 
-set :: MonadIO m => ByteString -> [Int] -> m Handle
+set :: (MonadIO m) => ByteString -> [Int] -> m Handle
 set gpioChip xs =
     liftIO
         . fmap Handle

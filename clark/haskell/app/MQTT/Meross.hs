@@ -9,7 +9,7 @@ import GHC.Generics (Generic)
 import RawFilePath (proc, readProcessWithExitCode)
 import System.Exit (ExitCode)
 
-send :: MonadIO m => Message -> m (ExitCode, ByteString, ByteString)
+send :: (MonadIO m) => Message -> m (ExitCode, ByteString, ByteString)
 send m =
     liftIO . readProcessWithExitCode $
         proc
@@ -23,7 +23,7 @@ send m =
             , BSL.toStrict $ encode m
             ]
 
-toggle :: MonadIO m => Int -> Bool -> m Message
+toggle :: (MonadIO m) => Int -> Bool -> m Message
 toggle channel onoff = do
     -- TODO we should be using a proper `timestamp` and a random `messageId`, but we need to regenerate `sign`...
     -- timestamp <- truncate <$> liftIO getPOSIXTime

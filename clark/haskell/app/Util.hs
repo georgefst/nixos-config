@@ -11,9 +11,9 @@ import Options.Generic
 import RawFilePath
 import System.Exit
 
-showT :: Show a => a -> Text
+showT :: (Show a) => a -> Text
 showT = T.pack . show
-showBS :: Show a => a -> ByteString
+showBS :: (Show a) => a -> ByteString
 showBS = encodeUtf8 . showT
 
 -- TODO return partial stdout/stderr in timeout case
