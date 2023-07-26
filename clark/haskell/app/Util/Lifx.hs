@@ -7,8 +7,10 @@ module Util.Lifx where
 import Lifx.Lan
 
 import Control.Concurrent (threadDelay)
+import Control.Monad.Except (ExceptT, runExceptT)
 import Control.Monad.Log (LoggingT, MonadLog)
 import Control.Monad.Trans (MonadIO (liftIO), lift)
+import Network.Socket (PortNumber)
 
 -- I really don't know where this belongs - standalone package?
 instance MonadLifx m => MonadLifx (LoggingT t m) where
@@ -28,5 +30,9 @@ lifxTime :: Double -> Int
 lifxTime = round . (* 1_000_000)
 
 -- | Run the action. If it fails then just print the error and go again.
-runLifxUntilSuccess :: MonadIO m => (LifxError -> m ()) -> Int -> LifxT m a -> m a
-runLifxUntilSuccess p t x = either (\e -> p e >> liftIO (threadDelay t) >> runLifxUntilSuccess p t x) pure =<< runLifxT t x
+runLifxUntilSuccess :: MonadIO m => (Either e LifxError -> m ()) -> Int -> Maybe PortNumber -> ExceptT e (LifxT m) a -> m a
+runLifxUntilSuccess p t n x =
+    either (p' . Right) (either (p' . Left) pure)
+        =<< runLifxT t n (runExceptT x)
+  where
+    p' e = p e >> liftIO (threadDelay t) >> runLifxUntilSuccess p t n x

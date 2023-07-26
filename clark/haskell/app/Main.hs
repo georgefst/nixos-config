@@ -19,7 +19,7 @@ import Data.Binary.Get qualified as B
 import Data.Bool
 import Data.ByteString qualified as B
 import Data.ByteString.Lazy qualified as BSL
-import Data.Foldable (for_)
+import Data.Foldable
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Text qualified as T
@@ -53,6 +53,7 @@ data Opts = Opts
     , ledOtherPin :: Int
     , lightName :: Text
     , lifxTimeout :: Double
+    , lifxPort :: Word16
     , receivePort :: Word16
     , emailPipe :: FilePath
     , laptopHostName :: Text
@@ -86,8 +87,6 @@ main = do
             gets (Map.member opts.ledErrorPin) >>= \case
                 False -> modify . Map.insert opts.ledErrorPin =<< GPIO.set (encodeUtf8 opts.gpioChip) [opts.ledErrorPin]
                 True -> liftIO $ putStrLn "LED is already on"
-        -- TODO avoid hardcoding - discovery doesn't currently work on Clark (firewall?)
-        light = deviceFromAddress (192, 168, 1, 190)
 
     -- TODO initialisation stuff - encapsulate this better somehow, without it being killed by LIFX failure
     eventSocket <- socket AF_INET Datagram defaultProtocol
@@ -102,9 +101,14 @@ main = do
         . flip evalStateT mempty
         . flip runLoggingT (liftIO . T.putStrLn)
         . runLifxUntilSuccess
-            (handleError . Error "LIFX error")
+            (either (\() -> handleError $ SimpleError "Light not found" ) (handleError . Error "LIFX error"))
             (lifxTime opts.lifxTimeout)
-        . (S.fold . SF.drainMapM) \case
+            (Just $ fromIntegral opts.lifxPort)
+        $ discoverDevices Nothing
+            >>=  traverse (\d -> (d,) <$> sendMessage d GetColor)
+            >>= (maybe (throwError ()) (pure . fst) . find ((== opts.lightName) . (.label) . snd))
+            >>= \light ->
+        (S.fold . SF.drainMapM) \case
             ErrorEvent e -> handleError e
             LogEvent t -> logMessage t
             ActionEvent action ->

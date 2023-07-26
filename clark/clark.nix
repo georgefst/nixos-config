@@ -11,6 +11,7 @@ let
 
   # arbitrary - all that matters is that these don't conflict with each other or anything else
   clark-script-port = 56710; # if we change this we need to modify Tasker config, .bashrc etc.
+  clark-script-lifx-port = 56711;
   droopy-port = 80;
   mqtt-port = 8883; # actually the default port, and probably implicitly assumed all over, including outside this file
   extra-ports = [ 56720 ]; # for temporary scripts etc.
@@ -127,6 +128,7 @@ in
           --led-other-pin 26 \
           --light-name Ceiling \
           --lifx-timeout 5 \
+          --lifx-port ${builtins.toString clark-script-lifx-port} \
           --receive-port ${builtins.toString clark-script-port} \
           --email-pipe ${email-pipe} \
           --laptop-host-name billy \
@@ -269,6 +271,7 @@ in
   # open ports
   networking.firewall.allowedUDPPorts = [
     clark-script-port
+    clark-script-lifx-port
   ] ++ extra-ports;
   networking.firewall.allowedTCPPorts = [
     droopy-port
