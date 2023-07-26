@@ -101,7 +101,9 @@ main = do
     race_ gpioMonitor
         . flip evalStateT mempty
         . flip runLoggingT (liftIO . T.putStrLn)
-        . runLifxUntilSuccess (handleError . Error "LIFX error") (lifxTime opts.lifxTimeout)
+        . runLifxUntilSuccess
+            (handleError . Error "LIFX error")
+            (lifxTime opts.lifxTimeout)
         . (S.fold . SF.drainMapM) \case
             ErrorEvent e -> handleError e
             LogEvent t -> logMessage t
