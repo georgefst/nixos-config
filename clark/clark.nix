@@ -126,7 +126,7 @@ in
           --button-pin 27 \
           --led-error-pin 19 \
           --led-other-pin 26 \
-          --light-name Ceiling \
+          --ceiling-light-name Ceiling \
           --lifx-timeout 5 \
           --lifx-port ${builtins.toString clark-script-lifx-port} \
           --receive-port ${builtins.toString clark-script-port} \

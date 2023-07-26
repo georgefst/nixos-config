@@ -51,7 +51,7 @@ data Opts = Opts
     , buttonPin :: Int
     , ledErrorPin :: Int
     , ledOtherPin :: Int
-    , lightName :: Text
+    , ceilingLightName :: Text
     , lifxTimeout :: Double
     , lifxPort :: Word16
     , receivePort :: Word16
@@ -106,8 +106,8 @@ main = do
             (Just $ fromIntegral opts.lifxPort)
         $ discoverDevices Nothing
             >>= traverse (\d -> (d,) <$> sendMessage d GetColor)
-            >>= (maybe (throwError ()) (pure . fst) . find ((== opts.lightName) . (.label) . snd))
-            >>= \light ->
+            >>= (maybe (throwError ()) (pure . fst) . find ((== opts.ceilingLightName) . (.label) . snd))
+            >>= \ceilingLight ->
                 (S.fold . SF.drainMapM) \case
                     ErrorEvent e -> handleError e
                     LogEvent t -> logMessage t
@@ -145,7 +145,7 @@ data SimpleActionOpts = SimpleActionOpts
     { ledErrorPin :: Int
     , emailPipe :: FilePath
     , sshTimeout :: Int
-    , light :: Device
+    , ceilingLight :: Device
     , laptopHostName :: Text
     , deskUsbPort :: Int
     , systemLedPipe :: FilePath
@@ -159,9 +159,9 @@ runSimpleAction opts = \case
         gets (Map.lookup opts.ledErrorPin) >>= \case
             Just h -> liftIO (GPIO.reset h) >> modify (Map.delete opts.ledErrorPin)
             Nothing -> liftIO $ putStrLn "LED is already off"
-    GetCeilingLightPower -> statePowerToBool <$> sendMessage opts.light GetPower
-    SetCeilingLightPower p -> sendMessage opts.light $ SetPower p
-    SetCeilingLightColour{delay, brightness, kelvin} -> sendMessage opts.light $ Lifx.SetColor HSBK{..} delay
+    GetCeilingLightPower -> statePowerToBool <$> sendMessage opts.ceilingLight GetPower
+    SetCeilingLightPower p -> sendMessage opts.ceilingLight $ SetPower p
+    SetCeilingLightColour{delay, brightness, kelvin} -> sendMessage opts.ceilingLight $ Lifx.SetColor HSBK{..} delay
       where
         -- these have no effect for this type of LIFX bulb
         hue = 0
