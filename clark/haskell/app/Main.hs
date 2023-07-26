@@ -101,7 +101,7 @@ main = do
         . flip evalStateT mempty
         . flip runLoggingT (liftIO . T.putStrLn)
         . runLifxUntilSuccess
-            (either (\() -> handleError $ SimpleError "Light not found") (handleError . Error "LIFX error"))
+            (either (\() -> handleError $ SimpleError "Ceiling light not found") (handleError . Error "LIFX error"))
             (lifxTime opts.lifxTimeout)
             (Just $ fromIntegral opts.lifxPort)
         $ do
