@@ -104,11 +104,14 @@ main = do
             (either (\() -> handleError $ SimpleError "Light not found") (handleError . Error "LIFX error"))
             (lifxTime opts.lifxTimeout)
             (Just $ fromIntegral opts.lifxPort)
-        $ discoverDevices Nothing
-            >>= traverse (\d -> (d,) <$> sendMessage d GetColor)
-            >>= (maybe (throwError ()) (pure . fst) . find ((== opts.ceilingLightName) . (.label) . snd))
-            >>= \ceilingLight ->
-                (S.fold . SF.drainMapM) \case
+        $ do
+            ceilingLight <-
+                maybe (throwError ()) (pure . fst)
+                    . find ((== opts.ceilingLightName) . (.label) . snd)
+                    =<< traverse (\d -> (d,) <$> sendMessage d GetColor)
+                    =<< discoverDevices Nothing
+            S.fold
+                ( SF.drainMapM \case
                     ErrorEvent e -> handleError e
                     LogEvent t -> logMessage t
                     ActionEvent action ->
@@ -121,14 +124,15 @@ main = do
                                     SimpleAction a -> Eff.tell $ showT a
                                     a -> Eff.tell $ showT a
                                 raise $ runAction (opts & \Opts{..} -> ActionOpts{..}) action
-                    . (SK.toStream . SK.hoist liftIO . SK.fromStream)
-                    $ S.parList
-                        id
-                        [ S.repeatM $
-                            either (ErrorEvent . Error "Decode failure") ActionEvent . decodeAction . BSL.fromStrict
-                                <$> recv eventSocket 4096
-                        , S.repeatM $ takeMVar gpioEventMVar
-                        ]
+                )
+                . (SK.toStream . SK.hoist liftIO . SK.fromStream)
+                $ S.parList
+                    id
+                    [ S.repeatM $
+                        either (ErrorEvent . Error "Decode failure") ActionEvent . decodeAction . BSL.fromStrict
+                            <$> recv eventSocket 4096
+                    , S.repeatM $ takeMVar gpioEventMVar
+                    ]
 
 data SimpleAction a where
     ResetError :: SimpleAction ()
