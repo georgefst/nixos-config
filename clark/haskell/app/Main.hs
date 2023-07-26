@@ -101,34 +101,34 @@ main = do
         . flip evalStateT mempty
         . flip runLoggingT (liftIO . T.putStrLn)
         . runLifxUntilSuccess
-            (either (\() -> handleError $ SimpleError "Light not found" ) (handleError . Error "LIFX error"))
+            (either (\() -> handleError $ SimpleError "Light not found") (handleError . Error "LIFX error"))
             (lifxTime opts.lifxTimeout)
             (Just $ fromIntegral opts.lifxPort)
         $ discoverDevices Nothing
-            >>=  traverse (\d -> (d,) <$> sendMessage d GetColor)
+            >>= traverse (\d -> (d,) <$> sendMessage d GetColor)
             >>= (maybe (throwError ()) (pure . fst) . find ((== opts.lightName) . (.label) . snd))
             >>= \light ->
-        (S.fold . SF.drainMapM) \case
-            ErrorEvent e -> handleError e
-            LogEvent t -> logMessage t
-            ActionEvent action ->
-                (either handleError pure <=< runExceptT)
-                    . (logMessage . snd @() <=< runM)
-                    . translate (runSimpleAction (opts & \Opts{..} -> SimpleActionOpts{..}))
-                    . Eff.runWriter
-                    $ do
-                        case action of
-                            SimpleAction a -> Eff.tell $ showT a
-                            a -> Eff.tell $ showT a
-                        raise $ runAction (opts & \Opts{..} -> ActionOpts{..}) action
-        . (SK.toStream . SK.hoist liftIO . SK.fromStream)
-        $ S.parList
-            id
-            [ S.repeatM $
-                either (ErrorEvent . Error "Decode failure") ActionEvent . decodeAction . BSL.fromStrict
-                    <$> recv eventSocket 4096
-            , S.repeatM $ takeMVar gpioEventMVar
-            ]
+                (S.fold . SF.drainMapM) \case
+                    ErrorEvent e -> handleError e
+                    LogEvent t -> logMessage t
+                    ActionEvent action ->
+                        (either handleError pure <=< runExceptT)
+                            . (logMessage . snd @() <=< runM)
+                            . translate (runSimpleAction (opts & \Opts{..} -> SimpleActionOpts{..}))
+                            . Eff.runWriter
+                            $ do
+                                case action of
+                                    SimpleAction a -> Eff.tell $ showT a
+                                    a -> Eff.tell $ showT a
+                                raise $ runAction (opts & \Opts{..} -> ActionOpts{..}) action
+                    . (SK.toStream . SK.hoist liftIO . SK.fromStream)
+                    $ S.parList
+                        id
+                        [ S.repeatM $
+                            either (ErrorEvent . Error "Decode failure") ActionEvent . decodeAction . BSL.fromStrict
+                                <$> recv eventSocket 4096
+                        , S.repeatM $ takeMVar gpioEventMVar
+                        ]
 
 data SimpleAction a where
     ResetError :: SimpleAction ()
