@@ -25,16 +25,20 @@ import Data.Map qualified as Map
 import Data.Text qualified as T
 import Data.Text.Encoding hiding (Some)
 import Data.Text.IO qualified as T
+import Data.Text.Lazy qualified as TL
 import Data.Time
 import Data.Tuple.Extra hiding (first, second)
 import Data.Word
 import Lifx.Lan hiding (SetColor)
 import Lifx.Lan qualified as Lifx
 import MQTT.Meross qualified
+import Network.HTTP.Types
 import Network.Socket
 import Network.Socket.ByteString hiding (send)
+import Network.Wai.Handler.Warp qualified as Warp
 import Options.Generic
 import RawFilePath
+import Servant
 import Streamly.Data.Fold qualified as SF
 import Streamly.Data.Stream qualified as S
 import Streamly.Data.Stream.Prelude qualified as S
@@ -55,6 +59,7 @@ data Opts = Opts
     , lifxTimeout :: Double
     , lifxPort :: Word16
     , receivePort :: Word16
+    , httpPort :: Warp.Port
     , emailPipe :: FilePath
     , laptopHostName :: Text
     , sshTimeout :: Int
@@ -92,13 +97,18 @@ main = do
     -- TODO even discounting LIFX issue, unclear how to do this in Streamly 0.9, as there's no `Monad (Stream IO)`
     eventSocket <- socket AF_INET Datagram defaultProtocol
     bind eventSocket $ SockAddrInet (fromIntegral opts.receivePort) 0
-    gpioEventMVar <- newEmptyMVar
+    eventMVar <- newEmptyMVar
     let gpioMonitor =
-            GPIO.mon (encodeUtf8 opts.gpioChip) (putMVar gpioEventMVar . LogEvent) opts.buttonDebounce opts.buttonPin
-                . putMVar gpioEventMVar
+            GPIO.mon (encodeUtf8 opts.gpioChip) (putMVar eventMVar . LogEvent) opts.buttonDebounce opts.buttonPin
+                . putMVar eventMVar
                 $ ActionEvent SleepOrWake
 
-    race_ gpioMonitor
+    race_
+        ( gpioMonitor
+            `race_` Warp.runSettings
+                (warpSettings opts.httpPort $ putMVar eventMVar . LogEvent . TL.toStrict . pShow)
+                (webServer $ liftIO . putMVar eventMVar)
+        )
         . flip evalStateT mempty
         . flip runLoggingT (liftIO . T.putStrLn)
         . runLifxUntilSuccess
@@ -132,7 +142,7 @@ main = do
                     [ S.repeatM $
                         either (ErrorEvent . Error "Decode failure") ActionEvent . decodeAction . BSL.fromStrict
                             <$> recv eventSocket 4096
-                    , S.repeatM $ takeMVar gpioEventMVar
+                    , S.repeatM $ takeMVar eventMVar
                     ]
 
 data SimpleAction a where
@@ -248,6 +258,57 @@ decodeAction =
             -- actions which wouldn't be useful to run remotely/standalone
             255 -> pure $ SimpleAction GetCeilingLightPower
             n -> fail $ "unknown action: " <> show n
+
+-- TODO use new record-style Servant approach - it'd be easy to mix up the endpoints here currently
+-- although I actually don't think Servant is a perfect fit for this at all
+-- really we want to map directly from URLs to `Action`/`SimpleAction ()`s
+-- relatedly, when defining server, Servant makes it hard to abstract over the repetition
+-- and hard to define handlers as an exhaustive pattern match on actions
+-- and it would also be nice if we could use the server as a Streamly stream more directly
+-- is there some way we can actually return stuff for e.g. `GetCeilingLightPower`, rather than always `NoContent`?
+type UserAPI =
+    "reset-error" :> PostNoContent
+        :<|> "set-ceiling-light-power"
+            :> Capture "power" Bool
+            :> PostNoContent
+        :<|> "set-ceiling-light-colour"
+            :> Capture "delay" NominalDiffTime
+            :> Capture "brightness" Word16
+            :> Capture "kelvin" Word16
+            :> PostNoContent
+        :<|> "set-desk-usb-power"
+            :> Capture "power" Bool
+            :> PostNoContent
+        :<|> "send-email"
+            :> Capture "subject" Text
+            :> Capture "body" Text
+            :> PostNoContent
+        :<|> "suspend-laptop" :> PostNoContent
+        :<|> "set-system-leds"
+            :> Capture "power" Bool
+            :> PostNoContent
+        :<|> "toggle-light" :> PostNoContent
+        :<|> "sleep-or-wake" :> PostNoContent
+webServer :: (forall m. (MonadIO m) => Event -> m ()) -> Application
+webServer f =
+    serve (Proxy @UserAPI) $
+        (f (ActionEvent $ SimpleAction ResetError) >> pure NoContent)
+            :<|> (\p -> f (ActionEvent $ SimpleAction $ SetCeilingLightPower p) >> pure NoContent)
+            :<|> (\delay brightness kelvin -> f (ActionEvent $ SimpleAction $ SetCeilingLightColour{..}) >> pure NoContent)
+            :<|> (\p -> f (ActionEvent $ SimpleAction $ SetDeskUSBPower p) >> pure NoContent)
+            :<|> (\subject body -> f (ActionEvent $ SimpleAction $ SendEmail{..}) >> pure NoContent)
+            :<|> (f (ActionEvent $ SimpleAction SuspendLaptop) >> pure NoContent)
+            :<|> (\p -> f (ActionEvent $ SimpleAction $ SetSystemLEDs p) >> pure NoContent)
+            :<|> (f (ActionEvent ToggleLight) >> pure NoContent)
+            :<|> (f (ActionEvent SleepOrWake) >> pure NoContent)
+warpSettings ::
+    Warp.Port ->
+    (forall a. (Show a) => a -> IO ()) ->
+    Warp.Settings
+warpSettings port logger =
+    Warp.setLogger (curry3 $ unless . statusIsSuccessful . snd3 <*> logger)
+        . Warp.setPort port
+        $ Warp.defaultSettings
 
 data Event
     = ActionEvent Action

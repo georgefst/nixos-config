@@ -10,8 +10,9 @@ let
   startup = [ "default.target" ];
 
   # arbitrary - all that matters is that these don't conflict with each other or anything else
-  clark-script-port = 56710; # if we change this we need to modify Tasker config, .bashrc etc.
+  clark-script-udp-port = 56710; # if we change this we need to modify Tasker config, .bashrc etc.
   clark-script-lifx-port = 56711;
+  clark-script-http-port = 8080; # if we change this we need to modify Shelly buttons etc.
   droopy-port = 80;
   mqtt-port = 8883; # actually the default port, and probably implicitly assumed all over, including outside this file
   extra-ports = [ 56720 ]; # for temporary scripts etc.
@@ -129,7 +130,8 @@ in
           --ceiling-light-name Ceiling \
           --lifx-timeout 5 \
           --lifx-port ${builtins.toString clark-script-lifx-port} \
-          --receive-port ${builtins.toString clark-script-port} \
+          --receive-port ${builtins.toString clark-script-udp-port} \
+          --http-port ${builtins.toString clark-script-http-port} \
           --email-pipe ${email-pipe} \
           --laptop-host-name billy \
           --ssh-timeout 3 \
@@ -270,12 +272,13 @@ in
 
   # open ports
   networking.firewall.allowedUDPPorts = [
-    clark-script-port
+    clark-script-udp-port
     clark-script-lifx-port
   ] ++ extra-ports;
   networking.firewall.allowedTCPPorts = [
     droopy-port
     mqtt-port
+    clark-script-http-port
   ] ++ extra-ports;
 
   # syncthing
