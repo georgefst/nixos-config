@@ -70,7 +70,9 @@ in
   # https://www.reddit.com/r/NixOS/comments/u74nks/audio_pipewire_issues/
 
   # rtkit is optional but recommended
+  # I don't think this is working: `Aug 15 18:50:26 clark pipewire[1125]: mod.rt: RTKit error: org.freedesktop.DBus.Error.AccessDenied`
   security.rtkit.enable = true;
+
   services.pipewire = {
     enable = true;
     wireplumber.enable = true;
