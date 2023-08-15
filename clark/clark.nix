@@ -62,6 +62,13 @@ in
     (self: super: { })
   ];
 
+
+
+  # `systemctl --user restart pipewire.service && systemctl --user restart pipewire-pulse.service`
+  #  I have sometimes/always needed this
+  # to get anything from `pw-link -i && pw-link -o && pw-link -l`
+  # https://www.reddit.com/r/NixOS/comments/u74nks/audio_pipewire_issues/
+
   # rtkit is optional but recommended
   security.rtkit.enable = true;
   services.pipewire = {
@@ -77,6 +84,8 @@ in
   # these two are supposedly off by default, so shouldn't actually matter
   sound.enable = false;
   hardware.pulseaudio.enable = false;
+
+
 
   # gpio
   users.groups.gpio = { };
