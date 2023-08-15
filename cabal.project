@@ -16,6 +16,3 @@ source-repository-package
 allow-newer:
     -- https://github.com/lexi-lambda/freer-simple/pull/44
     freer-simple:template-haskell,
-    -- https://github.com/ocharles/logging-effect/pull/36
-    logging-effect:base,
-    logging-effect:text,
