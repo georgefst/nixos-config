@@ -265,30 +265,31 @@ decodeAction =
 -- relatedly, when defining server, Servant makes it hard to abstract over the repetition
 -- and hard to define handlers as an exhaustive pattern match on actions
 -- and it would also be nice if we could use the server as a Streamly stream more directly
+-- other frameworks also may make it easier to accept multiple verbs, so we don't have to stick to GET
 -- is there some way we can actually return stuff for e.g. `GetCeilingLightPower`, rather than always `NoContent`?
 type UserAPI =
-    "reset-error" :> PostNoContent
+    "reset-error" :> GetNoContent
         :<|> "set-ceiling-light-power"
             :> Capture "power" Bool
-            :> PostNoContent
+            :> GetNoContent
         :<|> "set-ceiling-light-colour"
             :> Capture "delay" NominalDiffTime
             :> Capture "brightness" Word16
             :> Capture "kelvin" Word16
-            :> PostNoContent
+            :> GetNoContent
         :<|> "set-desk-usb-power"
             :> Capture "power" Bool
-            :> PostNoContent
+            :> GetNoContent
         :<|> "send-email"
             :> Capture "subject" Text
             :> Capture "body" Text
-            :> PostNoContent
-        :<|> "suspend-laptop" :> PostNoContent
+            :> GetNoContent
+        :<|> "suspend-laptop" :> GetNoContent
         :<|> "set-system-leds"
             :> Capture "power" Bool
-            :> PostNoContent
-        :<|> "toggle-light" :> PostNoContent
-        :<|> "sleep-or-wake" :> PostNoContent
+            :> GetNoContent
+        :<|> "toggle-light" :> GetNoContent
+        :<|> "sleep-or-wake" :> GetNoContent
 webServer :: (forall m. (MonadIO m) => Event -> m ()) -> Application
 webServer f =
     serve (Proxy @UserAPI) $
