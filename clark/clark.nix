@@ -62,8 +62,6 @@ in
     (self: super: { })
   ];
 
-  sound.enable = false;
-  hardware.pulseaudio.enable = false;
   # rtkit is optional but recommended
   security.rtkit.enable = true;
   services.pipewire = {
@@ -75,6 +73,10 @@ in
     # If you want to use JACK applications, uncomment this
     jack.enable = true;
   };
+
+  # these two are supposedly off by default, so shouldn't actually matter
+  sound.enable = false;
+  hardware.pulseaudio.enable = false;
 
   # gpio
   users.groups.gpio = { };
