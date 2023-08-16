@@ -291,7 +291,7 @@ type UserAPI =
         :<|> "toggle-light" :> GetNoContent
         :<|> "sleep-or-wake" :> GetNoContent
 webServer :: (forall m. (MonadIO m) => Event -> m ()) -> Application
-webServer f0 =
+webServer (((>> pure NoContent) .) -> f) =
     serve (Proxy @UserAPI) $
         f (ActionEvent $ SimpleAction ResetError)
             :<|> (f . ActionEvent . SimpleAction . SetCeilingLightPower)
@@ -302,8 +302,6 @@ webServer f0 =
             :<|> (f . ActionEvent . SimpleAction . SetSystemLEDs)
             :<|> f (ActionEvent ToggleLight)
             :<|> f (ActionEvent SleepOrWake)
-  where
-    f x = f0 x >> pure NoContent
 warpSettings ::
     Warp.Port ->
     (forall a. (Show a) => a -> IO ()) ->
