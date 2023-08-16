@@ -291,19 +291,19 @@ type UserAPI =
         :<|> "toggle-light" :> GetNoContent
         :<|> "sleep-or-wake" :> GetNoContent
 webServer :: (forall m. (MonadIO m) => Event -> m ()) -> Application
-webServer f =
+webServer f0 =
     serve (Proxy @UserAPI) $
-        (f (ActionEvent $ SimpleAction ResetError) >> r)
-            :<|> (\p -> f (ActionEvent $ SimpleAction $ SetCeilingLightPower p) >> r)
-            :<|> (\delay brightness kelvin -> f (ActionEvent $ SimpleAction $ SetCeilingLightColour{..}) >> r)
-            :<|> (\p -> f (ActionEvent $ SimpleAction $ SetDeskUSBPower p) >> r)
-            :<|> (\subject body -> f (ActionEvent $ SimpleAction $ SendEmail{..}) >> r)
-            :<|> (f (ActionEvent $ SimpleAction SuspendLaptop) >> r)
-            :<|> (\p -> f (ActionEvent $ SimpleAction $ SetSystemLEDs p) >> r)
-            :<|> (f (ActionEvent ToggleLight) >> r)
-            :<|> (f (ActionEvent SleepOrWake) >> r)
+        f (ActionEvent $ SimpleAction ResetError)
+            :<|> (f . ActionEvent . SimpleAction . SetCeilingLightPower)
+            :<|> (\delay brightness kelvin -> f (ActionEvent $ SimpleAction $ SetCeilingLightColour{..}))
+            :<|> (f . ActionEvent . SimpleAction . SetDeskUSBPower)
+            :<|> (\subject body -> f $ ActionEvent $ SimpleAction $ SendEmail{..})
+            :<|> f (ActionEvent $ SimpleAction SuspendLaptop)
+            :<|> (f . ActionEvent . SimpleAction . SetSystemLEDs)
+            :<|> f (ActionEvent ToggleLight)
+            :<|> f (ActionEvent SleepOrWake)
   where
-    r = pure NoContent
+    f x = f0 x >> pure NoContent
 warpSettings ::
     Warp.Port ->
     (forall a. (Show a) => a -> IO ()) ->
