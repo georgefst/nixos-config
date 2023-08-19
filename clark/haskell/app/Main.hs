@@ -100,7 +100,7 @@ main = do
     let gpioMonitor =
             GPIO.mon (encodeUtf8 opts.gpioChip) (putMVar eventMVar . LogEvent) opts.buttonDebounce opts.buttonPin
                 . putMVar eventMVar
-                $ ActionEvent SleepOrWake
+                $ ActionEvent (SimpleAction ResetError)
 
     race_
         ( gpioMonitor
