@@ -130,9 +130,9 @@ main = do
                             . translate (runSimpleAction (opts & \Opts{..} -> SimpleActionOpts{..}))
                             . Eff.runWriter
                             $ do
-                                case action of
-                                    SimpleAction a -> Eff.tell $ showT a
-                                    a -> Eff.tell $ showT a
+                                Eff.tell case action of
+                                    SimpleAction a -> showT a
+                                    a -> showT a
                                 raise $ runAction (opts & \Opts{..} -> ActionOpts{..}) action
                 )
                 . (SK.toStream . SK.hoist liftIO . SK.fromStream)
