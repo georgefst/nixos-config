@@ -145,6 +145,8 @@ in
           --desk-usb-port 2 \
           --system-led-pipe ${system-led-pipe} \
           --root-cmd-pipe ${root-cmd-pipe} \
+        || printf "Clark script failed\nInspect service logs for more info." > ${email-pipe} \
+        && gpioset --mode=signal ${gpiochip} ${builtins.toString led-error-pin}=1 \
       '';
       description = "clark script";
       path = [ extraPkgs.clark pkgs.libgpiod pkgs.mosquitto pkgs.openssh ];
