@@ -1,4 +1,5 @@
 { pkgs, extraPkgs, ... }:
+with builtins;
 let
   secrets = import ./secrets.nix;
 
@@ -129,14 +130,14 @@ in
         clark \
           --gpio-chip ${gpiochip} \
           --button-debounce 1 \
-          --button-pin ${builtins.toString button-pin} \
-          --led-error-pin ${builtins.toString led-error-pin} \
-          --led-other-pin ${builtins.toString led-other-pin} \
+          --button-pin ${toString button-pin} \
+          --led-error-pin ${toString led-error-pin} \
+          --led-other-pin ${toString led-other-pin} \
           --ceiling-light-name Ceiling \
           --lifx-timeout 5 \
-          --lifx-port ${builtins.toString clark-script-lifx-port} \
-          --receive-port ${builtins.toString clark-script-udp-port} \
-          --http-port ${builtins.toString clark-script-http-port} \
+          --lifx-port ${toString clark-script-lifx-port} \
+          --receive-port ${toString clark-script-udp-port} \
+          --http-port ${toString clark-script-http-port} \
           --email-pipe ${email-pipe} \
           --laptop-host-name billy \
           --ssh-timeout 3 \
@@ -146,7 +147,7 @@ in
           --system-led-pipe ${system-led-pipe} \
           --root-cmd-pipe ${root-cmd-pipe} \
         || printf "Clark script failed\nInspect service logs for more info." > ${email-pipe} \
-        && gpioset --mode=signal ${gpiochip} ${builtins.toString led-error-pin}=1 \
+        && gpioset --mode=signal ${gpiochip} ${toString led-error-pin}=1 \
       '';
       description = "clark script";
       path = [ extraPkgs.clark pkgs.libgpiod pkgs.mosquitto pkgs.openssh ];
@@ -269,7 +270,7 @@ in
           --dl \
           -m 'Upload/download files' \
           -d ${file-server-dir} \
-          ${builtins.toString droopy-port} \
+          ${toString droopy-port} \
       '';
       description = "droopy file server";
       path = [ pkgs.droopy ];
