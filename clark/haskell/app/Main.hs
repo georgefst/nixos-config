@@ -25,7 +25,6 @@ import Data.Map qualified as Map
 import Data.Text qualified as T
 import Data.Text.Encoding hiding (Some)
 import Data.Text.IO qualified as T
-import Data.Text.Lazy qualified as TL
 import Data.Time
 import Data.Tuple.Extra hiding (first, second)
 import Data.Word
@@ -106,7 +105,7 @@ main = do
     race_
         ( gpioMonitor
             `race_` Warp.runSettings
-                (warpSettings opts.httpPort $ putMVar eventMVar . LogEvent . TL.toStrict . pShow)
+                (warpSettings opts.httpPort $ putMVar eventMVar . ErrorEvent . Error "HTTP error")
                 (webServer $ liftIO . putMVar eventMVar)
         )
         . flip evalStateT mempty
@@ -306,8 +305,8 @@ warpSettings ::
     Warp.Port ->
     (forall a. (Show a) => a -> IO ()) ->
     Warp.Settings
-warpSettings port logger =
-    Warp.setLogger (curry3 $ unless . statusIsSuccessful . snd3 <*> logger)
+warpSettings port logError =
+    Warp.setLogger (curry3 $ unless . statusIsSuccessful . snd3 <*> logError)
         . Warp.setPort port
         $ Warp.defaultSettings
 
