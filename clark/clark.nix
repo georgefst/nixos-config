@@ -23,6 +23,11 @@ let
   file-server-dir = home + "/serve";
   syncthing-main-dir = home + "/sync";
   syncthing-camera-dir = home + "/sync-camera";
+
+  gpiochip = "gpiochip0";
+  button-pin = 27;
+  led-error-pin = 19;
+  led-other-pin = 26;
 in
 {
   imports =
@@ -122,11 +127,11 @@ in
     clark = {
       script = ''
         clark \
-          --gpio-chip gpiochip0 \
+          --gpio-chip ${gpiochip} \
           --button-debounce 1 \
-          --button-pin 27 \
-          --led-error-pin 19 \
-          --led-other-pin 26 \
+          --button-pin ${builtins.toString button-pin} \
+          --led-error-pin ${builtins.toString led-error-pin} \
+          --led-other-pin ${builtins.toString led-other-pin} \
           --ceiling-light-name Ceiling \
           --lifx-timeout 5 \
           --lifx-port ${builtins.toString clark-script-lifx-port} \
