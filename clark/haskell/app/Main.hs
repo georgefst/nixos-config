@@ -133,7 +133,7 @@ main = do
                             $ do
                                 Eff.tell case action of
                                     SimpleAction a _ -> showT a
-                                    ToggleLight -> "ToggleLight"
+                                    ToggleCeilingLight -> "ToggleCeilingLight"
                                     SleepOrWake -> "SleepOrWake"
                                 raise $ runAction (opts & \Opts{..} -> ActionOpts{..}) action
                 )
@@ -212,7 +212,7 @@ runSimpleAction opts = \case
 
 data Action where
     SimpleAction :: SimpleAction a -> (a -> IO ()) -> Action
-    ToggleLight :: Action
+    ToggleCeilingLight :: Action
     SleepOrWake :: Action
 simpleAction :: SimpleAction a -> Action
 simpleAction = flip SimpleAction mempty
@@ -223,7 +223,7 @@ data ActionOpts = ActionOpts
 runAction :: (MonadIO m) => ActionOpts -> Action -> Eff '[SimpleAction, m] ()
 runAction opts = \case
     SimpleAction a f -> liftIO . f =<< send a
-    ToggleLight -> send . SetCeilingLightPower . not =<< send GetCeilingLightPower
+    ToggleCeilingLight -> send . SetCeilingLightPower . not =<< send GetCeilingLightPower
     SleepOrWake ->
         send GetCeilingLightPower >>= \night@(not -> morning) -> do
             send $ SetSystemLEDs morning
@@ -248,7 +248,7 @@ decodeAction =
     fmap thd3 . runGetOrFail do
         B.get @Word8 >>= \case
             0 -> pure $ simpleAction ResetError
-            1 -> pure ToggleLight
+            1 -> pure ToggleCeilingLight
             2 -> do
                 subject <- decodeUtf8 <$> (B.getByteString . fromIntegral =<< B.get @Word8)
                 body <- decodeUtf8 <$> (B.getByteString . fromIntegral =<< B.get @Word16)
@@ -295,7 +295,7 @@ type UserAPI =
         :<|> "set-system-leds"
             :> Capture "power" Bool
             :> GetNoContent
-        :<|> "toggle-light" :> GetNoContent
+        :<|> "toggle-ceiling-light" :> GetNoContent
         :<|> "sleep-or-wake" :> GetNoContent
 webServer :: (forall m. (MonadIO m) => Action -> m ()) -> Application
 webServer f =
@@ -309,7 +309,7 @@ webServer f =
             :<|> (\subject body -> f2 $ simpleAction $ SendEmail{..})
             :<|> f2 (simpleAction SuspendLaptop)
             :<|> (f2 . simpleAction . SetSystemLEDs)
-            :<|> f2 ToggleLight
+            :<|> f2 ToggleCeilingLight
             :<|> f2 SleepOrWake
   where
     f1 :: ((a -> IO ()) -> Action) -> Handler a
