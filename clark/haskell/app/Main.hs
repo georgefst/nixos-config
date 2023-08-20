@@ -106,7 +106,7 @@ main = do
         ( gpioMonitor
             `race_` Warp.runSettings
                 (warpSettings opts.httpPort $ putMVar eventMVar . ErrorEvent . Error "HTTP error")
-                (webServer $ liftIO . putMVar eventMVar)
+                (webServer $ liftIO . putMVar eventMVar . ActionEvent)
         )
         . flip evalStateT mempty
         . flip runLoggingT (liftIO . T.putStrLn)
@@ -297,22 +297,22 @@ type UserAPI =
             :> GetNoContent
         :<|> "toggle-light" :> GetNoContent
         :<|> "sleep-or-wake" :> GetNoContent
-webServer :: (forall m. (MonadIO m) => Event -> m ()) -> Application
+webServer :: (forall m. (MonadIO m) => Action -> m ()) -> Application
 webServer f =
     serve (Proxy @UserAPI) $
-        f2 (ActionEvent $ simpleAction ResetError)
-            :<|> f1 (ActionEvent . SimpleAction GetCeilingLightPower)
-            :<|> (f2 . ActionEvent . simpleAction . SetCeilingLightPower)
-            :<|> f1 (ActionEvent . SimpleAction GetCeilingLightColour)
-            :<|> (\delay brightness kelvin -> f2 (ActionEvent $ simpleAction $ SetCeilingLightColour{..}))
-            :<|> (f2 . ActionEvent . simpleAction . SetDeskUSBPower)
-            :<|> (\subject body -> f2 $ ActionEvent $ simpleAction $ SendEmail{..})
-            :<|> f2 (ActionEvent $ simpleAction SuspendLaptop)
-            :<|> (f2 . ActionEvent . simpleAction . SetSystemLEDs)
-            :<|> f2 (ActionEvent ToggleLight)
-            :<|> f2 (ActionEvent SleepOrWake)
+        f2 (simpleAction ResetError)
+            :<|> f1 (SimpleAction GetCeilingLightPower)
+            :<|> (f2 . simpleAction . SetCeilingLightPower)
+            :<|> f1 (SimpleAction GetCeilingLightColour)
+            :<|> (\delay brightness kelvin -> f2 (simpleAction $ SetCeilingLightColour{..}))
+            :<|> (f2 . simpleAction . SetDeskUSBPower)
+            :<|> (\subject body -> f2 $ simpleAction $ SendEmail{..})
+            :<|> f2 (simpleAction SuspendLaptop)
+            :<|> (f2 . simpleAction . SetSystemLEDs)
+            :<|> f2 ToggleLight
+            :<|> f2 SleepOrWake
   where
-    f1 :: ((a -> IO ()) -> Event) -> Handler a
+    f1 :: ((a -> IO ()) -> Action) -> Handler a
     f1 x = do
         m <- liftIO newEmptyMVar
         f $ x $ putMVar m
