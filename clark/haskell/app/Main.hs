@@ -81,6 +81,7 @@ main :: IO ()
 main = do
     hSetBuffering stdout LineBuffering -- TODO necessary when running as systemd service - why? report upstream
     (opts :: Opts) <- getRecord "Clark"
+    eventMVar <- newEmptyMVar
 
     let
         setLED :: (MonadState AppState m, MonadIO m) => Int -> Bool -> m ()
@@ -88,11 +89,11 @@ main = do
             bool
                 ( gets (Map.lookup pin) >>= \case
                     Just h -> liftIO (GPIO.reset h) >> modify (Map.delete pin)
-                    Nothing -> liftIO $ putStrLn "LED is already off"
+                    Nothing -> liftIO $ putMVar eventMVar $ LogEvent "LED is already off"
                 )
                 ( gets (Map.lookup pin) >>= \case
                     Nothing -> GPIO.set opts.gpioChip [pin] >>= modify . Map.insert pin
-                    Just _ -> liftIO $ putStrLn "LED is already on"
+                    Just _ -> liftIO $ putMVar eventMVar $ LogEvent "LED is already on"
                 )
 
         handleError :: (MonadIO m, MonadState AppState m) => Error -> m ()
@@ -108,7 +109,6 @@ main = do
     -- TODO even discounting LIFX issue, unclear how to do this in Streamly 0.9, as there's no `Monad (Stream IO)`
     eventSocket <- socket AF_INET Datagram defaultProtocol
     bind eventSocket $ SockAddrInet (fromIntegral opts.receivePort) 0
-    eventMVar <- newEmptyMVar
     let gpioMonitor =
             GPIO.mon opts.gpioChip (putMVar eventMVar . LogEvent) opts.buttonDebounce opts.buttonPin
                 . putMVar eventMVar
