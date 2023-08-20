@@ -49,7 +49,7 @@ import System.IO
 import Text.Pretty.Simple
 
 data Opts = Opts
-    { gpioChip :: Text
+    { gpioChip :: B.ByteString
     , buttonDebounce :: Double
     , buttonPin :: Int
     , ledErrorPin :: Int
@@ -89,7 +89,7 @@ main = do
                     pPrintOpt CheckColorTty defaultOutputOptionsDarkBg{outputOptionsInitialIndent = 4} body
                 SimpleError t -> liftIO $ T.putStrLn t
             gets (Map.member opts.ledErrorPin) >>= \case
-                False -> modify . Map.insert opts.ledErrorPin =<< GPIO.set (encodeUtf8 opts.gpioChip) [opts.ledErrorPin]
+                False -> modify . Map.insert opts.ledErrorPin =<< GPIO.set opts.gpioChip [opts.ledErrorPin]
                 True -> liftIO $ putStrLn "LED is already on"
 
     -- TODO initialisation stuff - encapsulate this better somehow, without it being killed by LIFX failure
@@ -98,7 +98,7 @@ main = do
     bind eventSocket $ SockAddrInet (fromIntegral opts.receivePort) 0
     eventMVar <- newEmptyMVar
     let gpioMonitor =
-            GPIO.mon (encodeUtf8 opts.gpioChip) (putMVar eventMVar . LogEvent) opts.buttonDebounce opts.buttonPin
+            GPIO.mon opts.gpioChip (putMVar eventMVar . LogEvent) opts.buttonDebounce opts.buttonPin
                 . putMVar eventMVar
                 $ ActionEvent (simpleAction ResetError)
 
