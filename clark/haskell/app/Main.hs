@@ -148,6 +148,7 @@ data SimpleAction a where
     ResetError :: SimpleAction ()
     GetCeilingLightPower :: SimpleAction Bool
     SetCeilingLightPower :: Bool -> SimpleAction ()
+    GetCeilingLightColour :: SimpleAction HSBK
     SetCeilingLightColour :: {delay :: NominalDiffTime, brightness :: Word16, kelvin :: Word16} -> SimpleAction ()
     SetDeskUSBPower :: Bool -> SimpleAction ()
     SendEmail :: {subject :: Text, body :: Text} -> SimpleAction ()
@@ -175,6 +176,7 @@ runSimpleAction opts = \case
             Nothing -> liftIO $ putStrLn "LED is already off"
     GetCeilingLightPower -> statePowerToBool <$> sendMessage opts.ceilingLight GetPower
     SetCeilingLightPower p -> sendMessage opts.ceilingLight $ SetPower p
+    GetCeilingLightColour -> (.hsbk) <$> sendMessage opts.ceilingLight Lifx.GetColor
     SetCeilingLightColour{delay, brightness, kelvin} -> sendMessage opts.ceilingLight $ Lifx.SetColor HSBK{..} delay
       where
         -- these have no effect for this type of LIFX bulb
