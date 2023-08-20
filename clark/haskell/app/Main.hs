@@ -100,7 +100,7 @@ main = do
     let gpioMonitor =
             GPIO.mon (encodeUtf8 opts.gpioChip) (putMVar eventMVar . LogEvent) opts.buttonDebounce opts.buttonPin
                 . putMVar eventMVar
-                $ ActionEvent (SimpleAction ResetError)
+                $ ActionEvent (simpleAction ResetError)
 
     race_
         ( gpioMonitor
@@ -127,12 +127,14 @@ main = do
                     ActionEvent action ->
                         (either handleError pure <=< runExceptT)
                             . (logMessage . snd @() <=< runM)
+                            . subsumeFront
                             . translate (runSimpleAction (opts & \Opts{..} -> SimpleActionOpts{..}))
                             . Eff.runWriter
                             $ do
                                 Eff.tell case action of
-                                    SimpleAction a -> showT a
-                                    a -> showT a
+                                    SimpleAction a _ -> showT a
+                                    ToggleLight -> "ToggleLight"
+                                    SleepOrWake -> "SleepOrWake"
                                 raise $ runAction (opts & \Opts{..} -> ActionOpts{..}) action
                 )
                 . (SK.toStream . SK.hoist liftIO . SK.fromStream)
@@ -209,17 +211,18 @@ runSimpleAction opts = \case
             =<< liftIO (Dir.doesFileExist p)
 
 data Action where
-    SimpleAction :: SimpleAction a -> Action
+    SimpleAction :: SimpleAction a -> (a -> IO ()) -> Action
     ToggleLight :: Action
     SleepOrWake :: Action
-deriving instance Show Action
+simpleAction :: SimpleAction a -> Action
+simpleAction = flip SimpleAction mempty
 data ActionOpts = ActionOpts
     { lifxMorningSeconds :: Int
     , lifxMorningKelvin :: Word16
     }
-runAction :: ActionOpts -> Action -> Eff '[SimpleAction] ()
+runAction :: (MonadIO m) => ActionOpts -> Action -> Eff '[SimpleAction, m] ()
 runAction opts = \case
-    SimpleAction a -> void $ send a
+    SimpleAction a f -> liftIO . f =<< send a
     ToggleLight -> send . SetCeilingLightPower . not =<< send GetCeilingLightPower
     SleepOrWake ->
         send GetCeilingLightPower >>= \night@(not -> morning) -> do
@@ -244,20 +247,20 @@ decodeAction :: BSL.ByteString -> Either (BSL.ByteString, B.ByteOffset, String) 
 decodeAction =
     fmap thd3 . runGetOrFail do
         B.get @Word8 >>= \case
-            0 -> pure $ SimpleAction ResetError
+            0 -> pure $ simpleAction ResetError
             1 -> pure ToggleLight
             2 -> do
                 subject <- decodeUtf8 <$> (B.getByteString . fromIntegral =<< B.get @Word8)
                 body <- decodeUtf8 <$> (B.getByteString . fromIntegral =<< B.get @Word16)
-                pure $ SimpleAction SendEmail{..}
-            3 -> pure $ SimpleAction SuspendLaptop
-            4 -> SimpleAction . SetDeskUSBPower <$> B.get @Bool
-            5 -> SimpleAction <$> (SetCeilingLightColour . secondsToNominalDiffTime <$> B.get <*> B.get <*> B.get)
+                pure $ simpleAction SendEmail{..}
+            3 -> pure $ simpleAction SuspendLaptop
+            4 -> simpleAction . SetDeskUSBPower <$> B.get @Bool
+            5 -> simpleAction <$> (SetCeilingLightColour . secondsToNominalDiffTime <$> B.get <*> B.get <*> B.get)
             6 -> pure SleepOrWake
-            7 -> SimpleAction . SetCeilingLightPower <$> B.get @Bool
-            8 -> SimpleAction . SetSystemLEDs <$> B.get @Bool
+            7 -> simpleAction . SetCeilingLightPower <$> B.get @Bool
+            8 -> simpleAction . SetSystemLEDs <$> B.get @Bool
             -- actions which wouldn't be useful to run remotely/standalone
-            255 -> pure $ SimpleAction GetCeilingLightPower
+            255 -> pure $ simpleAction GetCeilingLightPower
             n -> fail $ "unknown action: " <> show n
 
 -- TODO use new record-style Servant approach - it'd be easy to mix up the endpoints here currently
@@ -267,12 +270,15 @@ decodeAction =
 -- and hard to define handlers as an exhaustive pattern match on actions
 -- and it would also be nice if we could use the server as a Streamly stream more directly
 -- other frameworks also may make it easier to accept multiple verbs, so we don't have to stick to GET
--- is there some way we can actually return stuff for e.g. `GetCeilingLightPower`, rather than always `NoContent`?
 type UserAPI =
     "reset-error" :> GetNoContent
+        :<|> "get-ceiling-light-power"
+            :> Get '[PlainText] Bool
         :<|> "set-ceiling-light-power"
             :> Capture "power" Bool
             :> GetNoContent
+        :<|> "get-ceiling-light-colour"
+            :> Get '[PlainText] HSBK
         :<|> "set-ceiling-light-colour"
             :> Capture "delay" NominalDiffTime
             :> Capture "brightness" Word16
@@ -292,17 +298,26 @@ type UserAPI =
         :<|> "toggle-light" :> GetNoContent
         :<|> "sleep-or-wake" :> GetNoContent
 webServer :: (forall m. (MonadIO m) => Event -> m ()) -> Application
-webServer (((>> pure NoContent) .) -> f) =
+webServer f =
     serve (Proxy @UserAPI) $
-        f (ActionEvent $ SimpleAction ResetError)
-            :<|> (f . ActionEvent . SimpleAction . SetCeilingLightPower)
-            :<|> (\delay brightness kelvin -> f (ActionEvent $ SimpleAction $ SetCeilingLightColour{..}))
-            :<|> (f . ActionEvent . SimpleAction . SetDeskUSBPower)
-            :<|> (\subject body -> f $ ActionEvent $ SimpleAction $ SendEmail{..})
-            :<|> f (ActionEvent $ SimpleAction SuspendLaptop)
-            :<|> (f . ActionEvent . SimpleAction . SetSystemLEDs)
-            :<|> f (ActionEvent ToggleLight)
-            :<|> f (ActionEvent SleepOrWake)
+        f2 (ActionEvent $ simpleAction ResetError)
+            :<|> f1 (ActionEvent . SimpleAction GetCeilingLightPower)
+            :<|> (f2 . ActionEvent . simpleAction . SetCeilingLightPower)
+            :<|> f1 (ActionEvent . SimpleAction GetCeilingLightColour)
+            :<|> (\delay brightness kelvin -> f2 (ActionEvent $ simpleAction $ SetCeilingLightColour{..}))
+            :<|> (f2 . ActionEvent . simpleAction . SetDeskUSBPower)
+            :<|> (\subject body -> f2 $ ActionEvent $ simpleAction $ SendEmail{..})
+            :<|> f2 (ActionEvent $ simpleAction SuspendLaptop)
+            :<|> (f2 . ActionEvent . simpleAction . SetSystemLEDs)
+            :<|> f2 (ActionEvent ToggleLight)
+            :<|> f2 (ActionEvent SleepOrWake)
+  where
+    f1 :: ((a -> IO ()) -> Event) -> Handler a
+    f1 x = do
+        m <- liftIO newEmptyMVar
+        f $ x $ putMVar m
+        liftIO $ takeMVar m
+    f2 x = f x >> pure NoContent
 warpSettings ::
     Warp.Port ->
     (forall a. (Show a) => a -> IO ()) ->
