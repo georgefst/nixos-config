@@ -81,16 +81,28 @@ main :: IO ()
 main = do
     hSetBuffering stdout LineBuffering -- TODO necessary when running as systemd service - why? report upstream
     (opts :: Opts) <- getRecord "Clark"
-    let handleError :: (MonadIO m, MonadState AppState m) => Error -> m ()
+
+    let
+        setLED :: (MonadState AppState m, MonadIO m) => Int -> Bool -> m ()
+        setLED pin =
+            bool
+                ( gets (Map.lookup pin) >>= \case
+                    Just h -> liftIO (GPIO.reset h) >> modify (Map.delete pin)
+                    Nothing -> liftIO $ putStrLn "LED is already off"
+                )
+                ( gets (Map.lookup pin) >>= \case
+                    Nothing -> GPIO.set opts.gpioChip [pin] >>= modify . Map.insert pin
+                    Just _ -> liftIO $ putStrLn "LED is already on"
+                )
+
+        handleError :: (MonadIO m, MonadState AppState m) => Error -> m ()
         handleError err = do
             case err of
                 Error{title, body} -> do
                     liftIO . T.putStrLn $ title <> ":"
                     pPrintOpt CheckColorTty defaultOutputOptionsDarkBg{outputOptionsInitialIndent = 4} body
                 SimpleError t -> liftIO $ T.putStrLn t
-            gets (Map.member opts.ledErrorPin) >>= \case
-                False -> modify . Map.insert opts.ledErrorPin =<< GPIO.set opts.gpioChip [opts.ledErrorPin]
-                True -> liftIO $ putStrLn "LED is already on"
+            setLED opts.ledErrorPin True
 
     -- TODO initialisation stuff - encapsulate this better somehow, without it being killed by LIFX failure
     -- TODO even discounting LIFX issue, unclear how to do this in Streamly 0.9, as there's no `Monad (Stream IO)`
@@ -167,15 +179,13 @@ data SimpleActionOpts = SimpleActionOpts
     , deskUsbPort :: Int
     , systemLedPipe :: FilePath
     , rootCmdPipe :: FilePath
+    , setLED :: forall m. (MonadState AppState m, MonadIO m) => Int -> Bool -> m ()
     }
 
 runSimpleAction ::
     (MonadIO m, MonadState AppState m, MonadLifx m, MonadError Error m) => SimpleActionOpts -> SimpleAction a -> m a
-runSimpleAction opts = \case
-    ResetError ->
-        gets (Map.lookup opts.ledErrorPin) >>= \case
-            Just h -> liftIO (GPIO.reset h) >> modify (Map.delete opts.ledErrorPin)
-            Nothing -> liftIO $ putStrLn "LED is already off"
+runSimpleAction opts@SimpleActionOpts{setLED {- TODO GHC doesn't yet support impredicative fields -}} = \case
+    ResetError -> setLED opts.ledErrorPin True
     GetCeilingLightPower -> statePowerToBool <$> sendMessage opts.ceilingLight GetPower
     SetCeilingLightPower p -> sendMessage opts.ceilingLight $ SetPower p
     GetCeilingLightColour -> (.hsbk) <$> sendMessage opts.ceilingLight Lifx.GetColor
