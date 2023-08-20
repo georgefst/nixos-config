@@ -167,11 +167,13 @@ data SimpleAction a where
     SetDeskUSBPower :: Bool -> SimpleAction ()
     SendEmail :: {subject :: Text, body :: Text} -> SimpleAction ()
     SuspendLaptop :: SimpleAction ()
+    SetOtherLED :: Bool -> SimpleAction ()
     SetSystemLEDs :: Bool -> SimpleAction ()
     RootCommand :: Text -> SimpleAction ()
 deriving instance Show (SimpleAction a)
 data SimpleActionOpts = SimpleActionOpts
     { ledErrorPin :: Int
+    , ledOtherPin :: Int
     , emailPipe :: FilePath
     , sshTimeout :: Int
     , ceilingLight :: Device
@@ -209,6 +211,7 @@ runSimpleAction opts@SimpleActionOpts{setLED {- TODO GHC doesn't yet support imp
                     <=< readProcessWithExitCodeTimeout (opts.sshTimeout * 1_000_000)
                     $ proc "ssh" ["billy", "systemctl suspend"]
                 )
+    SetOtherLED b -> setLED opts.ledOtherPin b
     SetSystemLEDs b -> writePipe opts.systemLedPipe . showT $ fromEnum b
     RootCommand t -> writePipe opts.rootCmdPipe t
   where
@@ -302,6 +305,9 @@ type UserAPI =
             :> Capture "body" Text
             :> GetNoContent
         :<|> "suspend-laptop" :> GetNoContent
+        :<|> "set-Other-led"
+            :> Capture "power" Bool
+            :> GetNoContent
         :<|> "set-system-leds"
             :> Capture "power" Bool
             :> GetNoContent
@@ -318,6 +324,7 @@ webServer f =
             :<|> (f2 . simpleAction . SetDeskUSBPower)
             :<|> (\subject body -> f2 $ simpleAction $ SendEmail{..})
             :<|> f2 (simpleAction SuspendLaptop)
+            :<|> (f2 . simpleAction . SetOtherLED)
             :<|> (f2 . simpleAction . SetSystemLEDs)
             :<|> f2 ToggleCeilingLight
             :<|> f2 SleepOrWake
