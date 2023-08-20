@@ -46,4 +46,4 @@ instance MimeRender PlainText Bool where
     mimeRender Proxy = Lazy.encodeUtf8 . (<> "\n") . pShowNoColor
 
 subsumeFront :: Eff (eff : eff : effs) ~> Eff (eff : effs)
-subsumeFront = interpret send
+subsumeFront = subsume
