@@ -307,7 +307,7 @@ type UserAPI =
             :> Capture "body" Text
             :> GetNoContent
         :<|> "suspend-laptop" :> GetNoContent
-        :<|> "set-Other-led"
+        :<|> "set-other-led"
             :> Capture "power" Bool
             :> GetNoContent
         :<|> "set-system-leds"
