@@ -88,13 +88,15 @@ main = do
         setLED pin =
             bool
                 ( gets (Map.lookup pin) >>= \case
-                    Just h -> liftIO (GPIO.reset h) >> modify (Map.delete pin)
-                    Nothing -> liftIO $ putMVar eventMVar $ LogEvent "LED is already off"
+                    Just h -> GPIO.reset h >> modify (Map.delete pin)
+                    Nothing -> log' "LED is already off"
                 )
                 ( gets (Map.lookup pin) >>= \case
                     Nothing -> GPIO.set opts.gpioChip [pin] >>= modify . Map.insert pin
-                    Just _ -> liftIO $ putMVar eventMVar $ LogEvent "LED is already on"
+                    Just _ -> log' "LED is already on"
                 )
+          where
+            log' = liftIO . putMVar eventMVar . LogEvent
 
         handleError :: (MonadIO m, MonadState AppState m) => Error -> m ()
         handleError err = do

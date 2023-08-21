@@ -14,8 +14,8 @@ import System.IO (hGetLine)
 
 newtype Handle = Handle {unwrap :: Process Inherit Inherit Inherit}
 
-reset :: Handle -> IO ()
-reset h = terminateProcess h.unwrap
+reset :: (MonadIO m) => Handle -> m ()
+reset h = liftIO $ terminateProcess h.unwrap
 
 set :: (MonadIO m) => ByteString -> [Int] -> m Handle
 set gpioChip xs =
