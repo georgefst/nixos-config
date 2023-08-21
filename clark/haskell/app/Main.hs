@@ -189,7 +189,7 @@ data SimpleActionOpts = SimpleActionOpts
 runSimpleAction ::
     (MonadIO m, MonadState AppState m, MonadLifx m, MonadError Error m) => SimpleActionOpts -> SimpleAction a -> m a
 runSimpleAction opts@SimpleActionOpts{setLED {- TODO GHC doesn't yet support impredicative fields -}} = \case
-    ResetError -> setLED opts.ledErrorPin True
+    ResetError -> setLED opts.ledErrorPin False
     GetCeilingLightPower -> statePowerToBool <$> sendMessage opts.ceilingLight GetPower
     SetCeilingLightPower p -> sendMessage opts.ceilingLight $ SetPower p
     GetCeilingLightColour -> (.hsbk) <$> sendMessage opts.ceilingLight Lifx.GetColor
