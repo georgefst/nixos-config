@@ -29,7 +29,7 @@ import Data.Text.Lazy qualified as TL
 import Data.Time
 import Data.Tuple.Extra hiding (first, second)
 import Data.Word
-import Lifx.Lan hiding (SetColor)
+import Lifx.Lan hiding (SetColor, SetLightPower)
 import Lifx.Lan qualified as Lifx
 import MQTT.Meross qualified
 import Network.HTTP.Types
@@ -49,6 +49,7 @@ import System.Directory qualified as Dir
 import System.Exit
 import System.IO
 import Text.Pretty.Simple
+import Web.HttpApiData (FromHttpApiData, parseUrlPiece)
 
 data Opts = Opts
     { gpioChip :: B.ByteString
@@ -57,6 +58,7 @@ data Opts = Opts
     , ledErrorPin :: Int
     , ledOtherPin :: Int
     , ceilingLightName :: Text
+    , lampName :: Text
     , lifxTimeout :: Double
     , lifxPort :: Word16
     , receivePort :: Word16
@@ -127,15 +129,16 @@ main = do
         . flip evalStateT mempty
         . flip runLoggingT (liftIO . T.putStrLn)
         . runLifxUntilSuccess
-            (either (\() -> handleError $ SimpleError "Ceiling light not found") (handleError . Error "LIFX error"))
+            (either (handleError . Error "Light not found") (handleError . Error "LIFX error"))
             (lifxTime opts.lifxTimeout)
             (Just $ fromIntegral opts.lifxPort)
         $ do
-            ceilingLight <-
-                maybe (throwError ()) (pure . fst)
-                    . find ((== opts.ceilingLightName) . (.label) . snd)
-                    =<< traverse (\d -> (d,) <$> sendMessage d GetColor)
-                    =<< discoverDevices Nothing
+            (ceilingLight, lamp) <- do
+                ds <-
+                    traverse (\d -> (d,) <$> sendMessage d GetColor)
+                        =<< discoverDevices Nothing
+                let f name = maybe (throwError name) (pure . fst) $ find ((== name) . (.label) . snd) ds
+                (,) <$> f opts.ceilingLightName <*> f opts.lampName
             S.fold
                 ( SF.drainMapM \case
                     ErrorEvent e -> handleError e
@@ -164,10 +167,11 @@ main = do
 
 data SimpleAction a where
     ResetError :: SimpleAction ()
-    GetCeilingLightPower :: SimpleAction Bool
-    SetCeilingLightPower :: Bool -> SimpleAction ()
-    GetCeilingLightColour :: SimpleAction HSBK
-    SetCeilingLightColour :: {delay :: NominalDiffTime, brightness :: Word16, kelvin :: Word16} -> SimpleAction ()
+    GetLightPower :: Light a -> SimpleAction Bool
+    SetLightPower :: Light a -> Bool -> SimpleAction ()
+    GetLightColour :: Light a -> SimpleAction HSBK
+    SetLightColour :: {light :: Light FullColours, delay :: NominalDiffTime, colour :: HSBK} -> SimpleAction ()
+    SetLightColourBK :: {lightBK :: Light KelvinOnly, delay :: NominalDiffTime, brightness :: Word16, kelvin :: Word16} -> SimpleAction () -- TODO we should in principle be allowed to reuse the name `light` for the field - https://github.com/ghc-proposals/ghc-proposals/pull/535#issuecomment-1694388075
     SetDeskUSBPower :: Bool -> SimpleAction ()
     SendEmail :: {subject :: Text, body :: Text} -> SimpleAction ()
     SuspendLaptop :: SimpleAction ()
@@ -181,6 +185,7 @@ data SimpleActionOpts = SimpleActionOpts
     , emailPipe :: FilePath
     , sshTimeout :: Int
     , ceilingLight :: Device
+    , lamp :: Device
     , laptopHostName :: Text
     , deskUsbPort :: Int
     , systemLedPipe :: FilePath
@@ -192,10 +197,11 @@ runSimpleAction ::
     (MonadIO m, MonadState AppState m, MonadLifx m, MonadError Error m) => SimpleActionOpts -> SimpleAction a -> m a
 runSimpleAction opts@SimpleActionOpts{setLED {- TODO GHC doesn't yet support impredicative fields -}} = \case
     ResetError -> setLED opts.ledErrorPin False
-    GetCeilingLightPower -> statePowerToBool <$> sendMessage opts.ceilingLight GetPower
-    SetCeilingLightPower p -> sendMessage opts.ceilingLight $ SetPower p
-    GetCeilingLightColour -> (.hsbk) <$> sendMessage opts.ceilingLight Lifx.GetColor
-    SetCeilingLightColour{delay, brightness, kelvin} -> sendMessage opts.ceilingLight $ Lifx.SetColor HSBK{..} delay
+    GetLightPower l -> statePowerToBool <$> sendMessage (lightOpt l opts) GetPower
+    SetLightPower l p -> sendMessage (lightOpt l opts) $ SetPower p
+    GetLightColour l -> (.hsbk) <$> sendMessage (lightOpt l opts) Lifx.GetColor
+    SetLightColour{..} -> sendMessage (lightOpt light opts) $ Lifx.SetColor colour delay
+    SetLightColourBK{lightBK = light, ..} -> sendMessage (lightOpt light opts) $ Lifx.SetColor HSBK{..} delay
       where
         -- these have no effect for this type of LIFX bulb
         hue = 0
@@ -240,26 +246,32 @@ data ActionOpts = ActionOpts
 runAction :: (MonadIO m) => ActionOpts -> Action -> Eff '[SimpleAction, m] ()
 runAction opts = \case
     SimpleAction a f -> liftIO . f =<< send a
-    ToggleCeilingLight -> send . SetCeilingLightPower . not =<< send GetCeilingLightPower
+    ToggleCeilingLight -> send . SetLightPower Ceiling . not =<< send (GetLightPower Ceiling)
     SleepOrWake ->
-        send GetCeilingLightPower >>= \night@(not -> morning) -> do
+        send (GetLightPower Ceiling) >>= \night@(not -> morning) -> do
             send $ SetSystemLEDs morning
-            send $ SetCeilingLightPower morning
+            send $ SetLightPower light morning
             when morning do
                 send
-                    SetCeilingLightColour
-                        { delay = 0
+                    SetLightColourBK
+                        { lightBK = light
+                        , delay = 0
                         , brightness = 0
                         , kelvin = 0
                         }
                 send
-                    SetCeilingLightColour
-                        { delay = fromIntegral opts.lifxMorningSeconds
+                    SetLightColourBK
+                        { lightBK = light
+                        , delay = fromIntegral opts.lifxMorningSeconds
                         , brightness = maxBound
                         , kelvin = opts.lifxMorningKelvin
                         }
             send $ SetDeskUSBPower morning
             when night . void $ send SuspendLaptop
+      where
+        light = Ceiling
+
+-- TODO re-evaluate this now that we have web API
 decodeAction :: BSL.ByteString -> Either (BSL.ByteString, B.ByteOffset, String) Action
 decodeAction =
     fmap thd3 . runGetOrFail do
@@ -272,12 +284,10 @@ decodeAction =
                 pure $ simpleAction SendEmail{..}
             3 -> pure $ simpleAction SuspendLaptop
             4 -> simpleAction . SetDeskUSBPower <$> B.get @Bool
-            5 -> simpleAction <$> (SetCeilingLightColour . secondsToNominalDiffTime <$> B.get <*> B.get <*> B.get)
+            5 -> simpleAction <$> (SetLightColourBK Ceiling . secondsToNominalDiffTime <$> B.get <*> B.get <*> B.get)
             6 -> pure SleepOrWake
-            7 -> simpleAction . SetCeilingLightPower <$> B.get @Bool
+            7 -> simpleAction . SetLightPower Ceiling <$> B.get @Bool
             8 -> simpleAction . SetSystemLEDs <$> B.get @Bool
-            -- actions which wouldn't be useful to run remotely/standalone
-            255 -> pure $ simpleAction GetCeilingLightPower
             n -> fail $ "unknown action: " <> show n
 
 webServer :: (forall m. (MonadIO m) => Action -> m ()) -> Wai.Application
@@ -285,14 +295,30 @@ webServer f =
     makeOkapiApp id $
         asum
             [ withGetRoute "reset-error" $ f2 $ simpleAction ResetError
-            , withGetRoute "get-ceiling-light-power" $ f1 (SimpleAction GetCeilingLightPower)
-            , withGetRoute "set-ceiling-light-power" $ f2 . simpleAction . SetCeilingLightPower =<< segParam
-            , withGetRoute "get-ceiling-light-colour" $ f1 (SimpleAction GetCeilingLightColour)
-            , withGetRoute "set-ceiling-light-colour" do
-                delay <- segParam
-                brightness <- segParam
-                kelvin <- segParam
-                f2 $ simpleAction SetCeilingLightColour{..}
+            , withGetRoute "get-light-power" do
+                Exists l <- segParam
+                f1 $ SimpleAction $ GetLightPower l
+            , withGetRoute "set-light-power" do
+                Exists l <- segParam
+                p <- segParam
+                f2 . simpleAction $ SetLightPower l p
+            , withGetRoute "get-light-colour" do
+                Exists light <- segParam
+                f1 $ SimpleAction $ GetLightColour light
+            , withGetRoute "set-light-colour" do
+                Exists light <- segParam
+                delay <- segParam @NominalDiffTime -- TODO why do we need this type app?
+                case light of
+                    Lamp -> do
+                        hue <- segParam
+                        saturation <- segParam
+                        brightness <- segParam
+                        kelvin <- segParam
+                        f2 $ simpleAction SetLightColour{colour = HSBK{..}, ..}
+                    Ceiling -> do
+                        brightness <- segParam
+                        kelvin <- segParam
+                        f2 $ simpleAction SetLightColourBK{lightBK = light, ..}
             , withGetRoute "set-desk-usb-power" $ f2 . simpleAction . SetDeskUSBPower =<< segParam
             , withGetRoute "send-email" do
                 subject <- segParam
@@ -326,3 +352,29 @@ data Event
     = ActionEvent Action
     | LogEvent Text
     | ErrorEvent Error
+
+data Light (c :: LightColours) where
+    Ceiling :: Light KelvinOnly
+    Lamp :: Light FullColours
+deriving instance Show (Light c)
+data LightColours = FullColours | KelvinOnly -- TODO use `type data` when available (GHC 9.6)
+lightOpt :: Light a -> SimpleActionOpts -> Device
+lightOpt = \case
+    Ceiling -> (.ceilingLight)
+    Lamp -> (.lamp)
+
+-- TODO is there a way to derive some of this?
+-- if we could do `deriving instance Read (Light NoColour)` that's be a good start
+instance FromHttpApiData (Light KelvinOnly) where
+    parseUrlPiece = \case
+        "ceiling" -> Right Ceiling
+        s -> Left $ "unknown light name: " <> s
+instance FromHttpApiData (Light FullColours) where
+    parseUrlPiece = \case
+        "lamp" -> Right Lamp
+        s -> Left $ "unknown light name: " <> s
+instance FromHttpApiData (Exists Light) where
+    parseUrlPiece = \case
+        "ceiling" -> Right $ Exists Ceiling
+        "lamp" -> Right $ Exists Lamp
+        s -> Left $ "unknown light name: " <> s

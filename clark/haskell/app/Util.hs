@@ -38,3 +38,7 @@ readProcessWithExitCodeTimeout t conf = do
 
 subsumeFront :: Eff (eff : eff : effs) ~> Eff (eff : effs)
 subsumeFront = subsume
+
+-- | A simple wrapper in lieu of first-class existential types.
+data Exists t where
+    Exists :: t a -> Exists t

@@ -134,6 +134,7 @@ in
           --led-error-pin ${toString led-error-pin} \
           --led-other-pin ${toString led-other-pin} \
           --ceiling-light-name Ceiling \
+          --lamp-name Lamp \
           --lifx-timeout 5 \
           --lifx-port ${toString clark-script-lifx-port} \
           --receive-port ${toString clark-script-udp-port} \
