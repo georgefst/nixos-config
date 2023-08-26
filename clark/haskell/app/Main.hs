@@ -133,12 +133,17 @@ main = do
             (lifxTime opts.lifxTimeout)
             (Just $ fromIntegral opts.lifxPort)
         $ do
+            -- TODO this would be slightly cleaner if GHC were better about retaining polymorphism in do-bindings
             (ceilingLight, lamp) <- do
                 ds <-
                     traverse (\d -> (d,) <$> sendMessage d GetColor)
                         =<< discoverDevices Nothing
                 let f name = maybe (throwError name) (pure . fst) $ find ((== name) . (.label) . snd) ds
                 (,) <$> f opts.ceilingLightName <*> f opts.lampName
+            let getLight :: forall a. Light a -> Device
+                getLight = \case
+                    Ceiling -> ceilingLight
+                    Lamp -> lamp
             S.fold
                 ( SF.drainMapM \case
                     ErrorEvent e -> handleError e
@@ -184,8 +189,7 @@ data SimpleActionOpts = SimpleActionOpts
     , ledOtherPin :: Int
     , emailPipe :: FilePath
     , sshTimeout :: Int
-    , ceilingLight :: Device
-    , lamp :: Device
+    , getLight :: forall a. Light a -> Device
     , laptopHostName :: Text
     , deskUsbPort :: Int
     , systemLedPipe :: FilePath
@@ -195,13 +199,13 @@ data SimpleActionOpts = SimpleActionOpts
 
 runSimpleAction ::
     (MonadIO m, MonadState AppState m, MonadLifx m, MonadError Error m) => SimpleActionOpts -> SimpleAction a -> m a
-runSimpleAction opts@SimpleActionOpts{setLED {- TODO GHC doesn't yet support impredicative fields -}} = \case
+runSimpleAction opts@SimpleActionOpts{getLight, setLED {- TODO GHC doesn't yet support impredicative fields -}} = \case
     ResetError -> setLED opts.ledErrorPin False
-    GetLightPower l -> statePowerToBool <$> sendMessage (lightOpt l opts) GetPower
-    SetLightPower l p -> sendMessage (lightOpt l opts) $ SetPower p
-    GetLightColour l -> (.hsbk) <$> sendMessage (lightOpt l opts) Lifx.GetColor
-    SetLightColour{..} -> sendMessage (lightOpt light opts) $ Lifx.SetColor colour delay
-    SetLightColourBK{lightBK = light, ..} -> sendMessage (lightOpt light opts) $ Lifx.SetColor HSBK{..} delay
+    GetLightPower l -> statePowerToBool <$> sendMessage (getLight l) GetPower
+    SetLightPower l p -> sendMessage (getLight l) $ SetPower p
+    GetLightColour l -> (.hsbk) <$> sendMessage (getLight l) Lifx.GetColor
+    SetLightColour{..} -> sendMessage (getLight light) $ Lifx.SetColor colour delay
+    SetLightColourBK{lightBK = light, ..} -> sendMessage (getLight light) $ Lifx.SetColor HSBK{..} delay
       where
         -- these have no effect for this type of LIFX bulb
         hue = 0
@@ -358,10 +362,6 @@ data Light (c :: LightColours) where
     Lamp :: Light FullColours
 deriving instance Show (Light c)
 data LightColours = FullColours | KelvinOnly -- TODO use `type data` when available (GHC 9.6)
-lightOpt :: Light a -> SimpleActionOpts -> Device
-lightOpt = \case
-    Ceiling -> (.ceilingLight)
-    Lamp -> (.lamp)
 
 -- TODO is there a way to derive some of this?
 -- if we could do `deriving instance Read (Light NoColour)` that might be a good start
