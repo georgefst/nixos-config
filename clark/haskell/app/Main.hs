@@ -364,15 +364,7 @@ lightOpt = \case
     Lamp -> (.lamp)
 
 -- TODO is there a way to derive some of this?
--- if we could do `deriving instance Read (Light NoColour)` that's be a good start
-instance FromHttpApiData (Light KelvinOnly) where
-    parseUrlPiece = \case
-        "ceiling" -> Right Ceiling
-        s -> Left $ "unknown light name: " <> s
-instance FromHttpApiData (Light FullColours) where
-    parseUrlPiece = \case
-        "lamp" -> Right Lamp
-        s -> Left $ "unknown light name: " <> s
+-- if we could do `deriving instance Read (Light NoColour)` that might be a good start
 instance FromHttpApiData (Exists Light) where
     parseUrlPiece = \case
         "ceiling" -> Right $ Exists Ceiling
