@@ -70,7 +70,6 @@ data Opts = Opts
     , lifxMorningKelvin :: Word16
     , deskUsbPort :: Int
     , systemLedPipe :: FilePath
-    , rootCmdPipe :: FilePath
     }
     deriving (Show, Generic)
 instance ParseRecord Opts where
@@ -182,7 +181,6 @@ data SimpleAction a where
     SuspendLaptop :: SimpleAction ()
     SetOtherLED :: Bool -> SimpleAction ()
     SetSystemLEDs :: Bool -> SimpleAction ()
-    RootCommand :: Text -> SimpleAction ()
 deriving instance Show (SimpleAction a)
 data SimpleActionOpts = SimpleActionOpts
     { ledErrorPin :: Int
@@ -193,7 +191,6 @@ data SimpleActionOpts = SimpleActionOpts
     , laptopHostName :: Text
     , deskUsbPort :: Int
     , systemLedPipe :: FilePath
-    , rootCmdPipe :: FilePath
     , setLED :: forall m. (MonadState AppState m, MonadIO m) => Int -> Bool -> m ()
     }
 
@@ -227,7 +224,6 @@ runSimpleAction opts@SimpleActionOpts{getLight, setLED {- TODO GHC doesn't yet s
                 )
     SetOtherLED b -> setLED opts.ledOtherPin b
     SetSystemLEDs b -> writePipe opts.systemLedPipe . showT $ fromEnum b
-    RootCommand t -> writePipe opts.rootCmdPipe t
   where
     showOutput out err = liftIO $ for_ [("stdout", out), ("stderr", err)] \(s, t) ->
         unless (B.null t) $ T.putStrLn ("    " <> s <> ": ") >> B.putStr t

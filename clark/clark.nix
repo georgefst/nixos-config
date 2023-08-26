@@ -18,7 +18,6 @@ let
   mqtt-port = 8883; # actually the default port, and probably implicitly assumed all over, including outside this file
   extra-ports = [ 56720 ]; # for temporary scripts etc.
   system-led-pipe = "/tmp/system-led-pipe";
-  root-cmd-pipe = "/tmp/root-cmd-pipe";
   email-pipe = "/tmp/email-pipe";
 
   file-server-dir = home + "/serve";
@@ -146,7 +145,6 @@ in
           --lifx-morning-kelvin 2700 \
           --desk-usb-port 2 \
           --system-led-pipe ${system-led-pipe} \
-          --root-cmd-pipe ${root-cmd-pipe} \
         || printf "Clark script failed\nInspect service logs for more info." > ${email-pipe} \
         && gpioset --mode=signal ${gpiochip} ${toString led-error-pin}=1 \
       '';
@@ -252,18 +250,6 @@ in
       description = "system led server";
       wantedBy = startup-root;
     };
-    root-cmd = {
-      script = ''
-        while true
-        do
-          data=$(<${root-cmd-pipe})
-          echo $data
-          $data
-        done
-      '';
-      description = "root command server";
-      wantedBy = startup-root;
-    };
     droopy = {
       script = ''
         mkdir -p ${file-server-dir}
@@ -321,7 +307,6 @@ in
     # these pipes are used from multiple services, so we set them up as early as possible
     make-pipes = ''
       if [[ ! -e ${email-pipe} ]]; then mkfifo ${email-pipe} && chown gthomas:users ${email-pipe} ; fi
-      if [[ ! -e ${root-cmd-pipe} ]]; then mkfifo ${root-cmd-pipe} && chown gthomas:users ${root-cmd-pipe} ; fi
       if [[ ! -e ${system-led-pipe} ]]; then mkfifo ${system-led-pipe} && chown gthomas:users ${system-led-pipe} ; fi
     '';
     # allows certain scripts and config files to be compatible across my devices
