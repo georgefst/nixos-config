@@ -42,3 +42,6 @@ subsumeFront = subsume
 -- | A simple wrapper in lieu of first-class existential types.
 data Exists t where
     Exists :: t a -> Exists t
+
+withExists :: (forall a. t a -> b) -> Exists t -> b
+withExists f (Exists a) = f a

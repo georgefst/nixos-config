@@ -299,16 +299,12 @@ webServer f =
     makeOkapiApp id $
         asum
             [ withGetRoute "reset-error" $ f2 $ simpleAction ResetError
-            , withGetRoute "get-light-power" do
-                Exists l <- segParam
-                f1 $ SimpleAction $ GetLightPower l
-            , withGetRoute "set-light-power" do
+            , withGetRoute "get-light-power" $ withExists (f1 . SimpleAction . GetLightPower) =<< segParam
+            , withGetRoute "set-light-power" $ do
                 Exists l <- segParam
                 p <- segParam
                 f2 . simpleAction $ SetLightPower l p
-            , withGetRoute "get-light-colour" do
-                Exists light <- segParam
-                f1 $ SimpleAction $ GetLightColour light
+            , withGetRoute "get-light-colour" $ withExists (f1 . SimpleAction . GetLightColour) =<< segParam
             , withGetRoute "set-light-colour" do
                 Exists light <- segParam
                 delay <- segParam @NominalDiffTime -- TODO why do we need this type app?
