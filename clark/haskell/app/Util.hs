@@ -10,13 +10,9 @@ import Data.ByteString qualified as B
 import Data.Either.Extra
 import Data.Text qualified as T
 import Data.Text.Encoding hiding (Some)
-import Data.Text.Lazy.Encoding qualified as Lazy
-import Lifx.Lan
 import Options.Generic
 import RawFilePath
-import Servant
 import System.Exit
-import Text.Pretty.Simple
 
 showT :: (Show a) => a -> Text
 showT = T.pack . show
@@ -39,11 +35,6 @@ readProcessWithExitCodeTimeout t conf = do
                 `setStderr` CreatePipe
     eitherToMaybe @() <$> ((threadDelay t >> terminateProcess p) `race` waitForProcess p)
         >>= traverse \exitCode -> (exitCode,,) <$> B.hGetContents (processStdout p) <*> B.hGetContents (processStderr p)
-
-instance MimeRender PlainText HSBK where
-    mimeRender Proxy = Lazy.encodeUtf8 . (<> "\n") . pShowNoColor
-instance MimeRender PlainText Bool where
-    mimeRender Proxy = Lazy.encodeUtf8 . (<> "\n") . pShowNoColor
 
 subsumeFront :: Eff (eff : eff : effs) ~> Eff (eff : effs)
 subsumeFront = subsume

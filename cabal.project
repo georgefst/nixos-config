@@ -16,3 +16,4 @@ source-repository-package
 allow-newer:
     -- https://github.com/lexi-lambda/freer-simple/pull/44
     freer-simple:template-haskell,
+    okapi:*,

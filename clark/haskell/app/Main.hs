@@ -25,6 +25,7 @@ import Data.Map qualified as Map
 import Data.Text qualified as T
 import Data.Text.Encoding hiding (Some)
 import Data.Text.IO qualified as T
+import Data.Text.Lazy qualified as TL
 import Data.Time
 import Data.Tuple.Extra hiding (first, second)
 import Data.Word
@@ -34,10 +35,11 @@ import MQTT.Meross qualified
 import Network.HTTP.Types
 import Network.Socket
 import Network.Socket.ByteString hiding (send)
+import Network.Wai qualified as Wai
 import Network.Wai.Handler.Warp qualified as Warp
+import Okapi
 import Options.Generic
 import RawFilePath
-import Servant
 import Streamly.Data.Fold qualified as SF
 import Streamly.Data.Stream qualified as S
 import Streamly.Data.Stream.Prelude qualified as S
@@ -278,65 +280,39 @@ decodeAction =
             255 -> pure $ simpleAction GetCeilingLightPower
             n -> fail $ "unknown action: " <> show n
 
--- TODO use new record-style Servant approach - it'd be easy to mix up the endpoints here currently
--- although I actually don't think Servant is a perfect fit for this at all
--- really we want to map directly from URLs to `Action`/`SimpleAction ()`s
--- relatedly, when defining server, Servant makes it hard to abstract over the repetition
--- and hard to define handlers as an exhaustive pattern match on actions
--- and it would also be nice if we could use the server as a Streamly stream more directly
--- other frameworks also may make it easier to accept multiple verbs, so we don't have to stick to GET
-type UserAPI =
-    "reset-error" :> GetNoContent
-        :<|> "get-ceiling-light-power"
-            :> Get '[PlainText] Bool
-        :<|> "set-ceiling-light-power"
-            :> Capture "power" Bool
-            :> GetNoContent
-        :<|> "get-ceiling-light-colour"
-            :> Get '[PlainText] HSBK
-        :<|> "set-ceiling-light-colour"
-            :> Capture "delay" NominalDiffTime
-            :> Capture "brightness" Word16
-            :> Capture "kelvin" Word16
-            :> GetNoContent
-        :<|> "set-desk-usb-power"
-            :> Capture "power" Bool
-            :> GetNoContent
-        :<|> "send-email"
-            :> Capture "subject" Text
-            :> Capture "body" Text
-            :> GetNoContent
-        :<|> "suspend-laptop" :> GetNoContent
-        :<|> "set-other-led"
-            :> Capture "power" Bool
-            :> GetNoContent
-        :<|> "set-system-leds"
-            :> Capture "power" Bool
-            :> GetNoContent
-        :<|> "toggle-ceiling-light" :> GetNoContent
-        :<|> "sleep-or-wake" :> GetNoContent
-webServer :: (forall m. (MonadIO m) => Action -> m ()) -> Application
+webServer :: (forall m. (MonadIO m) => Action -> m ()) -> Wai.Application
 webServer f =
-    serve (Proxy @UserAPI) $
-        f2 (simpleAction ResetError)
-            :<|> f1 (SimpleAction GetCeilingLightPower)
-            :<|> (f2 . simpleAction . SetCeilingLightPower)
-            :<|> f1 (SimpleAction GetCeilingLightColour)
-            :<|> (\delay brightness kelvin -> f2 (simpleAction $ SetCeilingLightColour{..}))
-            :<|> (f2 . simpleAction . SetDeskUSBPower)
-            :<|> (\subject body -> f2 $ simpleAction $ SendEmail{..})
-            :<|> f2 (simpleAction SuspendLaptop)
-            :<|> (f2 . simpleAction . SetOtherLED)
-            :<|> (f2 . simpleAction . SetSystemLEDs)
-            :<|> f2 ToggleCeilingLight
-            :<|> f2 SleepOrWake
+    makeOkapiApp id $
+        asum
+            [ withGetRoute "reset-error" $ f2 $ simpleAction ResetError
+            , withGetRoute "get-ceiling-light-power" $ f1 (SimpleAction GetCeilingLightPower)
+            , withGetRoute "set-ceiling-light-power" $ f2 . simpleAction . SetCeilingLightPower =<< segParam
+            , withGetRoute "get-ceiling-light-colour" $ f1 (SimpleAction GetCeilingLightColour)
+            , withGetRoute "set-ceiling-light-colour" do
+                delay <- segParam
+                brightness <- segParam
+                kelvin <- segParam
+                f2 $ simpleAction SetCeilingLightColour{..}
+            , withGetRoute "set-desk-usb-power" $ f2 . simpleAction . SetDeskUSBPower =<< segParam
+            , withGetRoute "send-email" do
+                subject <- segParam
+                body <- segParam
+                f2 $ simpleAction SendEmail{..}
+            , withGetRoute "suspend-laptop" $ f2 $ simpleAction SuspendLaptop
+            , withGetRoute "set-other-led" $ f2 . simpleAction . SetOtherLED =<< segParam
+            , withGetRoute "set-system-leds" $ f2 . simpleAction . SetSystemLEDs =<< segParam
+            , withGetRoute "toggle-ceiling-light" $ f2 ToggleCeilingLight
+            , withGetRoute "sleep-or-wake" $ f2 SleepOrWake
+            ]
   where
-    f1 :: ((a -> IO ()) -> Action) -> Handler a
+    withGetRoute s x = Okapi.get >> seg s >> x
+    f1 :: (Show a) => ((a -> IO ()) -> Action) -> OkapiT IO Result
     f1 x = do
         m <- liftIO newEmptyMVar
         f $ x $ putMVar m
-        liftIO $ takeMVar m
-    f2 x = f x >> pure NoContent
+        okPlainText [] . (<> "\n") . TL.toStrict . pShowNoColor =<< liftIO (takeMVar m)
+    f2 x = f x >> noContent []
+
 warpSettings ::
     Warp.Port ->
     (forall a. (Show a) => a -> IO ()) ->
