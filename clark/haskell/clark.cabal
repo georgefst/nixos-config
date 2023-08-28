@@ -13,6 +13,8 @@ executable clark
         MQTT.Meross
         Util
         Util.Lifx
+    hs-source-dirs: app
+    default-language: GHC2021
     default-extensions:
         BlockArguments
         DataKinds
@@ -62,8 +64,6 @@ executable clark
         wai >= 3.2,
         warp >= 3.3.28,
         wreq >= 0.5.3,
-    hs-source-dirs: app
-    default-language: GHC2021
     ghc-options:
         -Wall
         -threaded
