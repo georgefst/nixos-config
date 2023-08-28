@@ -34,7 +34,6 @@ executable clark
     build-depends:
         base >= 4.16,
         aeson ^>= 2.1.1,
-        ansi-terminal >= 0.11,
         async >= 2.2.4,
         binary >= 0.8.9,
         bytestring >= 0.10.12,
@@ -44,7 +43,6 @@ executable clark
         extra >= 1.7.10,
         freer-simple >= 1.2.1.2,
         http-api-data >= 0.6,
-        http-client >= 0.7.11,
         http-types >= 0.12.3,
         lens >= 5.2,
         lifx-lan >= 0.8.0,
@@ -63,7 +61,6 @@ executable clark
         transformers >= 0.5.6,
         wai >= 3.2,
         warp >= 3.3.28,
-        wreq >= 0.5.3,
     ghc-options:
         -Wall
         -threaded
