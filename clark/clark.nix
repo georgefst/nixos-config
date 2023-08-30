@@ -204,7 +204,7 @@ in
           subject=$(head -n1 <<< "$data")
           body=$(tail -n+2 <<< "$data")
           echo "Sending: $subject"
-          curl -s --user 'api:${secrets.mailgun.key}' \
+          curl --user 'api:${secrets.mailgun.key}' \
             https://api.mailgun.net/v3/sandbox${secrets.mailgun.sandbox}.mailgun.org/messages \
             -F from='Mailgun Sandbox <postmaster@sandbox${secrets.mailgun.sandbox}.mailgun.org>' \
             -F to='George Thomas <georgefsthomas@gmail.com>' \
