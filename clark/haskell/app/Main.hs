@@ -20,6 +20,7 @@ import Data.Map qualified as Map
 import Data.Text.IO qualified as T
 import Data.Word
 import Lifx.Lan qualified as Lifx
+import Network.Socket (PortNumber)
 import Network.Wai.Handler.Warp qualified as Warp
 import Optics
 import Optics.State.Operators
@@ -39,7 +40,7 @@ data Opts = Opts
     , lampName :: Text
     , lifxTimeout :: Double
     , lifxPort :: Word16
-    , receivePort :: Word16
+    , receivePort :: PortNumber
     , httpPort :: Warp.Port
     , emailPipe :: FilePath
     , laptopHostName :: Text

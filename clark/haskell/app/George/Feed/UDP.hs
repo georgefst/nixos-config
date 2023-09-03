@@ -18,7 +18,7 @@ import Network.Socket.ByteString hiding (send)
 import Streamly.Data.Stream.Prelude qualified as S
 
 data Opts = Opts
-    { receivePort :: Word16 --
+    { receivePort :: PortNumber --
     -- TODO these are the same as webserver - refactor somehow?
     , lifxMorningSeconds :: Int
     , lifxMorningKelvin :: Word16
@@ -45,7 +45,7 @@ decodeAction opts =
 
 feed :: (MonadIO m) => Opts -> S.Stream m [Event]
 feed opts = S.morphInner liftIO $ streamWithInit
-    (socket AF_INET Datagram defaultProtocol >>= \s -> bind s (SockAddrInet (fromIntegral opts.receivePort) 0) >> pure s)
+    (socket AF_INET Datagram defaultProtocol >>= \s -> bind s (SockAddrInet opts.receivePort 0) >> pure s)
     \sock ->
         S.repeatM $
             pure
