@@ -6,6 +6,10 @@ Build boot image:
 
 `nix build .#images.clark`
 
+Build Haskell program:
+
+`nix build .#haskell.clark`
+
 ## Relevant documentation
 - https://nixos.org/manual/nixos/stable/options.html
 - https://nixos.wiki/wiki/NixOS_on_ARM
