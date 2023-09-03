@@ -9,9 +9,13 @@ maintainer:         georgefsthomas@gmail.com
 executable clark
     main-is: Main.hs
     other-modules:
-        GPIO
+        George.Core
+        George.Feed.GPIO
+        George.Feed.UDP
+        George.Feed.WebServer
         MQTT.Meross
         Util
+        Util.GPIO
         Util.Lifx
     hs-source-dirs: app
     default-language: GHC2021
@@ -26,6 +30,7 @@ executable clark
         ImpredicativeTypes
         NoFieldSelectors
         NoMonomorphismRestriction
+        OverloadedLabels
         OverloadedRecordDot
         OverloadedStrings
         PartialTypeSignatures
@@ -44,13 +49,14 @@ executable clark
         freer-simple >= 1.2.1.2,
         http-api-data >= 0.6,
         http-types >= 0.12.3,
-        lens >= 5.2,
         lifx-lan >= 0.8.0,
         logging-effect >= 1.3.13,
         monad-loops >= 0.4.3,
         mtl >= 2.2.2,
         network >= 3.1.2,
         okapi >= 0.1,
+        optics >= 0.4.2,
+        optics-extra >= 0.4.2,
         optparse-generic >= 1.4.6,
         pretty-simple >= 4.1,
         rawfilepath >= 1.0,
@@ -58,7 +64,6 @@ executable clark
         streamly-core >= 0.1,
         text >= 1.2.4,
         time >= 1.9.3,
-        transformers >= 0.5.6,
         wai >= 3.2,
         warp >= 3.3.28,
     ghc-options:

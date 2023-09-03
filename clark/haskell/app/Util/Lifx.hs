@@ -5,8 +5,10 @@
 module Util.Lifx where
 
 import Lifx.Lan
+import Lifx.Lan.Internal
 
 import Control.Concurrent (threadDelay)
+import Control.Monad.Catch (MonadCatch (..), MonadThrow (..))
 import Control.Monad.Except (ExceptT, runExceptT)
 import Control.Monad.Log (LoggingT, MonadLog)
 import Control.Monad.Trans (MonadIO (liftIO), lift)
@@ -22,6 +24,11 @@ instance (MonadLifx m) => MonadLifx (LoggingT t m) where
     lifxThrow = lift . lifxThrow
 instance (MonadLog s m) => MonadLog s (LifxT m)
 
+instance (MonadThrow m) => MonadThrow (LifxT m) where
+    throwM = lift . throwM
+instance (MonadCatch m) => MonadCatch (LifxT m) where
+    catch (LifxT m) f = LifxT $ catch m $ (.unwrap) . f
+
 statePowerToBool :: StatePower -> Bool
 statePowerToBool = (/= StatePower 0)
 
@@ -36,3 +43,8 @@ runLifxUntilSuccess p t n x =
         =<< runLifxT t n (runExceptT x)
   where
     p' e = p e >> liftIO (threadDelay t) >> runLifxUntilSuccess p t n x
+
+discoverLifx :: (MonadLifx m) => m [(Device, LightState)]
+discoverLifx =
+    traverse (\d -> (d,) <$> sendMessage d GetColor)
+        =<< discoverDevices Nothing

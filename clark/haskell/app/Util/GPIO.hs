@@ -1,5 +1,5 @@
 -- TODO get a proper Haskell GPIO library (hpio?) working with the modern interface
-module GPIO (Handle, reset, set, mon) where
+module Util.GPIO (Handle, reset, set, mon) where
 
 import Util
 
