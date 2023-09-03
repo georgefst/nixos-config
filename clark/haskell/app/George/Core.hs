@@ -131,8 +131,8 @@ runAction opts@ActionOpts{getLight, setLED {- TODO GHC doesn't yet support impre
 
 toggleCeilingLight :: CompoundAction ()
 toggleCeilingLight = send . SetLightPower Ceiling . not =<< send (GetLightPower Ceiling)
-sleepOrWake :: Int -> Word16 -> CompoundAction ()
-sleepOrWake lifxMorningSeconds lifxMorningKelvin =
+sleepOrWake :: NominalDiffTime -> Word16 -> CompoundAction ()
+sleepOrWake lifxMorningDelay lifxMorningKelvin =
     send (GetLightPower Ceiling) >>= \night@(not -> morning) -> do
         send $ SetSystemLEDs morning
         send $ SetLightPower light morning
@@ -147,7 +147,7 @@ sleepOrWake lifxMorningSeconds lifxMorningKelvin =
             send
                 SetLightColourBK
                     { lightBK = light
-                    , delay = fromIntegral lifxMorningSeconds
+                    , delay = lifxMorningDelay
                     , brightness = maxBound
                     , kelvin = lifxMorningKelvin
                     }

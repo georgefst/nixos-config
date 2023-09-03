@@ -141,7 +141,7 @@ in
           --email-pipe ${email-pipe} \
           --laptop-host-name billy \
           --ssh-timeout 3 \
-          --lifx-morning-seconds 45 \
+          --lifx-morning-delay 45s \
           --lifx-morning-kelvin 2700 \
           --desk-usb-port 2 \
           --system-led-pipe ${system-led-pipe} \

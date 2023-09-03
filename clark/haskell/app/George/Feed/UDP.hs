@@ -20,7 +20,7 @@ import Streamly.Data.Stream.Prelude qualified as S
 data Opts = Opts
     { receivePort :: PortNumber --
     -- TODO these are the same as webserver - refactor somehow?
-    , lifxMorningSeconds :: Int
+    , lifxMorningDelay :: NominalDiffTime
     , lifxMorningKelvin :: Word16
     }
 
@@ -38,7 +38,7 @@ decodeAction opts =
             3 -> pure $ send SuspendLaptop
             4 -> send . SetDeskUSBPower <$> B.get @Bool
             5 -> send <$> (SetLightColourBK Ceiling . secondsToNominalDiffTime <$> B.get <*> B.get <*> B.get)
-            6 -> pure $ sleepOrWake opts.lifxMorningSeconds opts.lifxMorningKelvin
+            6 -> pure $ sleepOrWake opts.lifxMorningDelay opts.lifxMorningKelvin
             7 -> send . SetLightPower Ceiling <$> B.get @Bool
             8 -> send . SetSystemLEDs <$> B.get @Bool
             n -> fail $ "unknown action: " <> show n

@@ -21,7 +21,7 @@ import Streamly.Data.Stream.Prelude qualified as S
 
 data Opts = Opts
     { port :: Warp.Port
-    , lifxMorningSeconds :: Int
+    , lifxMorningDelay :: NominalDiffTime
     , lifxMorningKelvin :: Word16
     }
 
@@ -59,7 +59,7 @@ server opts f =
             , withGetRoute "set-other-led" $ f2 . send . SetOtherLED =<< segParam
             , withGetRoute "set-system-leds" $ f2 . send . SetSystemLEDs =<< segParam
             , withGetRoute "toggle-ceiling-light" $ f2 toggleCeilingLight
-            , withGetRoute "sleep-or-wake" $ f2 $ sleepOrWake opts.lifxMorningSeconds opts.lifxMorningKelvin
+            , withGetRoute "sleep-or-wake" $ f2 $ sleepOrWake opts.lifxMorningDelay opts.lifxMorningKelvin
             ]
   where
     withGetRoute s x = Okapi.get >> seg s >> x

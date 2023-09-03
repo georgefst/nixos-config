@@ -18,6 +18,7 @@ import Data.ByteString qualified as B
 import Data.List
 import Data.Map qualified as Map
 import Data.Text.IO qualified as T
+import Data.Time
 import Data.Word
 import Lifx.Lan qualified as Lifx
 import Network.Socket (PortNumber)
@@ -45,7 +46,7 @@ data Opts = Opts
     , emailPipe :: FilePath
     , laptopHostName :: Text
     , sshTimeout :: Int
-    , lifxMorningSeconds :: Int
+    , lifxMorningDelay :: NominalDiffTime
     , lifxMorningKelvin :: Word16
     , deskUsbPort :: Int
     , systemLedPipe :: FilePath
