@@ -4,13 +4,11 @@ import George.Core
 import George.Feed.GPIO qualified as GPIO
 import George.Feed.UDP qualified as UDP
 import George.Feed.WebServer qualified as WebServer
-import Util
 import Util.GPIO qualified as GPIO
 import Util.Lifx
 
 import Control.Concurrent
 import Control.Monad.Except
-import Control.Monad.Freer
 import Control.Monad.Log (logMessage, runLoggingT)
 import Control.Monad.State
 import Data.Bool
@@ -26,7 +24,6 @@ import Network.Wai.Handler.Warp qualified as Warp
 import Optics
 import Optics.State.Operators
 import Options.Generic
-import Streamly.Data.Fold qualified as SF
 import Streamly.Data.Stream.Prelude qualified as S
 import System.IO
 import Text.Pretty.Simple
@@ -101,19 +98,7 @@ main = do
                     getLight = \case
                         Ceiling -> ceilingLight
                         Lamp -> lamp
-                S.fold
-                    ( SF.drainMapM \case
-                        ErrorEvent e -> handleError e
-                        LogEvent t -> logMessage t
-                        ActionEvent f action -> (either handleError pure <=< runExceptT) $ runM do
-                            r <-
-                                action & translate \a -> do
-                                    logMessage $ showT a
-                                    runAction (opts & \Opts{..} -> ActionOpts{..}) a
-                            sendM . logMessage $ showT r
-                            sendM . liftIO $ f r
-                    )
-                    . S.concatMap S.fromList
+                runEventStream handleError logMessage (runAction (opts & \Opts{..} -> ActionOpts{..}))
                     . S.cons [LogEvent "Starting..."]
                     . S.morphInner liftIO
                     $ S.parList

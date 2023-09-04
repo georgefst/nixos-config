@@ -21,6 +21,7 @@ import Control.Monad.State.Strict
 import Data.Bool
 import Data.ByteString qualified as B
 import Data.Foldable
+import Data.Function
 import Data.Map (Map)
 import Data.Text qualified as T
 import Data.Text.IO qualified as T
@@ -31,6 +32,8 @@ import Lifx.Lan qualified as Lifx
 import MQTT.Meross qualified
 import Options.Generic
 import RawFilePath
+import Streamly.Data.Fold qualified as SF
+import Streamly.Data.Stream.Prelude qualified as S
 import System.Directory qualified as Dir
 import System.Exit
 import Web.HttpApiData (FromHttpApiData, parseUrlPiece)
@@ -44,6 +47,28 @@ data Event where
     ActionEvent :: (Show a) => (a -> IO ()) -> (CompoundAction a) -> Event
     LogEvent :: Text -> Event
     ErrorEvent :: Error -> Event
+runEventStream ::
+    (MonadIO m) =>
+    (Error -> m ()) ->
+    (Text -> m ()) ->
+    (forall a. Action a -> ExceptT Error m a) ->
+    S.Stream m [Event] ->
+    m ()
+runEventStream handleError log' run' =
+    S.fold
+        ( SF.drainMapM \case
+            ErrorEvent e -> handleError e
+            LogEvent t -> log' t
+            ActionEvent f action -> (either handleError pure <=< runExceptT) $ runM do
+                r <-
+                    action & translate \a -> do
+                        lift . log' $ showT a
+                        run' a
+                sendM . lift . log' $ showT r
+                sendM . liftIO $ f r
+        )
+        . S.concatMap S.fromList
+        . S.cons [LogEvent "Starting..."]
 
 data Error where
     Error :: (Show a) => {title :: Text, body :: a} -> Error
