@@ -30,14 +30,14 @@ server opts f =
     makeOkapiApp id $
         asum
             [ withGetRoute "reset-error" $ f2 $ send ResetError
-            , withGetRoute "get-light-power" $ f1 showT . send . withExists GetLightPower =<< segParam
-            , withGetRoute "set-light-power" $ do
-                Exists l <- segParam
+            , withGetRoute "get-light-power" $ f1 showT . send . withExists @NullConstraint GetLightPower =<< segParam
+            , withGetRoute "set-light-power" do
+                Exists' l <- segParam
                 p <- segParam
                 f2 $ send $ SetLightPower l p
-            , withGetRoute "get-light-colour" $ f1 showT . send . withExists GetLightColour =<< segParam
+            , withGetRoute "get-light-colour" $ f1 showT . send . withExists @NullConstraint GetLightColour =<< segParam
             , withGetRoute "set-light-colour" do
-                Exists light <- segParam
+                Exists' light <- segParam
                 delay <- segParam @NominalDiffTime -- TODO why do we need this type app?
                 case light of
                     Lamp -> do

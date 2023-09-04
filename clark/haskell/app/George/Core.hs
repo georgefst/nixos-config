@@ -13,6 +13,7 @@ import Util
 import Util.GPIO qualified as GPIO
 import Util.Lifx
 
+import Control.Exception
 import Control.Monad
 import Control.Monad.Catch
 import Control.Monad.Except
@@ -73,8 +74,13 @@ runEventStream handleError log' run' =
 data Error where
     Error :: (Show a) => {title :: Text, body :: a} -> Error
     SimpleError :: Text -> Error
-catchIO :: (MonadCatch m, MonadError Error m) => m a -> m a
-catchIO = handleIOError $ throwError . Error "IO error when running action"
+
+-- TODO what I really want is just to catch all non-async exceptions
+-- is there no good way to do this? maybe by catching all then re-throwing asyncs?
+-- it does seem to be difficult - https://www.tweag.io/blog/2020-04-16-exceptions-in-haskell
+-- TODO on the other hand, should the other exception types used here be made subtypes of `IOException`?
+catchActionErrors :: forall m a. (MonadCatch m, MonadError Error m) => m a -> m a
+catchActionErrors = catchMany @'[IOException] $ throwError . Error "Error when running action"
 
 type CompoundAction a = Eff '[Action] a
 data Action a where
@@ -95,7 +101,7 @@ data Light (c :: LightColours) where
     Lamp :: Light FullColours
 deriving instance Show (Light c)
 data LightColours = FullColours | KelvinOnly -- TODO use `type data` when available (GHC 9.6)
-instance FromHttpApiData (Exists Light) where
+instance FromHttpApiData (Exists' Light) where
     -- TODO is there a way to derive some of this?
     -- if we could do `deriving instance Read (Light NoColour)` that might be a good start
     parseUrlPiece = \case
