@@ -18,6 +18,7 @@ import Control.Monad
 import Control.Monad.Catch
 import Control.Monad.Except
 import Control.Monad.Freer
+import Control.Monad.Log (MonadLog)
 import Control.Monad.State.Strict
 import Data.Bool
 import Data.ByteString qualified as B
@@ -118,11 +119,11 @@ data ActionOpts = ActionOpts
     , laptopHostName :: Text
     , deskUsbPort :: Int
     , systemLedPipe :: FilePath
-    , setLED :: forall m. (MonadState AppState m, MonadIO m) => Int -> Bool -> m ()
+    , setLED :: forall m. (MonadState AppState m, MonadLog Text m, MonadIO m) => Int -> Bool -> m ()
     }
 
 runAction ::
-    (MonadIO m, MonadState AppState m, MonadLifx m, MonadError Error m) => ActionOpts -> Action a -> m a
+    (MonadIO m, MonadState AppState m, MonadLifx m, MonadLog Text m, MonadError Error m) => ActionOpts -> Action a -> m a
 runAction opts@ActionOpts{getLight, setLED {- TODO GHC doesn't yet support impredicative fields -}} = \case
     ResetError -> setLED opts.ledErrorPin False
     GetLightPower l -> statePowerToBool <$> sendMessage (getLight l) GetPower

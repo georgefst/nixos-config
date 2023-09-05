@@ -7,9 +7,8 @@ import George.Feed.WebServer qualified as WebServer
 import Util.GPIO qualified as GPIO
 import Util.Lifx
 
-import Control.Concurrent
 import Control.Monad.Except
-import Control.Monad.Log (logMessage, runLoggingT)
+import Control.Monad.Log (MonadLog, logMessage, runLoggingT)
 import Control.Monad.State
 import Data.Bool
 import Data.ByteString qualified as B
@@ -56,24 +55,21 @@ main :: IO ()
 main = do
     hSetBuffering stdout LineBuffering -- TODO necessary when running as systemd service - why? report upstream
     (opts :: Opts) <- getRecord "Clark"
-    eventMVar <- newEmptyMVar
 
     let
-        setLED :: (MonadState AppState m, MonadIO m) => Int -> Bool -> m ()
+        setLED :: (MonadState AppState m, MonadIO m, MonadLog Text m) => Int -> Bool -> m ()
         setLED pin =
             bool
                 ( use #activeLEDs <&> Map.lookup pin >>= \case
                     Just h -> GPIO.reset h >> #activeLEDs %= Map.delete pin
-                    Nothing -> log' "LED is already off"
+                    Nothing -> logMessage "LED is already off"
                 )
                 ( use #activeLEDs <&> Map.lookup pin >>= \case
                     Nothing -> GPIO.set opts.gpioChip [pin] >>= ((#activeLEDs %=) . Map.insert pin)
-                    Just _ -> log' "LED is already on"
+                    Just _ -> logMessage "LED is already on"
                 )
-          where
-            log' = liftIO . putMVar eventMVar . LogEvent
 
-        handleError :: (MonadIO m, MonadState AppState m) => Error -> m ()
+        handleError :: (MonadIO m, MonadState AppState m, MonadLog Text m) => Error -> m ()
         handleError err = do
             case err of
                 Error{title, body} -> do
@@ -100,7 +96,7 @@ main = do
                         Lamp -> lamp
                 runEventStream handleError logMessage (runAction (opts & \Opts{..} -> ActionOpts{..}))
                     . S.cons [LogEvent "Starting..."]
-                    . S.morphInner liftIO
+                    . S.morphInner (lift . lift)
                     $ S.parList
                         id
                         [ WebServer.feed (opts & \Opts{..} -> WebServer.Opts{port = httpPort, ..})
