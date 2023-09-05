@@ -95,7 +95,6 @@ main = do
                         Ceiling -> ceilingLight
                         Lamp -> lamp
                 runEventStream handleError logMessage (runAction (opts & \Opts{..} -> ActionOpts{..}))
-                    . S.cons [LogEvent "Starting..."]
                     . S.morphInner (lift . lift)
                     $ S.parList
                         id
