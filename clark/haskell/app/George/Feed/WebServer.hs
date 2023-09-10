@@ -31,38 +31,38 @@ feed opts =
             Okapi.Opts
                 { warpSettings = Warp.setPort opts.port Warp.defaultSettings
                 , routes =
-            [ withGetRoute "reset-error" $ f showT $ send ResetError
-            , withGetRoute "get-light-power" $ f showT . send . withExists @NullConstraint GetLightPower =<< segParam
-            , withGetRoute "set-light-power" do
-                Exists' l <- segParam
-                p <- segParam
-                f showT $ send $ SetLightPower l p
-            , withGetRoute "get-light-colour" $ f showT . send . withExists @NullConstraint GetLightColour =<< segParam
-            , withGetRoute "set-light-colour" do
-                Exists' light <- segParam
-                delay <- segParam @NominalDiffTime -- TODO why do we need this type app?
-                case light of
-                    Lamp -> do
-                        hue <- segParam
-                        saturation <- segParam
-                        brightness <- segParam
-                        kelvin <- segParam
-                        f showT $ send SetLightColour{colour = HSBK{..}, ..}
-                    Ceiling -> do
-                        brightness <- segParam
-                        kelvin <- segParam
-                        f showT $ send SetLightColourBK{lightBK = light, ..}
-            , withGetRoute "set-desk-usb-power" $ f showT . send . SetDeskUSBPower =<< segParam
-            , withGetRoute "send-email" do
-                subject <- segParam
-                body <- segParam
-                f showT $ send SendEmail{..}
-            , withGetRoute "suspend-laptop" $ f showT $ send SuspendLaptop
-            , withGetRoute "set-other-led" $ f showT . send . SetOtherLED =<< segParam
-            , withGetRoute "set-system-leds" $ f showT . send . SetSystemLEDs =<< segParam
-            , withGetRoute "toggle-ceiling-light" $ f showT toggleCeilingLight
-            , withGetRoute "sleep-or-wake" $ f showT $ sleepOrWake opts.lifxMorningDelay opts.lifxMorningKelvin
-            ]
+                    [ withGetRoute "reset-error" $ f showT $ send ResetError
+                    , withGetRoute "get-light-power" $ f showT . send . withExists @NullConstraint GetLightPower =<< segParam
+                    , withGetRoute "set-light-power" do
+                        Exists' l <- segParam
+                        p <- segParam
+                        f showT $ send $ SetLightPower l p
+                    , withGetRoute "get-light-colour" $ f showT . send . withExists @NullConstraint GetLightColour =<< segParam
+                    , withGetRoute "set-light-colour" do
+                        Exists' light <- segParam
+                        delay <- segParam @NominalDiffTime -- TODO why do we need this type app?
+                        case light of
+                            Lamp -> do
+                                hue <- segParam
+                                saturation <- segParam
+                                brightness <- segParam
+                                kelvin <- segParam
+                                f showT $ send SetLightColour{colour = HSBK{..}, ..}
+                            Ceiling -> do
+                                brightness <- segParam
+                                kelvin <- segParam
+                                f showT $ send SetLightColourBK{lightBK = light, ..}
+                    , withGetRoute "set-desk-usb-power" $ f showT . send . SetDeskUSBPower =<< segParam
+                    , withGetRoute "send-email" do
+                        subject <- segParam
+                        body <- segParam
+                        f showT $ send SendEmail{..}
+                    , withGetRoute "suspend-laptop" $ f showT $ send SuspendLaptop
+                    , withGetRoute "set-other-led" $ f showT . send . SetOtherLED =<< segParam
+                    , withGetRoute "set-system-leds" $ f showT . send . SetSystemLEDs =<< segParam
+                    , withGetRoute "toggle-ceiling-light" $ f showT toggleCeilingLight
+                    , withGetRoute "sleep-or-wake" $ f showT $ sleepOrWake opts.lifxMorningDelay opts.lifxMorningKelvin
+                    ]
                 }
             <&> \case
                 Okapi.Event x -> Just [x]
