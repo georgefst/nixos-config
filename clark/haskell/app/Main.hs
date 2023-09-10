@@ -95,10 +95,13 @@ main = do
                         Ceiling -> ceilingLight
                         Lamp -> lamp
                 runEventStream handleError logMessage (runAction (opts & \Opts{..} -> ActionOpts{..}))
-                    . S.morphInner (lift . lift)
+                    . S.morphInner liftIO
                     $ S.parList
                         id
-                        [ WebServer.feed (opts & \Opts{..} -> WebServer.Opts{port = httpPort, ..})
-                        , GPIO.feed (opts & \Opts{..} -> GPIO.Opts{..})
-                        , UDP.feed (opts & \Opts{..} -> UDP.Opts{..})
+                        [ WebServer.feed $
+                            opts & \Opts{..} -> WebServer.Opts{port = httpPort, ..}
+                        , GPIO.feed $
+                            opts & \Opts{gpioChip = chip, buttonPin = pin, buttonDebounce = debounce} -> GPIO.Opts{..}
+                        , UDP.feed $
+                            opts & \Opts{..} -> UDP.Opts{..}
                         ]

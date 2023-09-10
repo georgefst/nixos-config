@@ -38,6 +38,11 @@ executable clark
         ViewPatterns
     build-depends:
         base >= 4.16,
+        georgefst-utils,
+        georgefst-utils:gpio-utils,
+        georgefst-utils:streamly-utils,
+        georgefst-utils:streamly-gpio,
+        georgefst-utils:streamly-okapi,
         aeson ^>= 2.1.1,
         async >= 2.2.4,
         binary >= 0.8.9,

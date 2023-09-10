@@ -1,25 +1,17 @@
-module George.Feed.GPIO (feed, Opts (..)) where
+module George.Feed.GPIO (feed, GPIO.Opts (..)) where
 
 import George.Core
-import Util
-import Util.GPIO qualified as GPIO
 
-import Control.Monad.Freer
 import Control.Monad.IO.Class
-import Data.ByteString (ByteString)
+import Data.Time
 import Streamly.Data.Stream.Prelude qualified as S
+import Util.Streamly.GPIO qualified as GPIO
+import Util.Util
 
-data Opts = Opts
-    { gpioChip :: ByteString
-    , buttonDebounce :: Double
-    , buttonPin :: Int
-    }
-
-feed :: (S.MonadAsync m) => Opts -> S.Stream m [Event]
-feed opts = S.morphInner liftIO $ emitterToStream \f ->
-    GPIO.mon
-        opts.gpioChip
-        (f . pure . LogEvent)
-        opts.buttonDebounce
-        opts.buttonPin
-        (f [ActionEvent mempty $ send ResetError])
+feed :: GPIO.Opts -> S.Stream IO [Event]
+feed opts =
+    flip S.mapM (GPIO.stream opts) \case
+        GPIO.OutLine{ignoring, line} -> pure [LogEvent $ mwhen ignoring "(Ignoring) " <> line]
+        -- TODO we'd ideally use this is a power button, but for now we just monitor it
+        -- since there have been issues with electrical interference causing spurious triggers
+        GPIO.Event -> pure @[] . LogEvent . ("GPIO button pressed: " <>) . showT <$> liftIO getCurrentTime
