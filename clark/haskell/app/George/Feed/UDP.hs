@@ -1,7 +1,6 @@
 module George.Feed.UDP (feed, Opts (..)) where
 
 import George.Core
-import Util
 
 import Control.Monad.Freer
 import Control.Monad.IO.Class
@@ -14,8 +13,8 @@ import Data.Time
 import Data.Tuple.Extra
 import Data.Word
 import Network.Socket
-import Network.Socket.ByteString hiding (send)
 import Streamly.Data.Stream.Prelude qualified as S
+import Util.Streamly.UDP
 
 data Opts = Opts
     { receivePort :: PortNumber --
@@ -44,12 +43,8 @@ decodeAction opts =
             n -> fail $ "unknown action: " <> show n
 
 feed :: (MonadIO m) => Opts -> S.Stream m [Event]
-feed opts = S.morphInner liftIO $ streamWithInit
-    (socket AF_INET Datagram defaultProtocol >>= \s -> bind s (SockAddrInet opts.receivePort 0) >> pure s)
-    \sock ->
-        S.repeatM $
-            pure
-                . either (ErrorEvent . Error "Decode failure") (ActionEvent mempty)
-                . decodeAction opts
-                . BSL.fromStrict
-                <$> recv sock 4096
+feed opts =
+    pure
+        . either (ErrorEvent . Error "Decode failure") (ActionEvent mempty)
+        . decodeAction opts
+        <$> stream opts.receivePort

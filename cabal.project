@@ -16,7 +16,7 @@ source-repository-package
 source-repository-package
     type: git
     location: https://github.com/georgefst/georgefst-utils
-    tag: b76c56f23d49eb31cc6efab8f880b341f5cc7e02
+    tag: 4b652bf318dd65a7adc39e21422a4fac8cea9539
 
 allow-newer:
     -- https://github.com/lexi-lambda/freer-simple/pull/44
