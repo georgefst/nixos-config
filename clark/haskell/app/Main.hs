@@ -30,6 +30,7 @@ import Text.Pretty.Simple
 data Opts = Opts
     { gpioChip :: B.ByteString
     , buttonDebounce :: NominalDiffTime
+    , buttonWindow :: NominalDiffTime
     , buttonPin :: Int
     , ledErrorPin :: Int
     , ledOtherPin :: Int
@@ -101,7 +102,13 @@ main = do
                         [ WebServer.feed $
                             opts & \Opts{..} -> WebServer.Opts{port = httpPort, ..}
                         , GPIO.feed $
-                            opts & \Opts{gpioChip = chip, buttonPin = pin, buttonDebounce = debounce} -> GPIO.Opts{window = 0, ..}
+                            opts
+                                & \Opts
+                                    { gpioChip = chip
+                                    , buttonPin = pin
+                                    , buttonDebounce = debounce
+                                    , buttonWindow = window
+                                    } -> GPIO.Opts{..}
                         , UDP.feed $
                             opts & \Opts{..} -> UDP.Opts{..}
                         ]

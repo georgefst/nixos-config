@@ -146,7 +146,8 @@ in
       script = ''
         clark \
           --gpio-chip ${gpiochip} \
-          --button-debounce 1s \
+          --button-debounce 0.3s \
+          --button-window 1.5s \
           --button-pin ${toString button-pin} \
           --led-error-pin ${toString led-error-pin} \
           --led-other-pin ${toString led-other-pin} \

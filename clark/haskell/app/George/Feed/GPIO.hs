@@ -11,4 +11,8 @@ feed :: GPIO.Opts -> S.Stream IO [Event]
 feed opts =
     flip S.mapM (GPIO.stream opts) \case
         GPIO.OutLine{ignoring, line} -> pure [LogEvent $ mwhen ignoring "(Ignoring) " <> line]
-        GPIO.Event{} -> pure [ActionEvent mempty $ send ResetError]
+        GPIO.Event{repeats} ->
+            pure
+                [ ActionEvent mempty $ send ResetError
+                , LogEvent $ "GPIO button repeats: " <> showT repeats
+                ]
