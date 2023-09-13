@@ -25,6 +25,7 @@ feed Opts{..} =
     uncurry
         ( \logLines ->
             (map LogEvent logLines <>) . \case
+                0 -> [] -- TODO this batch only had ignored events - how can this happen unless `window < debounce`?
                 1 -> [ActionEvent mempty $ send ResetError]
                 3 -> [ActionEvent mempty $ send PowerOff]
                 n -> [ErrorEvent $ Error "No action for this number of GPIO presses" n]
