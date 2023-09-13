@@ -28,6 +28,14 @@ let
   button-pin = 27;
   led-error-pin = 19;
   led-other-pin = 26;
+
+  # helpers
+  agenix-user-secret = file: {
+    inherit file;
+    mode = "770";
+    owner = "gthomas";
+    group = "users";
+  };
 in
 {
   imports =
@@ -63,36 +71,12 @@ in
   hardware.enableRedistributableFirmware = true;
   hardware.firmware = [ pkgs.wireless-regdb ];
 
-  age.secrets.wifi-TNCAPA620AF-psk = {
-    file = ../secrets/wifi.TNCAPA620AF.psk.age;
-    mode = "770";
-    owner = "gthomas";
-    group = "users";
-  };
-  age.secrets.wifi-RML-5ghz-psk = {
-    file = ../secrets/wifi.RML-5ghz.psk.age;
-    mode = "770";
-    owner = "gthomas";
-    group = "users";
-  };
-  age.secrets.passwords-lta = {
-    file = ../secrets/passwords.lta.age;
-    mode = "770";
-    owner = "gthomas";
-    group = "users";
-  };
-  age.secrets.mailgun-sandbox = {
-    file = ../secrets/mailgun.sandbox.age;
-    mode = "770";
-    owner = "gthomas";
-    group = "users";
-  };
-  age.secrets.mailgun-key = {
-    file = ../secrets/mailgun.key.age;
-    mode = "770";
-    owner = "gthomas";
-    group = "users";
-  };
+  # agenix
+  age.secrets.wifi-TNCAPA620AF-psk = agenix-user-secret ../secrets/wifi.TNCAPA620AF.psk.age;
+  age.secrets.wifi-RML-5ghz-psk = agenix-user-secret ../secrets/wifi.RML-5ghz.psk.age;
+  age.secrets.passwords-lta = agenix-user-secret ../secrets/passwords.lta.age;
+  age.secrets.mailgun-sandbox = agenix-user-secret ../secrets/mailgun.sandbox.age;
+  age.secrets.mailgun-key = agenix-user-secret ../secrets/mailgun.key.age;
 
   # overlays
   nixpkgs.overlays = [
