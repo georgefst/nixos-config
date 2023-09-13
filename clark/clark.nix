@@ -222,9 +222,9 @@ in
           subject=$(head -n1 <<< "$data")
           body=$(tail -n+2 <<< "$data")
           echo "Sending: $subject"
-          curl --user 'api:$(<${config.age.secrets.mailgun-key.path})' \
+          curl --user "api:$(<${config.age.secrets.mailgun-key.path})" \
             https://api.mailgun.net/v3/sandbox$(<${config.age.secrets.mailgun-sandbox.path}).mailgun.org/messages \
-            -F from='Mailgun Sandbox <postmaster@sandbox$(<${config.age.secrets.mailgun-sandbox.path}).mailgun.org>' \
+            -F from="Mailgun Sandbox <postmaster@sandbox$(<${config.age.secrets.mailgun-sandbox.path}).mailgun.org>" \
             -F to='George Thomas <georgefsthomas@gmail.com>' \
             -F subject="$subject" \
             -F text="$body" \
