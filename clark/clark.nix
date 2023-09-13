@@ -20,10 +20,12 @@ let
   system-led-pipe = "/tmp/system-led-pipe";
   email-pipe = "/tmp/email-pipe";
 
+  # directories
   file-server-dir = home + "/serve";
   syncthing-main-dir = home + "/sync";
   syncthing-camera-dir = home + "/sync-camera";
 
+  # GPIO
   gpiochip = "gpiochip0";
   button-pin = 27;
   led-error-pin = 19;
