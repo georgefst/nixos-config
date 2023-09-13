@@ -11,4 +11,4 @@ feed :: GPIO.Opts -> S.Stream IO [Event]
 feed opts =
     flip S.mapM (GPIO.stream opts) \case
         GPIO.OutLine{ignoring, line} -> pure [LogEvent $ mwhen ignoring "(Ignoring) " <> line]
-        GPIO.Event -> pure [ActionEvent mempty $ send ResetError]
+        GPIO.Event{} -> pure [ActionEvent mempty $ send ResetError]
