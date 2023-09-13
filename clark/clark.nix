@@ -72,8 +72,7 @@ in
   hardware.firmware = [ pkgs.wireless-regdb ];
 
   # agenix
-  age.secrets.wifi-TNCAPA620AF-psk = agenix-user-secret ../secrets/wifi.TNCAPA620AF.psk.age;
-  age.secrets.wifi-RML-5ghz-psk = agenix-user-secret ../secrets/wifi.RML-5ghz.psk.age;
+  age.secrets.wifi = agenix-user-secret ../secrets/wifi.age;
   age.secrets.passwords-lta = agenix-user-secret ../secrets/passwords.lta.age;
   age.secrets.mailgun-sandbox = agenix-user-secret ../secrets/mailgun.sandbox.age;
   age.secrets.mailgun-key = agenix-user-secret ../secrets/mailgun.key.age;
@@ -126,11 +125,11 @@ in
   # wifi
   networking.wireless.enable = true;
   networking.wireless.interfaces = [ "wlan0" ];
-  networking.wireless.networks.TNCAPA620AF.psk = "";
-  # networking.wireless.networks = {
-  #   TNCAPA620AF.psk = config.age.secrets.TNCAPA620AF.psk.path;
-  #   RML-5ghz.psk = config.age.secrets.RML-5ghz.psk.path;
-  # };
+  networking.wireless.environmentFile = config.age.secrets.wifi.path;
+  networking.wireless.networks = {
+    TNCAPA620AF.psk = "@PSK_TNCAPA620AF@";
+    RML-5ghz.psk = "@PSK_RML-5ghz@";
+  };
 
   # global installs
   environment.systemPackages = with pkgs; [
@@ -252,10 +251,8 @@ in
   systemd.services = {
     print-secrets = {
       script = ''
-        echo ${config.age.secrets.wifi-TNCAPA620AF-psk.path}
-        cat ${config.age.secrets.wifi-TNCAPA620AF-psk.path}
-        echo ${config.age.secrets.wifi-RML-5ghz-psk.path}
-        cat ${config.age.secrets.wifi-RML-5ghz-psk.path}
+        echo ${config.age.secrets.wifi.path}
+        cat ${config.age.secrets.wifi.path}
         echo ${config.age.secrets.passwords-lta.path}
         cat ${config.age.secrets.passwords-lta.path}
         echo ${config.age.secrets.mailgun-sandbox.path}
