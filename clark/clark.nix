@@ -249,20 +249,6 @@ in
   };
   # for whatever reason (e.g. binding to port 80), these need to be run as root
   systemd.services = {
-    print-secrets = {
-      script = ''
-        echo ${config.age.secrets.wifi.path}
-        cat ${config.age.secrets.wifi.path}
-        echo ${config.age.secrets.passwords-lta.path}
-        cat ${config.age.secrets.passwords-lta.path}
-        echo ${config.age.secrets.mailgun-sandbox.path}
-        cat ${config.age.secrets.mailgun-sandbox.path}
-        echo ${config.age.secrets.mailgun-key.path}
-        cat ${config.age.secrets.mailgun-key.path}
-      '';
-      description = "print-secrets";
-      wantedBy = startup-root;
-    };
     system-leds = {
       script = ''
         while true
