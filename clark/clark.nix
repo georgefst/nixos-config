@@ -16,6 +16,7 @@ let
   mqtt-port = 8883; # actually the default port, and probably implicitly assumed all over, including outside this file
   extra-ports = [ 56720 ]; # for temporary scripts etc.
   system-led-pipe = "/tmp/system-led-pipe";
+  power-off-pipe = "/tmp/power-off-pipe";
   email-pipe = "/tmp/email-pipe";
 
   # directories
@@ -164,6 +165,7 @@ in
           --lifx-morning-kelvin 2700 \
           --desk-usb-port 2 \
           --system-led-pipe ${system-led-pipe} \
+          --power-off-pipe ${power-off-pipe} \
         || printf "Clark script failed\nInspect service logs for more info." > ${email-pipe} \
         && gpioset --mode=signal ${gpiochip} ${toString led-error-pin}=1 \
       '';
@@ -250,6 +252,15 @@ in
   };
   # for whatever reason (e.g. binding to port 80), these need to be run as root
   systemd.services = {
+    power-off = {
+      script = ''
+        data=$(<${power-off-pipe})
+        echo $data
+        poweroff
+      '';
+      description = "poweroff server";
+      wantedBy = startup-root;
+    };
     system-leds = {
       script = ''
         while true
@@ -327,6 +338,7 @@ in
     make-pipes = ''
       if [[ ! -e ${email-pipe} ]]; then mkfifo ${email-pipe} && chown gthomas:users ${email-pipe} ; fi
       if [[ ! -e ${system-led-pipe} ]]; then mkfifo ${system-led-pipe} && chown gthomas:users ${system-led-pipe} ; fi
+      if [[ ! -e ${power-off-pipe} ]]; then mkfifo ${power-off-pipe} && chown gthomas:users ${power-off-pipe} ; fi
     '';
     # allows certain scripts and config files to be compatible across my devices
     syncthing-root-link = ''

@@ -47,6 +47,7 @@ data Opts = Opts
     , lifxMorningKelvin :: Word16
     , deskUsbPort :: Int
     , systemLedPipe :: FilePath
+    , powerOffPipe :: FilePath
     }
     deriving (Show, Generic)
 instance ParseRecord Opts where
