@@ -1,8 +1,6 @@
-{ pkgs, extraPkgs, ... }:
+{ pkgs, config, extraPkgs, ... }:
 with builtins;
 let
-  secrets = import ./secrets.nix;
-
   # some of the places I'm using this are running as root
   home = "/home/gthomas";
 
@@ -65,6 +63,37 @@ in
   hardware.enableRedistributableFirmware = true;
   hardware.firmware = [ pkgs.wireless-regdb ];
 
+  age.secrets.wifi-TNCAPA620AF-psk = {
+    file = ../secrets/wifi.TNCAPA620AF.psk.age;
+    mode = "770";
+    owner = "gthomas";
+    group = "users";
+  };
+  age.secrets.wifi-RML-5ghz-psk = {
+    file = ../secrets/wifi.RML-5ghz.psk.age;
+    mode = "770";
+    owner = "gthomas";
+    group = "users";
+  };
+  age.secrets.passwords-lta = {
+    file = ../secrets/passwords.lta.age;
+    mode = "770";
+    owner = "gthomas";
+    group = "users";
+  };
+  age.secrets.mailgun-sandbox = {
+    file = ../secrets/mailgun.sandbox.age;
+    mode = "770";
+    owner = "gthomas";
+    group = "users";
+  };
+  age.secrets.mailgun-key = {
+    file = ../secrets/mailgun.key.age;
+    mode = "770";
+    owner = "gthomas";
+    group = "users";
+  };
+
   # overlays
   nixpkgs.overlays = [
     (self: super: { })
@@ -113,7 +142,11 @@ in
   # wifi
   networking.wireless.enable = true;
   networking.wireless.interfaces = [ "wlan0" ];
-  networking.wireless.networks = secrets.wifi;
+  networking.wireless.networks.TNCAPA620AF.psk = "";
+  # networking.wireless.networks = {
+  #   TNCAPA620AF.psk = config.age.secrets.TNCAPA620AF.psk.path;
+  #   RML-5ghz.psk = config.age.secrets.RML-5ghz.psk.path;
+  # };
 
   # global installs
   environment.systemPackages = with pkgs; [
@@ -182,7 +215,7 @@ in
       script = ''
         tennis-scraper \
           --username georgefst \
-          --password ${secrets.passwords.lta} \
+          --password $(<${config.age.secrets.passwords-lta.path}) \
           --dhall ${home}/sync/config/tennis-scraper.dhall \
           --notify ${
             pkgs.writeShellScript "notify" ''
@@ -206,9 +239,9 @@ in
           subject=$(head -n1 <<< "$data")
           body=$(tail -n+2 <<< "$data")
           echo "Sending: $subject"
-          curl --user 'api:${secrets.mailgun.key}' \
-            https://api.mailgun.net/v3/sandbox${secrets.mailgun.sandbox}.mailgun.org/messages \
-            -F from='Mailgun Sandbox <postmaster@sandbox${secrets.mailgun.sandbox}.mailgun.org>' \
+          curl --user 'api:$(<${config.age.secrets.mailgun-key.path})' \
+            https://api.mailgun.net/v3/sandbox$(<${config.age.secrets.mailgun-sandbox.path}).mailgun.org/messages \
+            -F from='Mailgun Sandbox <postmaster@sandbox$(<${config.age.secrets.mailgun-sandbox.path}).mailgun.org>' \
             -F to='George Thomas <georgefsthomas@gmail.com>' \
             -F subject="$subject" \
             -F text="$body" \
