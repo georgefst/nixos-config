@@ -2,7 +2,6 @@ module George.Feed.GPIO (feed, Opts (..)) where
 
 import George.Core
 
-import Control.Arrow ((>>>))
 import Control.Monad.Freer (send)
 import Data.Bifunctor
 import Data.ByteString (ByteString)
@@ -24,15 +23,16 @@ data Opts = Opts
 feed :: Opts -> S.Stream IO [Event]
 feed Opts{..} =
     uncurry
-        ( (<>) >>> (>>>) \case
-            1 -> [ActionEvent mempty $ send ResetError]
-            3 -> [ActionEvent mempty $ send PowerOff]
-            n -> [ErrorEvent $ Error "No action for this number of GPIO presses" n]
+        ( \logLines ->
+            (map LogEvent logLines <>) . \case
+                1 -> [ActionEvent mempty $ send ResetError]
+                3 -> [ActionEvent mempty $ send PowerOff]
+                n -> [ErrorEvent $ Error "No action for this number of GPIO presses" n]
         )
         . second (length @[] @())
         . partitionEithers
         . toList
         . fmap \case
-            GPIO.OutLine{ignoring, line} -> Left $ LogEvent $ mwhen ignoring "(Ignoring) " <> line
+            GPIO.OutLine{ignoring, line} -> Left $ mwhen ignoring "(Ignoring) " <> line
             GPIO.Event -> Right ()
         <$> S.groupByTime window (GPIO.stream GPIO.Opts{..})
