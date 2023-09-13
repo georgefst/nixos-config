@@ -2,11 +2,12 @@
   inputs = {
     nixpkgs.url = "nixpkgs/nixos-23.05";
     flake-utils.url = "github:numtide/flake-utils";
+    agenix.url = "github:ryantm/agenix";
     haskellNix.url = "github:input-output-hk/haskell.nix";
     nixpkgs-haskell.follows = "haskellNix/nixpkgs-unstable";
     tennis-scraper = { url = "git+ssh://git@github.com/georgefst/tennis-scraper"; flake = false; };
   };
-  outputs = inputs@{ self, nixpkgs, flake-utils, ... }: rec {
+  outputs = inputs@{ self, nixpkgs, flake-utils, agenix, ... }: rec {
     haskell =
       builtins.mapAttrs
         (name: src: (flake-utils.lib.eachSystem [ "aarch64-linux" ] (system:
@@ -38,6 +39,7 @@
         modules = [
           "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
           ./clark/clark.nix
+          agenix.nixosModules.default
         ];
         specialArgs = {
           extraPkgs = {

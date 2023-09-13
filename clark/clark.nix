@@ -1,8 +1,6 @@
-{ pkgs, extraPkgs, ... }:
+{ pkgs, config, extraPkgs, ... }:
 with builtins;
 let
-  secrets = import ./secrets.nix;
-
   # some of the places I'm using this are running as root
   home = "/home/gthomas";
 
@@ -30,6 +28,14 @@ let
   button-pin = 27;
   led-error-pin = 19;
   led-other-pin = 26;
+
+  # helpers
+  agenix-user-secret = file: {
+    inherit file;
+    mode = "770";
+    owner = "gthomas";
+    group = "users";
+  };
 in
 {
   imports =
@@ -64,6 +70,12 @@ in
   boot.loader.generic-extlinux-compatible.enable = true;
   hardware.enableRedistributableFirmware = true;
   hardware.firmware = [ pkgs.wireless-regdb ];
+
+  # agenix
+  age.secrets.wifi = agenix-user-secret ../secrets/wifi.age;
+  age.secrets.passwords-lta = agenix-user-secret ../secrets/passwords.lta.age;
+  age.secrets.mailgun-sandbox = agenix-user-secret ../secrets/mailgun.sandbox.age;
+  age.secrets.mailgun-key = agenix-user-secret ../secrets/mailgun.key.age;
 
   # overlays
   nixpkgs.overlays = [
@@ -113,7 +125,11 @@ in
   # wifi
   networking.wireless.enable = true;
   networking.wireless.interfaces = [ "wlan0" ];
-  networking.wireless.networks = secrets.wifi;
+  networking.wireless.environmentFile = config.age.secrets.wifi.path;
+  networking.wireless.networks = {
+    TNCAPA620AF.psk = "@PSK_TNCAPA620AF@";
+    RML-5ghz.psk = "@PSK_RML-5ghz@";
+  };
 
   # global installs
   environment.systemPackages = with pkgs; [
@@ -182,7 +198,7 @@ in
       script = ''
         tennis-scraper \
           --username georgefst \
-          --password ${secrets.passwords.lta} \
+          --password $(<${config.age.secrets.passwords-lta.path}) \
           --dhall ${home}/sync/config/tennis-scraper.dhall \
           --notify ${
             pkgs.writeShellScript "notify" ''
@@ -206,9 +222,9 @@ in
           subject=$(head -n1 <<< "$data")
           body=$(tail -n+2 <<< "$data")
           echo "Sending: $subject"
-          curl --user 'api:${secrets.mailgun.key}' \
-            https://api.mailgun.net/v3/sandbox${secrets.mailgun.sandbox}.mailgun.org/messages \
-            -F from='Mailgun Sandbox <postmaster@sandbox${secrets.mailgun.sandbox}.mailgun.org>' \
+          curl --user 'api:$(<${config.age.secrets.mailgun-key.path})' \
+            https://api.mailgun.net/v3/sandbox$(<${config.age.secrets.mailgun-sandbox.path}).mailgun.org/messages \
+            -F from='Mailgun Sandbox <postmaster@sandbox$(<${config.age.secrets.mailgun-sandbox.path}).mailgun.org>' \
             -F to='George Thomas <georgefsthomas@gmail.com>' \
             -F subject="$subject" \
             -F text="$body" \
