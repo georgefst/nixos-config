@@ -25,7 +25,7 @@ let
 
   # GPIO
   gpiochip = "gpiochip0";
-  button-pin = 27;
+  button-pin = 23;
   led-error-pin = 19;
   led-other-pin = 26;
 
