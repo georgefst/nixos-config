@@ -89,6 +89,7 @@ in
   users.groups.gpio = { };
   services.udev.extraRules = ''
     SUBSYSTEM=="gpio", KERNEL=="gpiochip*", GROUP="gpio", MODE="0660"
+    KERNEL=="input", GROUP="input", MODE:="0660", OPTIONS+="static_node=input"
     KERNEL=="uinput", GROUP="uinput", MODE:="0660", OPTIONS+="static_node=uinput"
   '';
 
@@ -103,6 +104,7 @@ in
       extraGroups = [
         "gpio"
         "wheel"
+        "input"
         "uinput"
       ];
       hashedPassword = "$6$jgaC/YaKr634BoKQ$KIv3VvRRaYShRibX5O3lAaqZ2qE3XRcYQEd0EF6YP61a9YBYUcPtljpDPE8.wEnMDNeUw9/ePBjsrK9JUv5i5/";
