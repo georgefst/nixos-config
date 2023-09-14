@@ -377,6 +377,10 @@ in
         ln -s ${syncthing-main-dir} /syncthing
       fi
     '';
+    # ensures correct orientation on the portrait monitor usually used
+    rotate-video-output = ''
+      echo 3 > /sys/class/graphics/fbcon/rotate
+    '';
     # stops user services from being killed when all SSH sessions close
     # inspired by https://github.com/NixOS/nixpkgs/issues/183629#issuecomment-1199256913
     # as discussed in that thread, there'll hopefully be a proper NixOS option for this eventually
