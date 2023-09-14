@@ -3,8 +3,8 @@ let
   x = { publicKeys = [ clark ]; };
 in
 {
-  "wifi.age" = x;
-  "passwords.lta.age" = x;
-  "mailgun.sandbox.age" = x;
   "mailgun.key.age" = x;
+  "mailgun.sandbox.age" = x;
+  "passwords.lta.age" = x;
+  "wifi.age" = x;
 }

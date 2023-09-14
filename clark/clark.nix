@@ -73,10 +73,10 @@ in
   hardware.firmware = [ pkgs.wireless-regdb ];
 
   # agenix
-  age.secrets.wifi = agenix-user-secret ../secrets/wifi.age;
-  age.secrets.passwords-lta = agenix-user-secret ../secrets/passwords.lta.age;
-  age.secrets.mailgun-sandbox = agenix-user-secret ../secrets/mailgun.sandbox.age;
   age.secrets.mailgun-key = agenix-user-secret ../secrets/mailgun.key.age;
+  age.secrets.mailgun-sandbox = agenix-user-secret ../secrets/mailgun.sandbox.age;
+  age.secrets.passwords-lta = agenix-user-secret ../secrets/passwords.lta.age;
+  age.secrets.wifi = agenix-user-secret ../secrets/wifi.age;
 
   # overlays
   nixpkgs.overlays = [
