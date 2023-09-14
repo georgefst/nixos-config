@@ -180,8 +180,9 @@ in
       path = [ extraPkgs.clark pkgs.libgpiod pkgs.mosquitto pkgs.openssh ];
       wantedBy = startup;
     };
-    email-ip = {
+    ip-notify = {
       script = ''
+        MSG="Update home IP"
         IP=""
         while true
         do
@@ -192,7 +193,32 @@ in
           if [[ $NEW_IP != $IP ]]
           then
             echo "Changed: $NEW_IP"
-            printf "Public IP address changed\nOld:\n$IP\n\nNew:\n$NEW_IP" > ${email-pipe}
+
+            DIR=$(mktemp -d)
+            cd $DIR
+            git clone git@github.com:georgefst/george-conf
+            cd george-conf
+
+            BRANCH=clark-ip-$(date +%s)
+            git switch -c $BRANCH
+            sed -i -e "0,/HostName.*/s//HostName $NEW_IP/" ssh/config # NB. this assumes home is the first in the file
+
+            if [[ ! `git status --porcelain` ]]
+            then
+              # this should only happen at startup when $IP is empty
+              echo "Actually, no change: $IP, $NEW_IP"
+            else
+              git add ssh/config
+              git commit -m "$MSG"
+              git push --set-upstream origin $BRANCH
+
+              export GH_TOKEN=$(<${config.age.secrets.gh-key.path})
+              OUT=$(gh pr create --title "$MSG" --body "")
+              printf '%s' "$OUT"
+              URL=$(printf '%s' "$OUT" | tail -n1)
+
+              printf "Public IP address changed\n$URL" > ${email-pipe}
+            fi
           else
             echo "No change"
           fi
@@ -201,7 +227,7 @@ in
         done
       '';
       description = "notify when IP changes";
-      path = [ pkgs.curl ];
+      path = [ pkgs.curl pkgs.gh pkgs.git pkgs.openssh ];
       wantedBy = startup;
     };
     tennis-scraper = {
