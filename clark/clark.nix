@@ -129,6 +129,7 @@ in
   networking.wireless.networks = {
     TNCAPA620AF.psk = "@PSK_TNCAPA620AF@";
     RML-5ghz.psk = "@PSK_RML-5ghz@";
+    GT.psk = "@PSK_GT@";
   };
 
   # global installs
