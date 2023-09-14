@@ -5,6 +5,7 @@
     agenix.url = "github:ryantm/agenix";
     haskellNix.url = "github:input-output-hk/haskell.nix";
     nixpkgs-haskell.follows = "haskellNix/nixpkgs-unstable";
+    evdev-share.url = "github:georgefst/evdev-share";
     tennis-scraper = { url = "git+ssh://git@github.com/georgefst/tennis-scraper"; flake = false; };
   };
   outputs = inputs@{ self, nixpkgs, flake-utils, agenix, ... }: rec {
@@ -44,6 +45,7 @@
         specialArgs = {
           extraPkgs = {
             clark = haskell.clark.packages.aarch64-linux."clark:exe:clark";
+            evdev-share = inputs.evdev-share.packages.aarch64-linux.default;
             tennis-scraper = haskell.tennis-scraper.packages.aarch64-linux."tennis-scraper:exe:tennis-scraper";
           };
         };

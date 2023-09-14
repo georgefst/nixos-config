@@ -12,6 +12,7 @@ let
   clark-script-udp-port = 56710; # if we change this we need to modify Tasker config, .bashrc etc.
   clark-script-lifx-port = 56711;
   clark-script-http-port = 8000; # if we change this we need to modify Shelly buttons etc.
+  evdev-share-port = 56701;
   droopy-port = 80;
   mqtt-port = 8883; # actually the default port, and probably implicitly assumed all over, including outside this file
   extra-ports = [ 56720 ]; # for temporary scripts etc.
@@ -88,9 +89,11 @@ in
   users.groups.gpio = { };
   services.udev.extraRules = ''
     SUBSYSTEM=="gpio", KERNEL=="gpiochip*", GROUP="gpio", MODE="0660"
+    KERNEL=="uinput", GROUP="uinput", MODE:="0660", OPTIONS+="static_node=uinput"
   '';
 
   # users
+  users.groups.uinput.members = [ "gthomas" ]; # not clear why this is necessary when it's also specified below
   users.users = {
     root = { };
     gthomas = {
@@ -100,6 +103,7 @@ in
       extraGroups = [
         "gpio"
         "wheel"
+        "uinput"
       ];
       hashedPassword = "$6$jgaC/YaKr634BoKQ$KIv3VvRRaYShRibX5O3lAaqZ2qE3XRcYQEd0EF6YP61a9YBYUcPtljpDPE8.wEnMDNeUw9/ePBjsrK9JUv5i5/";
     };
@@ -228,6 +232,14 @@ in
       path = [ pkgs.curl pkgs.gh pkgs.git pkgs.openssh ];
       wantedBy = startup;
     };
+    evdev-share = {
+      script = ''
+        evdev-share-server -p ${builtins.toString evdev-share-port} -n evdev-share
+      '';
+      description = "evdev share server";
+      path = [ extraPkgs.evdev-share ];
+      wantedBy = startup;
+    };
     tennis-scraper = {
       script = ''
         tennis-scraper \
@@ -330,6 +342,7 @@ in
   networking.firewall.allowedUDPPorts = [
     clark-script-udp-port
     clark-script-lifx-port
+    evdev-share-port
   ] ++ extra-ports;
   networking.firewall.allowedTCPPorts = [
     droopy-port
