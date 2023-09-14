@@ -73,6 +73,7 @@ in
   hardware.firmware = [ pkgs.wireless-regdb ];
 
   # agenix
+  age.secrets.gh-key = agenix-user-secret ../secrets/github.key.age;
   age.secrets.mailgun-key = agenix-user-secret ../secrets/mailgun.key.age;
   age.secrets.mailgun-sandbox = agenix-user-secret ../secrets/mailgun.sandbox.age;
   age.secrets.passwords-lta = agenix-user-secret ../secrets/passwords.lta.age;

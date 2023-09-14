@@ -3,6 +3,7 @@ let
   x = { publicKeys = [ clark ]; };
 in
 {
+  "github.key.age" = x;
   "mailgun.key.age" = x;
   "mailgun.sandbox.age" = x;
   "passwords.lta.age" = x;
