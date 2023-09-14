@@ -133,11 +133,17 @@ in
     GT.psk = "@PSK_GT@";
   };
 
+  # git
+  programs.git.enable = true;
+  programs.git.config = {
+    user.name = "George Thomas";
+    user.email = "georgefsthomas@gmail.com";
+  };
+
   # global installs
   environment.systemPackages = with pkgs; [
     autoPatchelfHook
     file
-    git
     libgpiod
     tree
   ];
