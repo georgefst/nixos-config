@@ -7,31 +7,19 @@ module Util where
 import Control.Concurrent
 import Control.Concurrent.Async
 import Control.Monad.Catch
-import Control.Monad.Except
 import Control.Monad.Freer
-import Control.Monad.State.Strict
 import Data.ByteString (ByteString)
 import Data.ByteString qualified as B
 import Data.Either.Extra
 import Data.Kind
 import Data.List.Extra
 import Data.Proxy
-import Data.Text qualified as T
-import Data.Text.Encoding hiding (Some)
-import Data.Time (NominalDiffTime, nominalDiffTimeToSeconds)
+import Data.Time (NominalDiffTime)
 import Network.Socket
 import Okapi (OkapiT)
 import Options.Generic
 import RawFilePath
-import Streamly.Data.Stream.Prelude qualified as S
-import Streamly.Data.StreamK qualified as SK
-import Streamly.Internal.Data.Stream.StreamK qualified as SK
 import System.Exit
-
-showT :: (Show a) => a -> Text
-showT = T.pack . show
-showBS :: (Show a) => a -> ByteString
-showBS = encodeUtf8 . showT
 
 -- TODO return partial stdout/stderr in timeout case
 
@@ -90,13 +78,6 @@ catchMany' ::
     m a
 catchMany' ps h = flip catches . fmap (withExists \(_ :: Proxy e) -> Handler @_ @_ @e h) $ ps
 
-(.:) :: (c -> c') -> (a -> b -> c) -> a -> b -> c'
-(.:) = (.) . (.)
-
--- TODO there should really be a simpler way to implement this with folds
-scanStream :: (Monad f) => s -> (a -> s -> f (b, s)) -> S.Stream f a -> S.Stream f b
-scanStream s0 f = fmap snd . S.runStateT (pure s0) . S.mapM (StateT . f) . S.morphInner lift
-
 newtype IP = IP {unIP :: HostAddress}
     deriving stock (Generic)
     deriving anyclass (ParseRecord, ParseField, ParseFields)
@@ -123,23 +104,3 @@ instance ParseRecord NominalDiffTime where
 -- https://gitlab.haskell.org/ghc/ghc/-/issues/15681
 instance MonadFail (OkapiT IO) where
     fail s = error $ "`MonadFail (OkapiT IO)` shouldn't be used" <> s
-
-threadDelay' :: NominalDiffTime -> IO ()
-threadDelay' = threadDelay . round . (* 1_000_000) . nominalDiffTimeToSeconds
-
-mwhen :: (Monoid p) => Bool -> p -> p
-mwhen b x = if b then x else mempty
-
--- TODO is there a better way to implement this than all this faffing with `SK`?
-streamWithInit :: (Monad m) => m t -> (t -> S.Stream m a) -> S.Stream m a
-streamWithInit init_ stream = SK.toStream $ SK.unCross do
-    m <- SK.mkCross $ SK.fromStream $ S.fromEffect init_
-    SK.mkCross . SK.fromStream $ stream m
-
--- TODO is there a better way to implement this? seems like a common pattern?
-emitterToStream :: (S.MonadAsync m) => ((a -> m ()) -> m ()) -> S.Stream m a
-emitterToStream f = streamWithInit (liftIO newEmptyMVar) \m ->
-    (S.catMaybes . S.parList id)
-        [ S.fromEffect $ (\() -> Nothing) <$> f (liftIO . putMVar m)
-        , S.repeatM $ Just <$> liftIO (takeMVar m)
-        ]

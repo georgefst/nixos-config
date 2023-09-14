@@ -16,6 +16,7 @@ import Okapi hiding (Event, error, get, head)
 import Okapi qualified hiding (Event, head)
 import Streamly.Data.Stream.Prelude qualified as S
 import Util.Streamly.Okapi qualified as Okapi
+import Util.Util
 
 data Opts = Opts
     { port :: Warp.Port

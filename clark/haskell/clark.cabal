@@ -15,7 +15,6 @@ executable clark
         George.Feed.WebServer
         MQTT.Meross
         Util
-        Util.GPIO
         Util.Lifx
     hs-source-dirs: app
     default-language: GHC2021
