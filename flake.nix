@@ -14,20 +14,20 @@
         (name: src: (flake-utils.lib.eachDefaultSystem (system:
           let
             flake = (import inputs.nixpkgs-haskell {
-            inherit system;
-            overlays = [
-              inputs.haskellNix.overlay
-              (final: prev: {
-                hixProject =
-                  final.haskell-nix.hix.project {
-                    inherit src;
-                    compiler-nix-name = "ghc928";
-                    index-state = "2023-06-28T00:00:00Z";
-                    evalSystem = "x86_64-linux";
-                  };
-              })
-            ];
-            inherit (inputs.haskellNix) config;
+              inherit system;
+              overlays = [
+                inputs.haskellNix.overlay
+                (final: prev: {
+                  hixProject =
+                    final.haskell-nix.hix.project {
+                      inherit src;
+                      compiler-nix-name = "ghc928";
+                      index-state = "2023-06-28T00:00:00Z";
+                      evalSystem = "x86_64-linux";
+                    };
+                })
+              ];
+              inherit (inputs.haskellNix) config;
             }).hixProject.flake { };
             default = "${name}:exe:${name}"; # only factored out because of issues with vscode syntax highlighter
           in
