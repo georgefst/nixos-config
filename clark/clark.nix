@@ -89,7 +89,6 @@ in
   users.groups.gpio = { };
   services.udev.extraRules = ''
     SUBSYSTEM=="gpio", KERNEL=="gpiochip*", GROUP="gpio", MODE="0660"
-    KERNEL=="input", GROUP="input", MODE:="0660", OPTIONS+="static_node=input"
     KERNEL=="uinput", GROUP="uinput", MODE:="0660", OPTIONS+="static_node=uinput"
   '';
 
