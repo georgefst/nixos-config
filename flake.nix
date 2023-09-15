@@ -49,10 +49,10 @@
           agenix.nixosModules.default
         ];
         specialArgs = {
-          extraPkgs = {
-            clark = haskell.clark.packages.aarch64-linux.default;
-            evdev-share = inputs.evdev-share.packages.aarch64-linux.default;
-            tennis-scraper = haskell.tennis-scraper.packages.aarch64-linux.default;
+          extraPkgs = builtins.mapAttrs (_: flake: flake.packages.aarch64-linux.default) {
+            clark = haskell.clark;
+            evdev-share = inputs.evdev-share;
+            tennis-scraper = haskell.tennis-scraper;
           };
         };
       };
