@@ -12,7 +12,8 @@
     haskell =
       builtins.mapAttrs
         (name: src: (flake-utils.lib.eachDefaultSystem (system:
-          (import inputs.nixpkgs-haskell {
+          let
+            flake = (import inputs.nixpkgs-haskell {
             inherit system;
             overlays = [
               inputs.haskellNix.overlay
@@ -27,7 +28,12 @@
               })
             ];
             inherit (inputs.haskellNix) config;
-          }).hixProject.flake { }
+            }).hixProject.flake { };
+            default = "${name}:exe:${name}"; # only factored out because of issues with vscode syntax highlighter
+          in
+          flake // {
+            packages = flake.packages // { default = flake.packages."${default}"; };
+          }
         )))
         {
           clark = ./.;
@@ -44,9 +50,9 @@
         ];
         specialArgs = {
           extraPkgs = {
-            clark = haskell.clark.packages.aarch64-linux."clark:exe:clark";
+            clark = haskell.clark.packages.aarch64-linux.default;
             evdev-share = inputs.evdev-share.packages.aarch64-linux.default;
-            tennis-scraper = haskell.tennis-scraper.packages.aarch64-linux."tennis-scraper:exe:tennis-scraper";
+            tennis-scraper = haskell.tennis-scraper.packages.aarch64-linux.default;
           };
         };
       };
