@@ -94,7 +94,7 @@ in
   '';
 
   # users
-  users.groups.uinput.members = [ "gthomas" ]; # not clear why this is necessary when it's also specified below
+  users.groups.uinput = { };
   users.users = {
     root = { };
     gthomas = {
