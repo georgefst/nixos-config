@@ -49,11 +49,10 @@
           agenix.nixosModules.default
         ];
         specialArgs = {
-          extraPkgs = builtins.mapAttrs (_: flake: flake.packages.aarch64-linux.default) {
-            clark = haskell.clark;
-            evdev-share = inputs.evdev-share;
-            tennis-scraper = haskell.tennis-scraper;
-          };
+          extraPkgs = builtins.listToAttrs
+            (map (name: { inherit name; value = (inputs // haskell)."${name}".packages.aarch64-linux.default; })
+              [ "clark" "evdev-share" "tennis-scraper" ]
+            );
         };
       };
     };
