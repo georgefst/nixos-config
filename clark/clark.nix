@@ -291,7 +291,7 @@ in
       postStop = ''
         if [ $SERVICE_RESULT != success ]
         then
-          sed -i "1iClark failed to send email ($(date)): $subject" ${syncthing-main-dir}/notes/todo.md
+          sed -i "1iClark failed to send email at $(date)" ${syncthing-main-dir}/notes/todo.md
         fi
       '';
       serviceConfig = { Restart = "always"; };
