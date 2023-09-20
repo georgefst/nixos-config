@@ -51,7 +51,7 @@ let
         gpioset --mode=signal ${gpiochip} ${toString led-error-pin}=1
       fi
     '';
-    serviceConfig = {
+    serviceConfig = (service.serviceConfig or { }) // {
       TimeoutStopSec = "infinity"; # we want `gpioset` to persist until we manually restart the service
     };
   };
@@ -204,8 +204,6 @@ in
       script = ''
         MSG="Update home IP"
         IP=""
-        while true
-        do
           NEW_IP=$(
             curl -s https://ipinfo.io/ip ||
               printf "Public IP address lookup failed\nWill try again on next iteration." > ${email-pipe}
@@ -242,8 +240,8 @@ in
           fi
           IP=$NEW_IP
           sleep $((15 * 60))
-        done
       '';
+      serviceConfig = { Restart = "always"; };
       description = "IP change notifier";
       path = [ pkgs.curl pkgs.gh pkgs.git pkgs.openssh ];
       wantedBy = startup;
@@ -278,8 +276,6 @@ in
     };
     email-handler = service-with-exit-notification {
       script = ''
-        while true
-        do
           data=$(<${email-pipe})
           subject=$(head -n1 <<< "$data")
           body=$(tail -n+2 <<< "$data")
@@ -291,8 +287,8 @@ in
             -F subject="$subject" \
             -F text="$body" \
           || sed -i "1iClark failed to send email ($(date)): $subject" ${syncthing-main-dir}/notes/todo.md
-        done
       '';
+      serviceConfig = { Restart = "always"; };
       description = "email handler";
       path = [ pkgs.curl ];
       wantedBy = startup;
@@ -322,8 +318,6 @@ in
     };
     system-leds = service-with-exit-notification {
       script = ''
-        while true
-        do
           data=$(<${system-led-pipe})
           echo $data
           if [[ $data == 0 ]]
@@ -334,8 +328,8 @@ in
             echo mmc1 > /sys/class/leds/mmc1::/trigger
             echo heartbeat > /sys/class/leds/ACT/trigger
           fi
-        done
       '';
+      serviceConfig = { Restart = "always"; };
       description = "system led server";
       wantedBy = startup-root;
     };
