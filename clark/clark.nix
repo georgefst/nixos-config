@@ -352,7 +352,6 @@ in
         echo 3 > /sys/class/graphics/fbcon/rotate
       '';
       description = "rotate video output";
-      path = [ ];
       wantedBy = startup-root;
     };
   };
