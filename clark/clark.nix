@@ -275,7 +275,7 @@ in
       wantedBy = startup;
       wants = [ "geckodriver.service" ];
     };
-    email-handler = service-with-exit-notification {
+    email-handler = {
       script = ''
         data=$(<${email-pipe})
         subject=$(head -n1 <<< "$data")
