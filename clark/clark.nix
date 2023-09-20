@@ -43,6 +43,7 @@ let
       printf "SERVICE_RESULT: $SERVICE_RESULT\n"
       printf "EXIT_CODE: $EXIT_CODE\n"
       printf "EXIT_STATUS: $EXIT_STATUS\n"
+    '' + (service.postStop or "") + ''
       if [ $SERVICE_RESULT != success ]
       then
         printf 'Clark service exited: ${service.description}
@@ -286,7 +287,12 @@ in
           -F to='George Thomas <georgefsthomas@gmail.com>' \
           -F subject="$subject" \
           -F text="$body" \
-        || sed -i "1iClark failed to send email ($(date)): $subject" ${syncthing-main-dir}/notes/todo.md
+      '';
+      postStop = ''
+        if [ $SERVICE_RESULT != success ]
+        then
+          sed -i "1iClark failed to send email ($(date)): $subject" ${syncthing-main-dir}/notes/todo.md
+        fi
       '';
       serviceConfig = { Restart = "always"; };
       description = "email handler";
