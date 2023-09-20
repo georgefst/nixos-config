@@ -86,6 +86,7 @@ catchActionErrors = catchMany @'[IOException] $ throwError . Error "Error when r
 
 type CompoundAction a = Eff '[Action] a
 data Action a where
+    Exit :: ExitCode -> Action ()
     PowerOff :: Action ()
     ResetError :: Action ()
     GetLightPower :: Light a -> Action Bool
@@ -128,6 +129,7 @@ data ActionOpts = ActionOpts
 runAction ::
     (MonadIO m, MonadState AppState m, MonadLifx m, MonadLog Text m, MonadError Error m) => ActionOpts -> Action a -> m a
 runAction opts@ActionOpts{getLight, setLED {- TODO GHC doesn't yet support impredicative fields -}} = \case
+    Exit c -> liftIO $ exitWith c
     PowerOff -> writePipe opts.powerOffPipe "."
     ResetError -> setLED opts.ledErrorPin False
     GetLightPower l -> statePowerToBool <$> sendMessage (getLight l) GetPower

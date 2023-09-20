@@ -3,6 +3,7 @@ module George.Feed.WebServer (feed, Opts (..)) where
 import George.Core
 import Util
 
+import Control.Applicative
 import Control.Concurrent
 import Control.Monad.Except
 import Control.Monad.Freer
@@ -15,6 +16,7 @@ import Network.Wai.Handler.Warp qualified as Warp
 import Okapi hiding (Event, error, get, head)
 import Okapi qualified hiding (Event, head)
 import Streamly.Data.Stream.Prelude qualified as S
+import System.Exit
 import Util.Streamly.Okapi qualified as Okapi
 import Util.Util
 
@@ -33,6 +35,7 @@ feed opts =
                 { warpSettings = Warp.setPort opts.port Warp.defaultSettings
                 , routes =
                     [ withGetRoute "reset-error" $ f showT $ send ResetError
+                    , withGetRoute "exit" $ f showT . send . Exit . maybe ExitSuccess ExitFailure =<< optional segParam
                     , withGetRoute "get-light-power" $ f showT . send . withExists @NullConstraint GetLightPower =<< segParam
                     , withGetRoute "set-light-power" do
                         Exists' l <- segParam
