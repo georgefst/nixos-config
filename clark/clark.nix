@@ -204,42 +204,42 @@ in
       script = ''
         MSG="Update home IP"
         IP=""
-          NEW_IP=$(
-            curl -s https://ipinfo.io/ip ||
-              printf "Public IP address lookup failed\nWill try again on next iteration." > ${email-pipe}
-          )
-          if [[ $NEW_IP != $IP ]]
+        NEW_IP=$(
+          curl -s https://ipinfo.io/ip ||
+            printf "Public IP address lookup failed\nWill try again on next iteration." > ${email-pipe}
+        )
+        if [[ $NEW_IP != $IP ]]
+        then
+          echo "Changed: $NEW_IP"
+
+          DIR=$(mktemp -d)
+          cd $DIR
+          git clone git@github.com:georgefst/george-conf
+          cd george-conf
+
+          BRANCH=clark-ip-$(date +%s)
+          git switch -c $BRANCH
+          sed -i -e "0,/HostName.*/s//HostName $NEW_IP/" ssh/config # NB. this assumes home is the first in the file
+
+          if [[ ! `git status --porcelain` ]]
           then
-            echo "Changed: $NEW_IP"
-
-            DIR=$(mktemp -d)
-            cd $DIR
-            git clone git@github.com:georgefst/george-conf
-            cd george-conf
-
-            BRANCH=clark-ip-$(date +%s)
-            git switch -c $BRANCH
-            sed -i -e "0,/HostName.*/s//HostName $NEW_IP/" ssh/config # NB. this assumes home is the first in the file
-
-            if [[ ! `git status --porcelain` ]]
-            then
-              # this should only happen at startup when $IP is empty
-              echo "Actually, no change: $IP, $NEW_IP"
-            else
-              git add ssh/config
-              git commit -m "$MSG"
-              git push --set-upstream origin $BRANCH
-
-              export GH_TOKEN=$(<${config.age.secrets.gh-key.path})
-              URL=$(gh pr create --title "$MSG" --body "" | tee /dev/tty | tail -n1)
-
-              printf "Public IP address changed\n$URL" > ${email-pipe}
-            fi
+            # this should only happen at startup when $IP is empty
+            echo "Actually, no change: $IP, $NEW_IP"
           else
-            echo "No change"
+            git add ssh/config
+            git commit -m "$MSG"
+            git push --set-upstream origin $BRANCH
+
+            export GH_TOKEN=$(<${config.age.secrets.gh-key.path})
+            URL=$(gh pr create --title "$MSG" --body "" | tee /dev/tty | tail -n1)
+
+            printf "Public IP address changed\n$URL" > ${email-pipe}
           fi
-          IP=$NEW_IP
-          sleep $((15 * 60))
+        else
+          echo "No change"
+        fi
+        IP=$NEW_IP
+        sleep $((15 * 60))
       '';
       serviceConfig = { Restart = "always"; };
       description = "IP change notifier";
@@ -276,17 +276,17 @@ in
     };
     email-handler = service-with-exit-notification {
       script = ''
-          data=$(<${email-pipe})
-          subject=$(head -n1 <<< "$data")
-          body=$(tail -n+2 <<< "$data")
-          echo "Sending: $subject"
-          curl --user "api:$(<${config.age.secrets.mailgun-key.path})" \
-            https://api.mailgun.net/v3/sandbox$(<${config.age.secrets.mailgun-sandbox.path}).mailgun.org/messages \
-            -F from="Mailgun Sandbox <postmaster@sandbox$(<${config.age.secrets.mailgun-sandbox.path}).mailgun.org>" \
-            -F to='George Thomas <georgefsthomas@gmail.com>' \
-            -F subject="$subject" \
-            -F text="$body" \
-          || sed -i "1iClark failed to send email ($(date)): $subject" ${syncthing-main-dir}/notes/todo.md
+        data=$(<${email-pipe})
+        subject=$(head -n1 <<< "$data")
+        body=$(tail -n+2 <<< "$data")
+        echo "Sending: $subject"
+        curl --user "api:$(<${config.age.secrets.mailgun-key.path})" \
+          https://api.mailgun.net/v3/sandbox$(<${config.age.secrets.mailgun-sandbox.path}).mailgun.org/messages \
+          -F from="Mailgun Sandbox <postmaster@sandbox$(<${config.age.secrets.mailgun-sandbox.path}).mailgun.org>" \
+          -F to='George Thomas <georgefsthomas@gmail.com>' \
+          -F subject="$subject" \
+          -F text="$body" \
+        || sed -i "1iClark failed to send email ($(date)): $subject" ${syncthing-main-dir}/notes/todo.md
       '';
       serviceConfig = { Restart = "always"; };
       description = "email handler";
@@ -318,16 +318,16 @@ in
     };
     system-leds = service-with-exit-notification {
       script = ''
-          data=$(<${system-led-pipe})
-          echo $data
-          if [[ $data == 0 ]]
-          then
-            echo none > /sys/class/leds/mmc1::/trigger
-            echo none > /sys/class/leds/ACT/trigger
-          else
-            echo mmc1 > /sys/class/leds/mmc1::/trigger
-            echo heartbeat > /sys/class/leds/ACT/trigger
-          fi
+        data=$(<${system-led-pipe})
+        echo $data
+        if [[ $data == 0 ]]
+        then
+          echo none > /sys/class/leds/mmc1::/trigger
+          echo none > /sys/class/leds/ACT/trigger
+        else
+          echo mmc1 > /sys/class/leds/mmc1::/trigger
+          echo heartbeat > /sys/class/leds/ACT/trigger
+        fi
       '';
       serviceConfig = { Restart = "always"; };
       description = "system led server";
