@@ -55,6 +55,7 @@ let
     serviceConfig = (service.serviceConfig or { }) // {
       TimeoutStopSec = "infinity"; # we want `gpioset` to persist until we manually restart the service
     };
+    path = (service.path or [ ]) ++ [ pkgs.libgpiod ];
   };
 in
 {
