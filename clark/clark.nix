@@ -38,7 +38,7 @@ let
     owner = "gthomas";
     group = "users";
   };
-  service-with-exit-notification = service: service // {
+  service-with-crash-notification = service: service // {
     postStop = ''
       printf "SERVICE_RESULT: $SERVICE_RESULT\n"
       printf "EXIT_CODE: $EXIT_CODE\n"
@@ -46,7 +46,7 @@ let
     '' + (service.postStop or "") + ''
       if [ $SERVICE_RESULT != success ]
       then
-        printf 'Clark service exited: ${service.description}
+        printf 'Clark service crashed: ${service.description}
         Inspect service logs for more info.
         ' > ${email-pipe}
         gpioset --mode=signal ${gpiochip} ${toString led-error-pin}=1
@@ -173,7 +173,7 @@ in
 
   # systemd
   systemd.user.services = {
-    clark = service-with-exit-notification {
+    clark = service-with-crash-notification {
       script = ''
         clark \
           --gpio-chip ${gpiochip} \
@@ -201,7 +201,7 @@ in
       path = [ extraPkgs.clark pkgs.libgpiod pkgs.mosquitto pkgs.openssh ];
       wantedBy = startup;
     };
-    ip-notify = service-with-exit-notification {
+    ip-notify = service-with-crash-notification {
       script = ''
         MSG="Update home IP"
         IP=""
@@ -247,7 +247,7 @@ in
       path = [ pkgs.curl pkgs.gh pkgs.git pkgs.openssh ];
       wantedBy = startup;
     };
-    evdev-share = service-with-exit-notification {
+    evdev-share = service-with-crash-notification {
       script = ''
         evdev-share-server -p ${builtins.toString evdev-share-port} -n evdev-share
       '';
@@ -255,7 +255,7 @@ in
       path = [ extraPkgs.evdev-share ];
       wantedBy = startup;
     };
-    tennis-scraper = service-with-exit-notification {
+    tennis-scraper = service-with-crash-notification {
       script = ''
         tennis-scraper \
           --username georgefst \
@@ -299,12 +299,12 @@ in
       path = [ pkgs.curl ];
       wantedBy = startup;
     };
-    geckodriver = service-with-exit-notification {
+    geckodriver = service-with-crash-notification {
       script = "geckodriver";
       description = "firefox webdriver interface";
       path = [ pkgs.geckodriver pkgs.firefox ];
     };
-    mosquitto = service-with-exit-notification {
+    mosquitto = service-with-crash-notification {
       script = "mosquitto -c ${syncthing-main-dir}/config/mqtt/meross.conf -v";
       description = "mosquitto MQTT broker";
       path = [ pkgs.mosquitto ];
@@ -313,7 +313,7 @@ in
   };
   # for whatever reason (e.g. binding to port 80), these need to be run as root
   systemd.services = {
-    power-off = service-with-exit-notification {
+    power-off = service-with-crash-notification {
       script = ''
         data=$(<${power-off-pipe})
         echo $data
@@ -322,7 +322,7 @@ in
       description = "poweroff server";
       wantedBy = startup-root;
     };
-    system-leds = service-with-exit-notification {
+    system-leds = service-with-crash-notification {
       script = ''
         data=$(<${system-led-pipe})
         echo $data
@@ -339,7 +339,7 @@ in
       description = "system led server";
       wantedBy = startup-root;
     };
-    droopy = service-with-exit-notification {
+    droopy = service-with-crash-notification {
       script = ''
         mkdir -p ${file-server-dir}
         HOME=${home} droopy \
@@ -352,7 +352,7 @@ in
       path = [ pkgs.droopy ];
       wantedBy = startup-root;
     };
-    rotate-video-output = service-with-exit-notification {
+    rotate-video-output = service-with-crash-notification {
       script = ''
         sleep 30 # usually requires < 10, but err on the safe side - it's never really a serious bottleneck in practice
         echo 3 > /sys/class/graphics/fbcon/rotate
