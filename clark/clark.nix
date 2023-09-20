@@ -196,7 +196,7 @@ in
           --system-led-pipe ${system-led-pipe} \
           --power-off-pipe ${power-off-pipe} \
       '';
-      description = "clark script";
+      description = "main Haskell script";
       path = [ extraPkgs.clark pkgs.libgpiod pkgs.mosquitto pkgs.openssh ];
       wantedBy = startup;
     };
@@ -244,7 +244,7 @@ in
           sleep $((15 * 60))
         done
       '';
-      description = "notify when IP changes";
+      description = "IP change notifier";
       path = [ pkgs.curl pkgs.gh pkgs.git pkgs.openssh ];
       wantedBy = startup;
     };
@@ -293,7 +293,7 @@ in
           || sed -i "1iClark failed to send email ($(date)): $subject" ${syncthing-main-dir}/notes/todo.md
         done
       '';
-      description = "pipe for sending myself emails";
+      description = "email handler";
       path = [ pkgs.curl ];
       wantedBy = startup;
     };
