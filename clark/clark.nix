@@ -49,12 +49,8 @@ let
         printf 'Clark service crashed: ${service.description}
         Inspect service logs for more info.
         ' > ${email-pipe}
-        gpioset --mode=signal ${gpiochip} ${toString led-error-pin}=1
       fi
     '';
-    serviceConfig = (service.serviceConfig or { }) // {
-      TimeoutStopSec = "infinity"; # we want `gpioset` to persist until we manually restart the service
-    };
     path = (service.path or [ ]) ++ [ pkgs.libgpiod ];
   };
 in
@@ -276,7 +272,7 @@ in
       wantedBy = startup;
       wants = [ "geckodriver.service" ];
     };
-    email-handler = {
+    email-handler = service-with-crash-notification {
       script = ''
         data=$(<${email-pipe})
         subject=$(head -n1 <<< "$data")
@@ -295,7 +291,7 @@ in
           sed -i "1iClark failed to send email at $(date)" ${syncthing-main-dir}/notes/todo.md
         fi
       '';
-      serviceConfig = { Restart = "always"; };
+      serviceConfig = { Restart = "always"; RestartSec = 1; };
       description = "email handler";
       path = [ pkgs.curl ];
       wantedBy = startup;
