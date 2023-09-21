@@ -202,10 +202,7 @@ in
       script = ''
         MSG="Update home IP"
         IP=""
-        NEW_IP=$(
-          curl -s https://ipinfo.io/ip ||
-            printf "Public IP address lookup failed\nWill try again on next iteration." > ${email-pipe}
-        )
+        NEW_IP=$(curl -s https://ipinfo.io/ip)
         if [[ $NEW_IP != $IP ]]
         then
           echo "Changed: $NEW_IP"
@@ -237,9 +234,8 @@ in
           echo "No change"
         fi
         IP=$NEW_IP
-        sleep $((15 * 60))
       '';
-      serviceConfig = { Restart = "always"; };
+      serviceConfig = { Restart = "always"; RestartSec = 15 * 60; };
       description = "IP change notifier";
       path = [ pkgs.curl pkgs.gh pkgs.git pkgs.openssh ];
       wantedBy = startup;
