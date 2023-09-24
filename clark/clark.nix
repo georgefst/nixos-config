@@ -8,6 +8,21 @@ let
   startup-root = [ "multi-user.target" ];
   startup = [ "default.target" ];
 
+  # TODO wtf is going on with this?
+  # somehow, what seems to be consistently happening is:
+  # ip-notify fails at startup, no email, todo.md, happily restarted 15mins later (ideally we'd pause less on failure)
+  # tennis-scraper works fine, crashes for unrelated reasons
+  # haskell script fails at startup, tries to email but gets interleaved with tennis if email restart time is 0s,
+  # or disappears completely if 0s (ideally we'd just restart as soon as poststop completes)
+  # tabs:
+  #   https://nixos.org/manual/nixos/stable/options.html
+  #   https://unix.stackexchange.com/questions/319267/systemd-how-to-make-a-systemd-service-start-after-network-fully-connected
+  #   https://unix.stackexchange.com/questions/126009/cause-a-script-to-execute-after-networking-has-started
+  #   https://www.freedesktop.org/wiki/Software/systemd/NetworkTarget/
+  #   https://github.com/NixOS/nixpkgs/issues/180175
+  #   https://unix.stackexchange.com/questions/209832/debian-systemd-network-online-target-not-working
+  network-connected = [ "network-online.target" ];
+
   # arbitrary - all that matters is that these don't conflict with each other or anything else
   clark-script-udp-port = 56710; # if we change this we need to modify Tasker config, .bashrc etc.
   clark-script-lifx-port = 56711;
@@ -169,6 +184,8 @@ in
   ];
 
   # systemd
+  systemd.network.wait-online.enable = true; # apparently default
+  systemd.network.wait-online.anyInterface = true; # recommended for devices with wifi
   systemd.user.services = {
     clark = service-with-crash-notification {
       script = ''
@@ -197,6 +214,8 @@ in
       description = "main Haskell script";
       path = [ extraPkgs.clark pkgs.libgpiod pkgs.mosquitto pkgs.openssh ];
       wantedBy = startup;
+      wants = network-connected;
+      after = network-connected;
     };
     ip-notify = service-with-crash-notification {
       script = ''
@@ -239,6 +258,8 @@ in
       description = "IP change notifier";
       path = [ pkgs.curl pkgs.gh pkgs.git pkgs.openssh ];
       wantedBy = startup;
+      wants = network-connected;
+      after = network-connected;
     };
     evdev-share = service-with-crash-notification {
       script = ''
@@ -266,7 +287,8 @@ in
       description = "tennis scraper";
       path = [ pkgs.curl extraPkgs.tennis-scraper ];
       wantedBy = startup;
-      wants = [ "geckodriver.service" ];
+      wants = [ "geckodriver.service" ] ++ network-connected;
+      after = network-connected;
     };
     email-handler = service-with-crash-notification {
       script = ''
@@ -328,7 +350,8 @@ in
           echo heartbeat > /sys/class/leds/ACT/trigger
         fi
       '';
-      serviceConfig = { Restart = "always"; };
+      serviceConfig = { Restart = "always"; RestartSec = 0; };
+      # serviceConfig = { Restart = "always"; RestartSec = 1; };
       description = "system led server";
       wantedBy = startup-root;
     };
