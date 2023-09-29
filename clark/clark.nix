@@ -19,6 +19,7 @@ let
   system-led-pipe = "/tmp/system-led-pipe";
   power-off-pipe = "/tmp/power-off-pipe";
   email-pipe = "/tmp/email-pipe";
+  ip-file = "/tmp/ip-address";
 
   # directories
   file-server-dir = home + "/serve";
@@ -201,7 +202,7 @@ in
     ip-notify = service-with-crash-notification {
       script = ''
         MSG="Update home IP"
-        IP=""
+        IP=$(cat ${ip-file} || echo undefined)
         NEW_IP=$(curl -s https://ipinfo.io/ip)
         if [[ $NEW_IP != $IP ]]
         then
@@ -233,7 +234,7 @@ in
         else
           echo "No change"
         fi
-        IP=$NEW_IP
+        echo -n $NEW_IP > ${ip-file}
       '';
       serviceConfig = { Restart = "always"; RestartSec = 15 * 60; };
       description = "IP change notifier";
