@@ -201,9 +201,9 @@ in
     };
     ip-notify = service-with-crash-notification {
       script = ''
-        IP=$(cat ${ip-file} || echo undefined)
+        OLD_IP=$(cat ${ip-file} || echo undefined)
         NEW_IP=$(curl -s https://ipinfo.io/ip)
-        if [[ $NEW_IP != $IP ]]
+        if [[ $NEW_IP != $OLD_IP ]]
         then
           echo "Changed: $NEW_IP"
 
@@ -218,8 +218,8 @@ in
 
           if [[ ! `git status --porcelain` ]]
           then
-            # this should only happen at startup when $IP is empty
-            echo "Actually, no change: $IP, $NEW_IP"
+            # this should only happen at startup when $OLD_IP is empty
+            echo "Actually, no change: $OLD_IP, $NEW_IP"
           else
             MSG="Update home IP"
 
