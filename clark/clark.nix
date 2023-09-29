@@ -201,7 +201,6 @@ in
     };
     ip-notify = service-with-crash-notification {
       script = ''
-        MSG="Update home IP"
         IP=$(cat ${ip-file} || echo undefined)
         NEW_IP=$(curl -s https://ipinfo.io/ip)
         if [[ $NEW_IP != $IP ]]
@@ -222,6 +221,8 @@ in
             # this should only happen at startup when $IP is empty
             echo "Actually, no change: $IP, $NEW_IP"
           else
+            MSG="Update home IP"
+
             git add ssh/config
             git commit -m "$MSG"
             git push --set-upstream origin $BRANCH
