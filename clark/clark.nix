@@ -260,11 +260,13 @@ in
           do
             name=$(echo $site | jq -r .name)
             url=$(echo $site | jq -r .url)
+            threshold=$(echo $site | jq -r .threshold)
             mkdir -p /tmp/http-watch/$name
             old=/tmp/http-watch/$name/old.html
             new=/tmp/http-watch/$name/new.html
             curl -sS $url -o $new
-            if ! diff $old $new
+            d=$(diff $old $new | wc -l)
+            if [[ $d > $threshold ]]
             then
               echo "Changed: $name"
               printf "Watched website updated: $name\n$url" > ${email-pipe}
