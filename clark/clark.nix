@@ -267,7 +267,7 @@ in
             curl -sS $url -o $new
             d=$(diff -y --suppress-common-lines $old $new | wc -l)
             echo "Lines changed for $name: $d"
-            if [[ $d > $threshold ]]
+            if (( $d > $threshold ))
             then
               printf "Watched website updated: $name\n$url" > ${email-pipe}
             fi
