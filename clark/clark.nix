@@ -265,7 +265,7 @@ in
             old=/tmp/http-watch/$name/old.html
             new=/tmp/http-watch/$name/new.html
             curl -sS $url -o $new
-            d=$(diff $old $new | wc -l)
+            d=$(diff -y --suppress-common-lines $old $new | wc -l)
             if [[ $d > $threshold ]]
             then
               echo "Changed: $name"
