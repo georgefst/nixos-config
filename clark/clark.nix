@@ -250,6 +250,36 @@ in
       path = [ extraPkgs.evdev-share ];
       wantedBy = startup;
     };
+    http-watch = service-with-crash-notification {
+      script = ''
+        config=/syncthing/config/http-watch.dhall
+        while true
+        do
+          readarray -t sites < <(echo "($config).sites" | dhall-to-json | jq -c '.[]')
+          for site in ''${sites[@]}
+          do
+            name=$(echo $site | jq -r .name)
+            url=$(echo $site | jq -r .url)
+            mkdir -p /tmp/http-watch/$name
+            old=/tmp/http-watch/$name/old.html
+            new=/tmp/http-watch/$name/new.html
+            curl -sS $url -o $new
+            if ! diff $old $new
+            then
+              echo "Changed: $name"
+              printf "Watched website updated: $name\n$url" > ${email-pipe}
+            fi
+            cp $new $old
+          done
+          pause=$(echo "($config).pause" | dhall)
+          echo "Sleeping for $pause seconds..."
+          sleep $pause
+        done
+      '';
+      description = "HTTP watcher";
+      path = [ pkgs.curl pkgs.dhall pkgs.dhall-json pkgs.diffutils pkgs.jq ];
+      wantedBy = startup;
+    };
     tennis-scraper = service-with-crash-notification {
       script = ''
         tennis-scraper \
