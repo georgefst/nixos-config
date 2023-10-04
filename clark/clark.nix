@@ -266,7 +266,7 @@ in
             new=/tmp/http-watch/$name/new.html
             curl -sS $url -o $new
             d=$(diff -y --suppress-common-lines $old $new | wc -l)
-            echo "Lines changed: $d"
+            echo "Lines changed for $name: $d"
             if [[ $d > $threshold ]]
             then
               printf "Watched website updated: $name\n$url" > ${email-pipe}
