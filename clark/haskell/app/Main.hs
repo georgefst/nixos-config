@@ -36,6 +36,7 @@ data Opts = Opts
     , ledOtherPin :: Int
     , ceilingLightName :: Text
     , lampName :: Text
+    , spotlightName :: Text
     , lifxTimeout :: Double
     , lifxPort :: Word16
     , receivePort :: PortNumber
@@ -88,14 +89,15 @@ main = do
             (Just $ fromIntegral opts.lifxPort)
             do
                 -- TODO this would be slightly cleaner if GHC were better about retaining polymorphism in do-bindings
-                (ceilingLight, lamp) <- do
+                (ceilingLight, lamp, spotlight) <- do
                     ds <- discoverLifx
                     let f name = maybe (throwError name) (pure . fst) $ find ((== name) . (.label) . snd) ds
-                    (,) <$> f opts.ceilingLightName <*> f opts.lampName
+                    (,,) <$> f opts.ceilingLightName <*> f opts.lampName <*> f opts.spotlightName
                 let getLight :: forall a. Light a -> Lifx.Device
                     getLight = \case
                         Ceiling -> ceilingLight
                         Lamp -> lamp
+                        Spotlight -> spotlight
                 runEventStream handleError logMessage (runAction (opts & \Opts{..} -> ActionOpts{..}))
                     . S.morphInner liftIO
                     $ S.parList

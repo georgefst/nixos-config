@@ -103,6 +103,7 @@ deriving instance Show (Action a)
 data Light (c :: LightColours) where
     Ceiling :: Light KelvinOnly
     Lamp :: Light FullColours
+    Spotlight :: Light KelvinOnly
 deriving instance Show (Light c)
 data LightColours = FullColours | KelvinOnly -- TODO use `type data` when available (GHC 9.6)
 
@@ -112,10 +113,12 @@ instance FromHttpApiData (Exists' Light) where
     parseUrlPiece = \case
         "ceiling" -> Right $ Exists Ceiling
         "lamp" -> Right $ Exists Lamp
+        "spotlight" -> Right $ Exists Spotlight
         s -> Left $ "unknown light name: " <> s
 instance FromHttpApiData (Light KelvinOnly) where
     parseUrlPiece = \case
         "ceiling" -> Right Ceiling
+        "spotlight" -> Right Spotlight
         s -> Left $ "unknown light name: " <> s
 instance FromHttpApiData (Light FullColours) where
     parseUrlPiece = \case
