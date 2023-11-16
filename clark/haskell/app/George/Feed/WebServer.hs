@@ -36,39 +36,41 @@ feed opts =
             Opts'
                 { warpSettings = Warp.setPort opts.port Warp.defaultSettings
                 , routes = \emit ->
-                    [ lit "reset-error" . wrap $ f showT emit $ send ResetError
-                    , lit "exit" . param . wrap $ f showT emit . send . Exit . maybe ExitSuccess ExitFailure
-                    , lit "get-light-power" . param . wrap . withExists' $ f showT emit . send . GetLightPower
-                    , lit "set-light-power" . param . param . wrap . withExists' $ f showT emit . send .: SetLightPower
-                    , lit "get-light-colour" . param . wrap . withExists' $ f showT emit . send . GetLightColour
-                    , lit "set-light-colour" $
-                        choice
-                            [ param . param . param . param $
-                                wrap \light delay brightness kelvin ->
-                                    f showT emit $ send SetLightColourBK{lightBK = light, ..}
-                            , param . param . param . param . param . param $
-                                wrap \light delay hue saturation brightness kelvin ->
-                                    f showT emit $ send SetLightColour{colour = HSBK{..}, ..}
-                            ]
-                    , lit "set-desk-usb-power" . param . wrap $ f showT emit . send . SetDeskUSBPower
-                    , lit "send-email" . param . param $ wrap \subject body -> f showT emit $ send SendEmail{..}
-                    , lit "suspend-laptop" . wrap . f showT emit $ send SuspendLaptop
-                    , lit "set-other-led" . param . wrap $ f showT emit . send . SetOtherLED
-                    , lit "set-system-leds" . param . wrap $ f showT emit . send . SetSystemLEDs
-                    , lit "toggle-ceiling-light" . wrap . f showT emit $ toggleCeilingLight
-                    , lit "sleep-or-wake" . wrap . f showT emit $ sleepOrWake opts.lifxMorningDelay opts.lifxMorningKelvin
-                    ]
+                    let
+                        f :: (Show r) => (r -> Text) -> CompoundAction r -> (Headers '[] -> Text -> Wai.Response) -> Wai.Request -> IO Wai.Response
+                        f show' a ok _req = do
+                            m <- newEmptyMVar
+                            emit $ ActionEvent (putMVar m) a
+                            ok noHeaders . (<> "\n") . show' <$> takeMVar m
+                     in
+                        [ lit "reset-error" . wrap $ f showT $ send ResetError
+                        , lit "exit" . param . wrap $ f showT . send . Exit . maybe ExitSuccess ExitFailure
+                        , lit "get-light-power" . param . wrap . withExists' $ f showT . send . GetLightPower
+                        , lit "set-light-power" . param . param . wrap . withExists' $ f showT . send .: SetLightPower
+                        , lit "get-light-colour" . param . wrap . withExists' $ f showT . send . GetLightColour
+                        , lit "set-light-colour" $
+                            choice
+                                [ param . param . param . param $
+                                    wrap \light delay brightness kelvin ->
+                                        f showT $ send SetLightColourBK{lightBK = light, ..}
+                                , param . param . param . param . param . param $
+                                    wrap \light delay hue saturation brightness kelvin ->
+                                        f showT $ send SetLightColour{colour = HSBK{..}, ..}
+                                ]
+                        , lit "set-desk-usb-power" . param . wrap $ f showT . send . SetDeskUSBPower
+                        , lit "send-email" . param . param $ wrap \subject body -> f showT $ send SendEmail{..}
+                        , lit "suspend-laptop" . wrap . f showT $ send SuspendLaptop
+                        , lit "set-other-led" . param . wrap $ f showT . send . SetOtherLED
+                        , lit "set-system-leds" . param . wrap $ f showT . send . SetSystemLEDs
+                        , lit "toggle-ceiling-light" . wrap . f showT $ toggleCeilingLight
+                        , lit "sleep-or-wake" . wrap . f showT $ sleepOrWake opts.lifxMorningDelay opts.lifxMorningKelvin
+                        ]
                 }
             <&> \case
                 Event' x -> Just [x]
                 WarpLog' r s i ->
                     guard (not $ statusIsSuccessful s) $> [ErrorEvent (Error "HTTP error" (r, s, i))]
   where
-    f :: (Show r) => (r -> Text) -> (Event -> IO ()) -> CompoundAction r -> (Headers '[] -> Text -> Wai.Response) -> Wai.Request -> IO Wai.Response
-    f show' emit a ok _req = do
-        m <- newEmptyMVar
-        emit $ ActionEvent (putMVar m) a
-        ok noHeaders . (<> "\n") . show' <$> takeMVar m
     wrap = responder @200 @'[] @Text @Text . method GET id
 
 data Opts' a = Opts'
