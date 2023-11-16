@@ -11,6 +11,7 @@ import Data.Functor
 import Data.Text (Text)
 import Data.Time
 import Data.Tuple.Extra
+import Data.Typeable (Typeable)
 import Data.Word
 import Lifx.Lan (HSBK (..))
 import Network.HTTP.Types
@@ -28,6 +29,12 @@ data Opts = Opts
     , lifxMorningDelay :: NominalDiffTime
     , lifxMorningKelvin :: Word16
     }
+
+wrap ::
+    (Typeable r, Typeable (r :-> (Headers '[] -> Text -> Wai.Response))) =>
+    Handler (r :-> (Headers '[] -> Text -> Wai.Response)) IO ->
+    Node r
+wrap = responder @200 @'[] @Text @Text . method GET id
 
 feed :: Opts -> S.Stream IO [Event]
 feed opts =
@@ -70,8 +77,6 @@ feed opts =
                 Event' x -> Just [x]
                 WarpLog' r s i ->
                     guard (not $ statusIsSuccessful s) $> [ErrorEvent (Error "HTTP error" (r, s, i))]
-  where
-    wrap = responder @200 @'[] @Text @Text . method GET id
 
 data Opts' a = Opts'
     { warpSettings :: Warp.Settings -- TODO what if the settings passed in override the logger? just say not to in Haddocks?
