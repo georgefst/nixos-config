@@ -37,7 +37,7 @@ wrap = responder @200 @'[] @Text @Text . method GET id
 feed :: Opts -> S.Stream IO [Event]
 feed opts =
     S.catMaybes $
-        Okapi.stream @IO @Event
+        Okapi.stream
             Okapi.Opts
                 { warpSettings = Warp.setPort opts.port Warp.defaultSettings
                 , routes = \emit ->
