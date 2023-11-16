@@ -40,28 +40,28 @@ feed opts =
         Okapi.stream
             Okapi.Opts
                 { warpSettings = Warp.setPort opts.port Warp.defaultSettings
-                , routes = \emit ->
-                    [ lit "reset-error" . wrap $ f showT emit $ send ResetError
-                    , lit "exit" . param . wrap $ f showT emit . send . Exit . maybe ExitSuccess ExitFailure
-                    , lit "get-light-power" . param . wrap . withExists' $ f showT emit . send . GetLightPower
-                    , lit "set-light-power" . param . param . wrap . withExists' $ f showT emit . send .: SetLightPower
-                    , lit "get-light-colour" . param . wrap . withExists' $ f showT emit . send . GetLightColour
+                , routes = \act ->
+                    [ lit "reset-error" . wrap $ f showT act $ send ResetError
+                    , lit "exit" . param . wrap $ f showT act . send . Exit . maybe ExitSuccess ExitFailure
+                    , lit "get-light-power" . param . wrap . withExists' $ f showT act . send . GetLightPower
+                    , lit "set-light-power" . param . param . wrap . withExists' $ f showT act . send .: SetLightPower
+                    , lit "get-light-colour" . param . wrap . withExists' $ f showT act . send . GetLightColour
                     , lit "set-light-colour" $
                         choice
                             [ param . param . param . param $
                                 wrap \light delay brightness kelvin ->
-                                    f showT emit $ send SetLightColourBK{lightBK = light, ..}
+                                    f showT act $ send SetLightColourBK{lightBK = light, ..}
                             , param . param . param . param . param . param $
                                 wrap \light delay hue saturation brightness kelvin ->
-                                    f showT emit $ send SetLightColour{colour = HSBK{..}, ..}
+                                    f showT act $ send SetLightColour{colour = HSBK{..}, ..}
                             ]
-                    , lit "set-desk-usb-power" . param . wrap $ f showT emit . send . SetDeskUSBPower
-                    , lit "send-email" . param . param $ wrap \subject body -> f showT emit $ send SendEmail{..}
-                    , lit "suspend-laptop" . wrap . f showT emit $ send SuspendLaptop
-                    , lit "set-other-led" . param . wrap $ f showT emit . send . SetOtherLED
-                    , lit "set-system-leds" . param . wrap $ f showT emit . send . SetSystemLEDs
-                    , lit "toggle-ceiling-light" . wrap . f showT emit $ toggleCeilingLight
-                    , lit "sleep-or-wake" . wrap . f showT emit $ sleepOrWake opts.lifxMorningDelay opts.lifxMorningKelvin
+                    , lit "set-desk-usb-power" . param . wrap $ f showT act . send . SetDeskUSBPower
+                    , lit "send-email" . param . param $ wrap \subject body -> f showT act $ send SendEmail{..}
+                    , lit "suspend-laptop" . wrap . f showT act $ send SuspendLaptop
+                    , lit "set-other-led" . param . wrap $ f showT act . send . SetOtherLED
+                    , lit "set-system-leds" . param . wrap $ f showT act . send . SetSystemLEDs
+                    , lit "toggle-ceiling-light" . wrap . f showT act $ toggleCeilingLight
+                    , lit "sleep-or-wake" . wrap . f showT act $ sleepOrWake opts.lifxMorningDelay opts.lifxMorningKelvin
                     ]
                 }
             <&> \case
@@ -69,7 +69,7 @@ feed opts =
                 Okapi.WarpLog r s i ->
                     guard (not $ statusIsSuccessful s) $> [ErrorEvent (Error "HTTP error" (r, s, i))]
   where
-    f show' (emit :: Event -> IO ()) a ok _req = do
+    f show' (act :: Event -> IO ()) a ok _req = do
         m <- newEmptyMVar
-        emit $ ActionEvent (putMVar m) a
+        act $ ActionEvent (putMVar m) a
         ok noHeaders . (<> "\n") . show' <$> takeMVar m
