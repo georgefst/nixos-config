@@ -115,6 +115,19 @@ instance FromHttpApiData (Exists' Light) where
         "lamp" -> Right $ Exists Lamp
         "spotlight" -> Right $ Exists Spotlight
         s -> Left $ "unknown light name: " <> s
+instance Bounded (Exists' Light) where
+    minBound = Exists Ceiling
+    maxBound = Exists Spotlight
+instance Enum (Exists' Light) where
+    toEnum = \case
+        0 -> Exists Ceiling
+        1 -> Exists Lamp
+        2 -> Exists Spotlight
+        _ -> error "out of bounds for light enum"
+    fromEnum = \case
+        Exists Ceiling -> 0
+        Exists Lamp -> 1
+        Exists Spotlight -> 2
 instance FromHttpApiData (Light KelvinOnly) where
     parseUrlPiece = \case
         "ceiling" -> Right Ceiling

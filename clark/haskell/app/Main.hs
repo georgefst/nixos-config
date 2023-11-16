@@ -13,9 +13,12 @@ import Control.Monad.State
 import Data.Bool
 import Data.ByteString qualified as B
 import Data.List
+import Data.List.Extra
 import Data.Map qualified as Map
+import Data.Maybe
 import Data.Text.IO qualified as T
 import Data.Time
+import Data.Traversable
 import Data.Word
 import Lifx.Lan qualified as Lifx
 import Network.Socket (PortNumber)
@@ -26,6 +29,8 @@ import Options.Generic
 import Streamly.Data.Stream.Prelude qualified as S
 import System.IO
 import Text.Pretty.Simple
+import Util
+import Util.Util
 
 data Opts = Opts
     { gpioChip :: B.ByteString
@@ -34,9 +39,6 @@ data Opts = Opts
     , buttonPin :: Int
     , ledErrorPin :: Int
     , ledOtherPin :: Int
-    , ceilingLightName :: Text
-    , lampName :: Text
-    , spotlightName :: Text
     , lifxTimeout :: Double
     , lifxPort :: Word16
     , receivePort :: PortNumber
@@ -89,15 +91,12 @@ main = do
             (Just $ fromIntegral opts.lifxPort)
             do
                 -- TODO this would be slightly cleaner if GHC were better about retaining polymorphism in do-bindings
-                (ceilingLight, lamp, spotlight) <- do
+                lightMap <- do
                     ds <- discoverLifx
-                    let f name = maybe (throwError name) (pure . fst) $ find ((== name) . (.label) . snd) ds
-                    (,,) <$> f opts.ceilingLightName <*> f opts.lampName <*> f opts.spotlightName
+                    Map.fromList <$> for enumerate \(Exists @NullConstraint @_ @Light (showT -> l)) ->
+                        maybe (throwError l) (pure . (l,) . fst) (find ((== l) . (.label) . snd) ds)
                 let getLight :: forall a. Light a -> Lifx.Device
-                    getLight = \case
-                        Ceiling -> ceilingLight
-                        Lamp -> lamp
-                        Spotlight -> spotlight
+                    getLight l = fromMaybe (error "light map not exhaustive") $ Map.lookup (showT l) lightMap
                 runEventStream handleError logMessage (runAction (opts & \Opts{..} -> ActionOpts{..}))
                     . S.morphInner liftIO
                     $ S.parList
