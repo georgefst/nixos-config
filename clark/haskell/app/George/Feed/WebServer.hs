@@ -33,27 +33,27 @@ feed opts =
             Okapi.Opts
                 { warpSettings = Warp.setPort opts.port Warp.defaultSettings
                 , routes = \act ->
-                    [ lit "reset-error" . wrap $ f showT act $ send ResetError
-                    , lit "exit" . param . wrap $ f showT act . send . Exit . maybe ExitSuccess ExitFailure
-                    , lit "get-light-power" . param . wrap . withExists' $ f showT act . send . GetLightPower
-                    , lit "set-light-power" . param . param . wrap . withExists' $ f showT act . send .: SetLightPower
-                    , lit "get-light-colour" . param . wrap . withExists' $ f showT act . send . GetLightColour
+                    [ lit "reset-error" . simpleGet $ f showT act $ send ResetError
+                    , lit "exit" . param . simpleGet $ f showT act . send . Exit . maybe ExitSuccess ExitFailure
+                    , lit "get-light-power" . param . simpleGet . withExists' $ f showT act . send . GetLightPower
+                    , lit "set-light-power" . param . param . simpleGet . withExists' $ f showT act . send .: SetLightPower
+                    , lit "get-light-colour" . param . simpleGet . withExists' $ f showT act . send . GetLightColour
                     , lit "set-light-colour" $
                         choice
                             [ param . param . param . param $
-                                wrap \light delay brightness kelvin ->
+                                simpleGet \light delay brightness kelvin ->
                                     f showT act $ send SetLightColourBK{lightBK = light, ..}
                             , param . param . param . param . param . param $
-                                wrap \light delay hue saturation brightness kelvin ->
+                                simpleGet \light delay hue saturation brightness kelvin ->
                                     f showT act $ send SetLightColour{colour = HSBK{..}, ..}
                             ]
-                    , lit "set-desk-usb-power" . param . wrap $ f showT act . send . SetDeskUSBPower
-                    , lit "send-email" . param . param $ wrap \subject body -> f showT act $ send SendEmail{..}
-                    , lit "suspend-laptop" . wrap . f showT act $ send SuspendLaptop
-                    , lit "set-other-led" . param . wrap $ f showT act . send . SetOtherLED
-                    , lit "set-system-leds" . param . wrap $ f showT act . send . SetSystemLEDs
-                    , lit "toggle-ceiling-light" . wrap . f showT act $ toggleCeilingLight
-                    , lit "sleep-or-wake" . wrap . f showT act $ sleepOrWake opts.lifxMorningDelay opts.lifxMorningKelvin
+                    , lit "set-desk-usb-power" . param . simpleGet $ f showT act . send . SetDeskUSBPower
+                    , lit "send-email" . param . param $ simpleGet \subject body -> f showT act $ send SendEmail{..}
+                    , lit "suspend-laptop" . simpleGet . f showT act $ send SuspendLaptop
+                    , lit "set-other-led" . param . simpleGet $ f showT act . send . SetOtherLED
+                    , lit "set-system-leds" . param . simpleGet $ f showT act . send . SetSystemLEDs
+                    , lit "toggle-ceiling-light" . simpleGet . f showT act $ toggleCeilingLight
+                    , lit "sleep-or-wake" . simpleGet . f showT act $ sleepOrWake opts.lifxMorningDelay opts.lifxMorningKelvin
                     ]
                 }
             <&> \case
@@ -65,4 +65,4 @@ feed opts =
         m <- newEmptyMVar
         act $ ActionEvent (putMVar m) a
         ok noHeaders . (<> "\n") . show' <$> takeMVar m
-    wrap = responder @200 @'[] @Text @Text . method GET id
+    simpleGet = responder @200 @'[] @Text @Text . method GET id
