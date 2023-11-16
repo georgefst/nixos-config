@@ -35,29 +35,28 @@ feed opts =
         stream' @IO @Event
             Opts'
                 { warpSettings = Warp.setPort opts.port Warp.defaultSettings
-                , routes =
-                    [ \emit -> lit "reset-error" . wrap $ f showT emit $ send ResetError
-                    , \emit -> lit "exit" . param . wrap $ f showT emit . send . Exit . maybe ExitSuccess ExitFailure
-                    , \emit -> lit "get-light-power" . param . wrap . withExists' $ f showT emit . send . GetLightPower
-                    , \emit -> lit "set-light-power" . param . param . wrap . withExists' $ f showT emit . send .: SetLightPower
-                    , \emit -> lit "get-light-colour" . param . wrap . withExists' $ f showT emit . send . GetLightColour
-                    , \emit ->
-                        lit "set-light-colour" $
-                            choice
-                                [ param . param . param . param $
-                                    wrap \light delay brightness kelvin ->
-                                        f showT emit $ send SetLightColourBK{lightBK = light, ..}
-                                , param . param . param . param . param . param $
-                                    wrap \light delay hue saturation brightness kelvin ->
-                                        f showT emit $ send SetLightColour{colour = HSBK{..}, ..}
-                                ]
-                    , \emit -> lit "set-desk-usb-power" . param . wrap $ f showT emit . send . SetDeskUSBPower
-                    , \emit -> lit "send-email" . param . param $ wrap \subject body -> f showT emit $ send SendEmail{..}
-                    , \emit -> lit "suspend-laptop" . wrap . f showT emit $ send SuspendLaptop
-                    , \emit -> lit "set-other-led" . param . wrap $ f showT emit . send . SetOtherLED
-                    , \emit -> lit "set-system-leds" . param . wrap $ f showT emit . send . SetSystemLEDs
-                    , \emit -> lit "toggle-ceiling-light" . wrap . f showT emit $ toggleCeilingLight
-                    , \emit -> lit "sleep-or-wake" . wrap . f showT emit $ sleepOrWake opts.lifxMorningDelay opts.lifxMorningKelvin
+                , routes = \emit ->
+                    [ lit "reset-error" . wrap $ f showT emit $ send ResetError
+                    , lit "exit" . param . wrap $ f showT emit . send . Exit . maybe ExitSuccess ExitFailure
+                    , lit "get-light-power" . param . wrap . withExists' $ f showT emit . send . GetLightPower
+                    , lit "set-light-power" . param . param . wrap . withExists' $ f showT emit . send .: SetLightPower
+                    , lit "get-light-colour" . param . wrap . withExists' $ f showT emit . send . GetLightColour
+                    , lit "set-light-colour" $
+                        choice
+                            [ param . param . param . param $
+                                wrap \light delay brightness kelvin ->
+                                    f showT emit $ send SetLightColourBK{lightBK = light, ..}
+                            , param . param . param . param . param . param $
+                                wrap \light delay hue saturation brightness kelvin ->
+                                    f showT emit $ send SetLightColour{colour = HSBK{..}, ..}
+                            ]
+                    , lit "set-desk-usb-power" . param . wrap $ f showT emit . send . SetDeskUSBPower
+                    , lit "send-email" . param . param $ wrap \subject body -> f showT emit $ send SendEmail{..}
+                    , lit "suspend-laptop" . wrap . f showT emit $ send SuspendLaptop
+                    , lit "set-other-led" . param . wrap $ f showT emit . send . SetOtherLED
+                    , lit "set-system-leds" . param . wrap $ f showT emit . send . SetSystemLEDs
+                    , lit "toggle-ceiling-light" . wrap . f showT emit $ toggleCeilingLight
+                    , lit "sleep-or-wake" . wrap . f showT emit $ sleepOrWake opts.lifxMorningDelay opts.lifxMorningKelvin
                     ]
                 }
             <&> \case
@@ -74,7 +73,7 @@ feed opts =
 
 data Opts' a = Opts'
     { warpSettings :: Warp.Settings -- TODO what if the settings passed in override the logger? just say not to in Haddocks?
-    , routes :: [(a -> IO ()) -> Node '[]]
+    , routes :: (a -> IO ()) -> [Node '[]]
     }
 data Item' a
     = Event' a
@@ -85,7 +84,7 @@ stream' ::
     S.Stream m (Item' a)
 stream' Opts'{..} = S.morphInner liftIO $ S.fromEmitter \f ->
     Warp.runSettings (Warp.setLogger (curry3 $ f . uncurry3 WarpLog') warpSettings)
-        . withDefault (choice $ map ($ (f . Event')) routes)
+        . withDefault (choice . routes $ f . Event')
         $ \_ resp -> resp $ Wai.responseLBS status404 [] "Not Found..."
 
 infixr 8 .:
