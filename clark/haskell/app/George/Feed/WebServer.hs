@@ -18,7 +18,7 @@ import Okapi.Response
 import Streamly.Data.Stream.Prelude qualified as S
 import System.Exit
 import Util.Streamly qualified as S
-import Util.Util
+import Util.Util hiding ((.:))
 
 data Opts = Opts
     { port :: Warp.Port
@@ -29,8 +29,8 @@ data Opts = Opts
 feed :: Opts -> S.Stream IO [Event]
 feed opts = S.fromEmitter \emit ->
     let warpLog r s i = unless (statusIsSuccessful s) $ emit [ErrorEvent (Error "HTTP error" (r, s, i))]
-        f :: (Show r) => (Headers '[] -> Text -> Wai.Response) -> (r -> Text) -> CompoundAction r -> IO Wai.Response
-        f ok show' a = do
+        f :: (Show r) => (r -> Text) -> CompoundAction r -> (Headers '[] -> Text -> Wai.Response) -> Wai.Request -> IO Wai.Response
+        f show' a ok _req = do
             m <- newEmptyMVar
             emit $ pure $ ActionEvent (putMVar m) a
             ok noHeaders . (<> "\n") . show' <$> takeMVar m
@@ -38,51 +38,31 @@ feed opts = S.fromEmitter \emit ->
      in Warp.runSettings (Warp.setLogger warpLog (Warp.setPort opts.port Warp.defaultSettings)) $
             withDefault
                 ( choice
-                    [ lit "reset-error" $
-                        wrap \ok _req ->
-                            f ok showT $ send ResetError
-                    , lit "exit" . param $
-                        wrap \c ok _req ->
-                            f ok showT . send . Exit $ maybe ExitSuccess ExitFailure c
-                    , lit "get-light-power" . param $
-                        wrap \(Exists @NullConstraint l) ok _req ->
-                            f ok showT . send $ GetLightPower l
-                    , lit "set-light-power" . param . param $
-                        wrap \(Exists @NullConstraint l) p ok _req ->
-                            f ok showT . send $ SetLightPower l p
-                    , lit "get-light-colour" . param $
-                        wrap \(Exists @NullConstraint l) ok _req ->
-                            f ok showT . send $ GetLightColour l
+                    [ lit "reset-error" . wrap $ f showT $ send ResetError
+                    , lit "exit" . param . wrap $ f showT . send . Exit . maybe ExitSuccess ExitFailure
+                    , lit "get-light-power" . param . wrap . withExists' $ f showT . send . GetLightPower
+                    , lit "set-light-power" . param . param . wrap . withExists' $ f showT . send .: SetLightPower
+                    , lit "get-light-colour" . param . wrap . withExists' $ f showT . send . GetLightColour
                     , lit "set-light-colour" $
                         choice
                             [ param . param . param . param $
-                                wrap \light delay brightness kelvin ok _req ->
-                                    f ok showT $ send SetLightColourBK{lightBK = light, ..}
+                                wrap \light delay brightness kelvin ->
+                                    f showT $ send SetLightColourBK{lightBK = light, ..}
                             , param . param . param . param . param . param $
-                                wrap \light delay hue saturation brightness kelvin ok _req ->
-                                    f ok showT $ send SetLightColour{colour = HSBK{..}, ..}
+                                wrap \light delay hue saturation brightness kelvin ->
+                                    f showT $ send SetLightColour{colour = HSBK{..}, ..}
                             ]
-                    , lit "set-desk-usb-power" . param $
-                        wrap \p ok _req ->
-                            f ok showT . send $ SetDeskUSBPower p
-                    , lit "send-email" . param . param $
-                        wrap \subject body ok _req ->
-                            f ok showT $ send SendEmail{..}
-                    , lit "suspend-laptop" $
-                        wrap \ok _req ->
-                            f ok showT $ send SuspendLaptop
-                    , lit "set-other-led" . param $
-                        wrap \p ok _req ->
-                            f ok showT . send $ SetOtherLED p
-                    , lit "set-system-leds" . param $
-                        wrap \p ok _req ->
-                            f ok showT . send $ SetSystemLEDs p
-                    , lit "toggle-ceiling-light" $
-                        wrap \ok _req ->
-                            f ok showT toggleCeilingLight
-                    , lit "sleep-or-wake" $
-                        wrap \ok _req ->
-                            f ok showT $ sleepOrWake opts.lifxMorningDelay opts.lifxMorningKelvin
+                    , lit "set-desk-usb-power" . param . wrap $ f showT . send . SetDeskUSBPower
+                    , lit "send-email" . param . param $ wrap \subject body -> f showT $ send SendEmail{..}
+                    , lit "suspend-laptop" . wrap . f showT $ send SuspendLaptop
+                    , lit "set-other-led" . param . wrap $ f showT . send . SetOtherLED
+                    , lit "set-system-leds" . param . wrap $ f showT . send . SetSystemLEDs
+                    , lit "toggle-ceiling-light" . wrap . f showT $ toggleCeilingLight
+                    , lit "sleep-or-wake" . wrap . f showT $ sleepOrWake opts.lifxMorningDelay opts.lifxMorningKelvin
                     ]
                 )
                 \_req resp -> resp $ Wai.responseLBS status404 [] "Not Found..."
+
+infixr 8 .:
+(.:) :: (c -> d) -> (a -> b -> c) -> a -> b -> d
+(.:) = (.) . (.)
