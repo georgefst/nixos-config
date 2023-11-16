@@ -13,10 +13,11 @@ source-repository-package
     tag: 97fa638128c05f6374ac0e803810d5b504f1eadf
     --sha256: 6X9FNMMcUi1P5Q2pK4xqahCmpcAUeVASZjbYURhJmW0=
 
+-- using `streamly-okapi-prerelease` branch due to dependening on non-Hackage versions of said libraries
 source-repository-package
     type: git
     location: https://github.com/georgefst/georgefst-utils
-    tag: fc6fb043b01dfb6f909ea1a9a70fb4c898e65e64
+    tag: 85b37b477a8c4f0c0e623b395a01fbd289b237f6
     --sha256: GKSGtnE6D9C2+GDy+ZYUkZJuFqj6s68Qs3Xypd6dkSA=
 
 -- using unreleased API - https://github.com/monadicsystems/okapi/issues/30

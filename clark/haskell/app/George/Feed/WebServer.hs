@@ -6,11 +6,9 @@ import Util
 import Control.Concurrent
 import Control.Monad
 import Control.Monad.Freer
-import Control.Monad.IO.Class
 import Data.Functor
 import Data.Text (Text)
 import Data.Time
-import Data.Tuple.Extra
 import Data.Typeable (Typeable)
 import Data.Word
 import Lifx.Lan (HSBK (..))
@@ -21,8 +19,8 @@ import Okapi.App hiding (body)
 import Okapi.Response
 import Streamly.Data.Stream.Prelude qualified as S
 import System.Exit
-import Util.Streamly qualified as S
-import Util.Util hiding ((.:))
+import Util.Streamly.Okapi qualified as Okapi
+import Util.Util
 
 data Opts = Opts
     { port :: Warp.Port
@@ -39,8 +37,8 @@ wrap = responder @200 @'[] @Text @Text . method GET id
 feed :: Opts -> S.Stream IO [Event]
 feed opts =
     S.catMaybes $
-        stream' @IO @Event
-            Opts'
+        Okapi.stream @IO @Event
+            Okapi.Opts
                 { warpSettings = Warp.setPort opts.port Warp.defaultSettings
                 , routes = \emit ->
                     let
@@ -74,26 +72,6 @@ feed opts =
                         ]
                 }
             <&> \case
-                Event' x -> Just [x]
-                WarpLog' r s i ->
+                Okapi.Event x -> Just [x]
+                Okapi.WarpLog r s i ->
                     guard (not $ statusIsSuccessful s) $> [ErrorEvent (Error "HTTP error" (r, s, i))]
-
-data Opts' a = Opts'
-    { warpSettings :: Warp.Settings -- TODO what if the settings passed in override the logger? just say not to in Haddocks?
-    , routes :: (a -> IO ()) -> [Node '[]]
-    }
-data Item' a
-    = Event' a
-    | WarpLog' Wai.Request Status (Maybe Integer)
-stream' ::
-    (MonadIO m) =>
-    Opts' a ->
-    S.Stream m (Item' a)
-stream' Opts'{..} = S.morphInner liftIO $ S.fromEmitter \f ->
-    Warp.runSettings (Warp.setLogger (curry3 $ f . uncurry3 WarpLog') warpSettings)
-        . withDefault (choice . routes $ f . Event')
-        $ \_ resp -> resp $ Wai.responseLBS status404 [] "Not Found..."
-
-infixr 8 .:
-(.:) :: (c -> d) -> (a -> b -> c) -> a -> b -> d
-(.:) = (.) . (.)
