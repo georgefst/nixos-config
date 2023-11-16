@@ -35,9 +35,12 @@ feed opts =
                 , routes = \act ->
                     [ lit "reset-error" . simpleGet $ f showT act $ send ResetError
                     , lit "exit" . param . simpleGet $ f showT act . send . Exit . maybe ExitSuccess ExitFailure
-                    , lit "get-light-power" . param . simpleGet . withExists' $ f showT act . send . GetLightPower
-                    , lit "set-light-power" . param . param . simpleGet . withExists' $ f showT act . send .: SetLightPower
-                    , lit "get-light-colour" . param . simpleGet . withExists' $ f showT act . send . GetLightColour
+                    , lit "get-light-power" . param . simpleGet . withExists' $
+                        f showT act . send . GetLightPower
+                    , lit "set-light-power" . param . param . simpleGet . withExists' $
+                        f showT act . send .: SetLightPower
+                    , lit "get-light-colour" . param . simpleGet . withExists' $
+                        f showT act . send . GetLightColour
                     , lit "set-light-colour" $
                         choice
                             [ param . param . param . param $
@@ -53,7 +56,8 @@ feed opts =
                     , lit "set-other-led" . param . simpleGet $ f showT act . send . SetOtherLED
                     , lit "set-system-leds" . param . simpleGet $ f showT act . send . SetSystemLEDs
                     , lit "toggle-ceiling-light" . simpleGet . f showT act $ toggleCeilingLight
-                    , lit "sleep-or-wake" . simpleGet . f showT act $ sleepOrWake opts.lifxMorningDelay opts.lifxMorningKelvin
+                    , lit "sleep-or-wake" . simpleGet . f showT act $
+                        sleepOrWake opts.lifxMorningDelay opts.lifxMorningKelvin
                     ]
                 }
             <&> \case
