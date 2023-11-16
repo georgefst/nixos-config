@@ -16,7 +16,7 @@ import Util.Lifx
 import Control.Exception
 import Control.Monad
 import Control.Monad.Catch
-import Control.Monad.Except
+import Control.Monad.Except hiding (handleError)
 import Control.Monad.Freer
 import Control.Monad.Log (MonadLog)
 import Control.Monad.State.Strict
@@ -105,12 +105,21 @@ data Light (c :: LightColours) where
     Lamp :: Light FullColours
 deriving instance Show (Light c)
 data LightColours = FullColours | KelvinOnly -- TODO use `type data` when available (GHC 9.6)
+
+-- TODO is there a way to derive some of this?
+-- if we could do `deriving instance Read (Light NoColour)` that might be a good start
 instance FromHttpApiData (Exists' Light) where
-    -- TODO is there a way to derive some of this?
-    -- if we could do `deriving instance Read (Light NoColour)` that might be a good start
     parseUrlPiece = \case
         "ceiling" -> Right $ Exists Ceiling
         "lamp" -> Right $ Exists Lamp
+        s -> Left $ "unknown light name: " <> s
+instance FromHttpApiData (Light KelvinOnly) where
+    parseUrlPiece = \case
+        "ceiling" -> Right Ceiling
+        s -> Left $ "unknown light name: " <> s
+instance FromHttpApiData (Light FullColours) where
+    parseUrlPiece = \case
+        "lamp" -> Right Lamp
         s -> Left $ "unknown light name: " <> s
 
 data ActionOpts = ActionOpts

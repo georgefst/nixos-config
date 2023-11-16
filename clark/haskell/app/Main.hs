@@ -7,7 +7,7 @@ import George.Feed.WebServer qualified as WebServer
 import Util.GPIO qualified as GPIO
 import Util.Lifx
 
-import Control.Monad.Except
+import Control.Monad.Except hiding (handleError)
 import Control.Monad.Log (MonadLog, logMessage, runLoggingT)
 import Control.Monad.State
 import Data.Bool

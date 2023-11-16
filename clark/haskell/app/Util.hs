@@ -16,7 +16,6 @@ import Data.List.Extra
 import Data.Proxy
 import Data.Time (NominalDiffTime)
 import Network.Socket
-import Okapi (OkapiT)
 import Options.Generic
 import RawFilePath
 import System.Exit
@@ -99,8 +98,3 @@ deriving anyclass instance ParseField NominalDiffTime
 deriving anyclass instance ParseFields NominalDiffTime
 instance ParseRecord NominalDiffTime where
     parseRecord = fmap getOnly parseRecord
-
--- TODO find a better workaround
--- https://gitlab.haskell.org/ghc/ghc/-/issues/15681
-instance MonadFail (OkapiT IO) where
-    fail s = error $ "`MonadFail (OkapiT IO)` shouldn't be used" <> s
