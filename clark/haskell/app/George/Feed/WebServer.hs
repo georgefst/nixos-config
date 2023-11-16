@@ -9,11 +9,9 @@ import Control.Monad.Freer
 import Data.Functor
 import Data.Text (Text)
 import Data.Time
-import Data.Typeable (Typeable)
 import Data.Word
 import Lifx.Lan (HSBK (..))
 import Network.HTTP.Types
-import Network.Wai qualified as Wai
 import Network.Wai.Handler.Warp qualified as Warp
 import Okapi.App hiding (body)
 import Okapi.Response
@@ -27,12 +25,6 @@ data Opts = Opts
     , lifxMorningDelay :: NominalDiffTime
     , lifxMorningKelvin :: Word16
     }
-
-wrap ::
-    (Typeable r, Typeable (r :-> (Headers '[] -> Text -> Wai.Response))) =>
-    Handler (r :-> (Headers '[] -> Text -> Wai.Response)) IO ->
-    Node r
-wrap = responder @200 @'[] @Text @Text . method GET id
 
 feed :: Opts -> S.Stream IO [Event]
 feed opts =
@@ -73,3 +65,4 @@ feed opts =
         m <- newEmptyMVar
         act $ ActionEvent (putMVar m) a
         ok noHeaders . (<> "\n") . show' <$> takeMVar m
+    wrap = responder @200 @'[] @Text @Text . method GET id
