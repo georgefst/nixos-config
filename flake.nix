@@ -11,7 +11,7 @@
   outputs = inputs@{ self, nixpkgs, flake-utils, agenix, ... }: rec {
     haskell =
       builtins.mapAttrs
-        (name: pkg: (flake-utils.lib.eachDefaultSystem (system:
+        (name: src: (flake-utils.lib.eachDefaultSystem (system:
           let
             flake = (import inputs.nixpkgs-haskell {
               inherit system;
@@ -20,9 +20,9 @@
                 (final: prev: {
                   hixProject =
                     final.haskell-nix.hix.project {
-                      inherit (pkg) src
-                        compiler-nix-name
-                        index-state;
+                      inherit src;
+                      compiler-nix-name = "ghc963";
+                      index-state = "2023-11-15T00:00:00Z";
                       evalSystem = "x86_64-linux";
                     };
                 })
@@ -36,16 +36,8 @@
           }
         )))
         {
-          clark = {
-            src = ./.;
-            compiler-nix-name = "ghc963";
-            index-state = "2023-11-15T00:00:00Z";
-          };
-          tennis-scraper = {
-            src = inputs.tennis-scraper;
-            compiler-nix-name = "ghc928";
-            index-state = "2023-06-28T00:00:00Z";
-          };
+          clark = ./.;
+          tennis-scraper = inputs.tennis-scraper;
         };
 
     nixosConfigurations = {
