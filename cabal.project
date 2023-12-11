@@ -13,12 +13,12 @@ source-repository-package
     tag: 97fa638128c05f6374ac0e803810d5b504f1eadf
     --sha256: 6X9FNMMcUi1P5Q2pK4xqahCmpcAUeVASZjbYURhJmW0=
 
--- using `streamly-okapi-prerelease` branch due to dependening on non-Hackage versions of said libraries
+-- using `okapi-prerelease` branch due to dependening on non-Hackage version of Okapi (see below)
 source-repository-package
     type: git
     location: https://github.com/georgefst/georgefst-utils
-    tag: 85b37b477a8c4f0c0e623b395a01fbd289b237f6
-    --sha256: FyXD0JwPT/rTVsI93DktUIl7HCP7iimTMEpVjf0HLJM=
+    tag: 024b925215428e1eb9ea8f869c5f591559843b9b
+    --sha256: eAQP9vER7e5GhXcwWLp9e7Q8JDzdxAQY9YsWZ3mW5a4=
 
 -- using unreleased API - https://github.com/monadicsystems/okapi/issues/30
 source-repository-package
@@ -27,14 +27,6 @@ source-repository-package
     tag: d502f56eddff53d960ffe9cf687fa6f86397ab93
     subdir: lib
     --sha256: ivNvLHgoPDK3u1sSba5PK/x23OGku3cznmXJi86+IDw=
-
--- version 0.10 not yet on Hackage - https://github.com/composewell/streamly/issues/2597
-source-repository-package
-    type: git
-    location: https://github.com/composewell/streamly
-    tag: 0ed37ff344c122288e8b4865458908398e45789b
-    subdir: core .
-    --sha256: JG5Zr1EnDkNxa9yV7/WB2sj4ycPSIzbxprJ8G4wPErw=
 
 allow-newer:
     -- https://github.com/lexi-lambda/freer-simple/pull/44

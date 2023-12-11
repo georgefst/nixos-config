@@ -22,7 +22,7 @@
                     final.haskell-nix.hix.project {
                       inherit src;
                       compiler-nix-name = "ghc963";
-                      index-state = "2023-11-15T00:00:00Z";
+                      index-state = "2023-12-01T00:00:00Z";
                       evalSystem = "x86_64-linux";
                     };
                 })

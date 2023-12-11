@@ -66,7 +66,7 @@ executable clark
         optparse-generic >= 1.4.6,
         pretty-simple >= 4.1,
         rawfilepath >= 1.0,
-        streamly >= 0.9,
+        streamly >= 0.10,
         streamly-core >= 0.1,
         text >= 1.2.4,
         time >= 1.9.3,
