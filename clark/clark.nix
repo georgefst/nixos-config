@@ -115,6 +115,7 @@ in
     root = { };
     gthomas = {
       isNormalUser = true;
+      linger = true;
       createHome = true;
       home = home;
       extraGroups = [
@@ -408,14 +409,14 @@ in
     user = "gthomas";
     group = "users";
     dataDir = home;
-    devices = {
+    settings.devices = {
       # Billy will introduce us to all others, so there's no need to list them here
       billy = {
         id = "3WIFNUH-VIST5DA-RROQ732-DDCKOQK-PWVERCB-7RNNG5R-JGRZX3M-WMAUQQP";
         introducer = true;
       };
     };
-    folders = {
+    settings.folders = {
       default = {
         path = syncthing-main-dir;
         label = "Default";
@@ -440,14 +441,6 @@ in
       if [[ ! -e /syncthing ]]; then
         ln -s ${syncthing-main-dir} /syncthing
       fi
-    '';
-    # stops user services from being killed when all SSH sessions close
-    # inspired by https://github.com/NixOS/nixpkgs/issues/183629#issuecomment-1199256913
-    # as discussed in that thread, there'll hopefully be a proper NixOS option for this eventually
-    enable-lingering = ''
-      rm -rf /var/lib/systemd/linger
-      mkdir -p /var/lib/systemd/linger
-      touch /var/lib/systemd/linger/gthomas
     '';
   };
 }

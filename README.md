@@ -1,6 +1,6 @@
 Build system configuration:
 
-`nix shell nixpkgs/23.05#nixos-rebuild -c nixos-rebuild --flake .#clark build` (or `nix build .#configs.clark`, or `nix build`)
+`nix shell nixpkgs/23.11#nixos-rebuild -c nixos-rebuild --flake .#clark build` (or `nix build .#configs.clark`, or `nix build`)
 
 Build boot image:
 
