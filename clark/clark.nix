@@ -432,9 +432,9 @@ in
   system.activationScripts = {
     # these pipes are used from multiple services, so we set them up as early as possible
     make-pipes = ''
-      if [[ ! -e ${email-pipe} ]]; then mkfifo ${email-pipe} && chown gthomas:users ${email-pipe} ; fi
-      if [[ ! -e ${system-led-pipe} ]]; then mkfifo ${system-led-pipe} && chown gthomas:users ${system-led-pipe} ; fi
-      if [[ ! -e ${power-off-pipe} ]]; then mkfifo ${power-off-pipe} && chown gthomas:users ${power-off-pipe} ; fi
+      if [[ ! -p ${email-pipe} ]]; then mkfifo ${email-pipe} && chown gthomas:users ${email-pipe} ; fi
+      if [[ ! -p ${system-led-pipe} ]]; then mkfifo ${system-led-pipe} && chown gthomas:users ${system-led-pipe} ; fi
+      if [[ ! -p ${power-off-pipe} ]]; then mkfifo ${power-off-pipe} && chown gthomas:users ${power-off-pipe} ; fi
     '';
     # allows certain scripts and config files to be compatible across my devices
     syncthing-root-link = ''
