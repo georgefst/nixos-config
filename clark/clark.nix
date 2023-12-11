@@ -301,7 +301,7 @@ in
       wantedBy = startup;
       wants = [ "geckodriver.service" ];
     };
-    email-handler = service-with-crash-notification {
+    email-handler = {
       script = ''
         data=$(<${email-pipe})
         subject=$(head -n1 <<< "$data")
@@ -320,7 +320,7 @@ in
           sed -i "1iClark failed to send email at $(date)" ${syncthing-main-dir}/notes/todo.md
         fi
       '';
-      serviceConfig = { Restart = "always"; RestartSec = 1; };
+      serviceConfig = { Restart = "always"; };
       description = "email handler";
       path = [ pkgs.curl ];
       wantedBy = startup;
