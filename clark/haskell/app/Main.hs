@@ -7,7 +7,6 @@ import George.Feed.WebServer qualified as WebServer
 import Util.GPIO qualified as GPIO
 import Util.Lifx
 
-import Control.Monad.Except hiding (handleError)
 import Control.Monad.Log (MonadLog, logMessage, runLoggingT)
 import Control.Monad.State
 import Data.Bool
@@ -19,6 +18,7 @@ import Data.Maybe
 import Data.Text.IO qualified as T
 import Data.Time
 import Data.Traversable
+import Data.Void
 import Data.Word
 import Lifx.Lan qualified as Lifx
 import Network.Socket (PortNumber)
@@ -86,15 +86,18 @@ main = do
     flip evalStateT AppState{activeLEDs = mempty}
         . flip runLoggingT (liftIO . T.putStrLn)
         $ runLifxUntilSuccess
-            (either (handleError . Error "Light not found") (handleError . Error "LIFX error"))
+            (either (handleError . Error @Void "") (handleError . Error "LIFX error"))
             (lifxTime opts.lifxTimeout)
             (Just $ fromIntegral opts.lifxPort)
             do
                 -- TODO this would be slightly cleaner if GHC were better about retaining polymorphism in do-bindings
                 lightMap <- do
                     ds <- discoverLifx
-                    Map.fromList <$> for enumerate \(Exists @NullConstraint @_ @Light (showT -> l)) ->
-                        maybe (throwError l) (pure . (l,) . fst) (find ((== l) . (.label) . snd) ds)
+                    Map.fromList . catMaybes <$> for enumerate \(Exists @NullConstraint @_ @Light (showT -> l)) ->
+                        maybe
+                            (handleError (Error "Light not found" l) >> pure Nothing)
+                            (pure . Just . (l,) . fst)
+                            (find ((== l) . (.label) . snd) ds)
                 let getLight :: forall a. Light a -> Lifx.Device
                     getLight l = fromMaybe (error "light map not exhaustive") $ Map.lookup (showT l) lightMap
                 runEventStream handleError logMessage (runAction (opts & \Opts{..} -> ActionOpts{..}))
