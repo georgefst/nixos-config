@@ -52,7 +52,7 @@ let
         ' > ${email-pipe}
       fi
     '';
-    path = (service.path or [ ]) ++ [ pkgs.libgpiod ];
+    path = (service.path or [ ]);
   };
 in
 {
