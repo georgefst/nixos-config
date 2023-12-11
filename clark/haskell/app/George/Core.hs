@@ -105,7 +105,7 @@ data Light (c :: LightColours) where
     Lamp :: Light FullColours
     Spotlight :: Light KelvinOnly
 deriving instance Show (Light c)
-data LightColours = FullColours | KelvinOnly -- TODO use `type data` when available (GHC 9.6)
+type data LightColours = FullColours | KelvinOnly
 
 -- TODO is there a way to derive some of this?
 -- if we could do `deriving instance Read (Light NoColour)` that might be a good start
