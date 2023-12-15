@@ -214,7 +214,6 @@ sleepOrWake lifxMorningDelay lifxMorningKelvin =
                     , brightness = maxBound
                     , kelvin = lifxMorningKelvin
                     }
-        send $ SetDeskUSBPower morning
         when night . void $ send SuspendLaptop
   where
     light = Ceiling
