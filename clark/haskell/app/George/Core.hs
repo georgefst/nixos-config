@@ -87,6 +87,7 @@ catchActionErrors = catchMany @'[IOException] $ throwError . Error "Error when r
 type CompoundAction a = Eff '[Action] a
 data Action a where
     Exit :: ExitCode -> Action ()
+    Pause :: NominalDiffTime -> Action ()
     PowerOff :: Action ()
     ResetError :: Action ()
     GetLightPower :: Light a -> Action Bool
@@ -155,6 +156,7 @@ runAction ::
     (MonadIO m, MonadState AppState m, MonadLifx m, MonadLog Text m, MonadError Error m) => ActionOpts -> Action a -> m a
 runAction opts@ActionOpts{getLight, setLED {- TODO GHC doesn't yet support impredicative fields -}} = \case
     Exit c -> liftIO $ exitWith c
+    Pause t -> liftIO $ threadDelay' t
     PowerOff -> writePipe opts.powerOffPipe "."
     ResetError -> setLED opts.ledErrorPin False
     GetLightPower l -> statePowerToBool <$> sendMessage (getLight l) GetPower
@@ -207,6 +209,15 @@ sleepOrWake lifxMorningDelay lifxMorningKelvin =
                     , brightness = 0
                     , kelvin = 0
                     }
+            -- adjust sleep-or-wake behaviour now that I have Crow
+            -- putting Billy to sleep should only warn - it's possible I could go a day without Billy turning on now
+            -- shut down Crow? depends on power usage
+
+            -- I've been seeing light not starting from 0
+            -- so hopefully a short pause will ensure the two messages arrive in order
+            -- although I'm not convinced that's the problem
+            -- (deployed but not yet tested)
+            send $ Pause 0.01
             send
                 SetLightColourBK
                     { lightBK = light
