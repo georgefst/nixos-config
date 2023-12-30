@@ -27,7 +27,7 @@ let
   syncthing-camera-dir = home + "/sync-camera";
 
   # GPIO
-  gpiochip = "gpiochip0";
+  gpio-chip = 0;
   button-pin = 23;
   led-error-pin = 19;
   led-other-pin = 26;
@@ -178,7 +178,7 @@ in
     clark = service-with-crash-notification {
       script = ''
         clark \
-          --gpio-chip ${gpiochip} \
+          --gpio-chip ${toString gpio-chip} \
           --button-debounce 0.3s \
           --button-window 1.5s \
           --button-pin ${toString button-pin} \
