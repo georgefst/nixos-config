@@ -22,6 +22,7 @@ import Control.Monad.Log (MonadLog, logMessage)
 import Control.Monad.State.Strict
 import Data.Bool
 import Data.ByteString qualified as B
+import Data.ByteString.Char8 qualified as BC8
 import Data.Foldable
 import Data.Function
 import Data.Map (Map)
@@ -205,7 +206,7 @@ runAction opts@ActionOpts{getLight, setLED {- TODO GHC doesn't yet support impre
     SetSystemLEDs b -> writePipe opts.systemLedPipe . showT $ fromEnum b
   where
     showOutput out err = liftIO $ for_ [("stdout", out), ("stderr", err)] \(s, t) ->
-        unless (B.null t) $ T.putStrLn ("    " <> s <> ": ") >> B.putStr t
+        unless (B.null t) $ T.putStrLn ("    " <> s <> ": ") >> B.putStr (BC8.strip t)
     throwWhenFailureExitCode s ec =
         unless (ec == ExitSuccess) $ throwError $ Error s ec
     logWhenFailureExitCode s = \case
