@@ -17,8 +17,8 @@ source-repository-package
 source-repository-package
     type: git
     location: https://github.com/georgefst/georgefst-utils
-    tag: ceed0da8c2fca88d053e3527458b118590b7d035
-    --sha256: uy3Tq9/HZFysR/WRwASWu+2gJn+twyOvpq4p7LKj5bs=
+    tag: fa8e20cab48b2e111070a22e76ab1baa6a33422d
+    --sha256: s9LflRj8TKuOc6XrxVSN9ETGPb89z75djvbQLAjUBt4=
 
 -- using unreleased API - https://github.com/monadicsystems/okapi/issues/30
 source-repository-package
