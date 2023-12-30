@@ -176,12 +176,10 @@ in
   # systemd
   systemd.user.services = {
     clark = service-with-crash-notification {
-      # TODO I think "debounced" events with periods of more than about 10ms are always just the button being pressed
-      # if our wiring wasn't dodgy, we could set `--button-debounce` much lower
       script = ''
         clark \
           --gpio-chip ${toString gpio-chip} \
-          --button-debounce 0.3s \
+          --button-debounce 0.03s \
           --button-window 1.5s \
           --button-pin ${toString button-pin} \
           --led-error-pin ${toString led-error-pin} \
