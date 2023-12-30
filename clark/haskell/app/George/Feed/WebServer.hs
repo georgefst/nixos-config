@@ -50,7 +50,7 @@ feed opts =
                                 simpleGet \light delay hue saturation brightness kelvin ->
                                     f showT act $ send SetLightColour{colour = HSBK{..}, ..}
                             ]
-                    , lit "set-desk-usb-power" . param . simpleGet $ f showT act . send . SetDeskUSBPower
+                    , lit "set-desk-power" . param . param . simpleGet $ f showT act . send .: SetDeskPower
                     , lit "send-email" . param . param $ simpleGet \subject body -> f showT act $ send SendEmail{..}
                     , lit "suspend-laptop" . simpleGet . f showT act $ send SuspendLaptop
                     , lit "set-other-led" . param . simpleGet $ f showT act . send . SetOtherLED

@@ -48,7 +48,6 @@ data Opts = Opts
     , sshTimeout :: Int
     , lifxMorningDelay :: NominalDiffTime
     , lifxMorningKelvin :: Word16
-    , deskUsbPort :: Int
     , systemLedPipe :: FilePath
     , powerOffPipe :: FilePath
     }

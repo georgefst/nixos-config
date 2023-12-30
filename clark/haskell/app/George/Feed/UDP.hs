@@ -35,7 +35,6 @@ decodeAction opts =
                 body <- decodeUtf8 <$> (B.getByteString . fromIntegral =<< B.get @Word16)
                 pure $ send SendEmail{..}
             3 -> pure $ send SuspendLaptop
-            4 -> send . SetDeskUSBPower <$> B.get @Bool
             5 -> send <$> (SetLightColourBK Ceiling . secondsToNominalDiffTime <$> B.get <*> B.get <*> B.get)
             6 -> pure $ sleepOrWake opts.lifxMorningDelay opts.lifxMorningKelvin
             7 -> send . SetLightPower Ceiling <$> B.get @Bool

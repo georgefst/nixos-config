@@ -193,7 +193,6 @@ in
           --ssh-timeout 3 \
           --lifx-morning-delay 45s \
           --lifx-morning-kelvin 2700 \
-          --desk-usb-port 2 \
           --system-led-pipe ${system-led-pipe} \
           --power-off-pipe ${power-off-pipe} \
       '';

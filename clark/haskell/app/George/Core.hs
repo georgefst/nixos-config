@@ -22,6 +22,7 @@ import Control.Monad.Log (MonadLog, logMessage)
 import Control.Monad.State.Strict
 import Data.Bool
 import Data.ByteString qualified as B
+import Data.Either.Extra
 import Data.Foldable
 import Data.Function
 import Data.Map (Map)
@@ -38,6 +39,7 @@ import Streamly.Data.Fold qualified as SF
 import Streamly.Data.Stream.Prelude qualified as S
 import System.Directory qualified as Dir
 import System.Exit
+import Text.Read (readMaybe)
 import Util.Util
 import Web.HttpApiData (FromHttpApiData, parseUrlPiece)
 
@@ -94,7 +96,7 @@ data Action a where
     GetLightColour :: Light a -> Action HSBK
     SetLightColour :: {light :: Light FullColours, delay :: NominalDiffTime, colour :: HSBK} -> Action ()
     SetLightColourBK :: {lightBK :: Light KelvinOnly, delay :: NominalDiffTime, brightness :: Word16, kelvin :: Word16} -> Action () -- TODO we should in principle be allowed to reuse the name `light` for the field - https://github.com/ghc-proposals/ghc-proposals/pull/535#issuecomment-1694388075
-    SetDeskUSBPower :: Bool -> Action ()
+    SetDeskPower :: DeskPowerDevice -> Bool -> Action ()
     SendEmail :: {subject :: Text, body :: Text} -> Action ()
     SuspendLaptop :: Action ()
     SetOtherLED :: Bool -> Action ()
@@ -106,6 +108,13 @@ data Light (c :: LightColours) where
     Spotlight :: Light KelvinOnly
 deriving instance Show (Light c)
 type data LightColours = FullColours | KelvinOnly
+data DeskPowerDevice
+    = Computer
+    | MainMonitor
+    | PortraitMonitor
+    | -- | Turning these off is a really bad idea, since they power Clark itself!
+      UsbPorts
+    deriving (Show, Read)
 
 -- TODO is there a way to derive some of this?
 -- if we could do `deriving instance Read (Light NoColour)` that might be a good start
@@ -137,6 +146,8 @@ instance FromHttpApiData (Light FullColours) where
     parseUrlPiece = \case
         "lamp" -> Right Lamp
         s -> Left $ "unknown light name: " <> s
+instance FromHttpApiData DeskPowerDevice where
+    parseUrlPiece = maybeToEither "read failure" . readMaybe . T.unpack
 
 data ActionOpts = ActionOpts
     { ledErrorPin :: Int
@@ -145,7 +156,6 @@ data ActionOpts = ActionOpts
     , sshTimeout :: Int
     , getLight :: forall a. Light a -> Device
     , laptopHostName :: Text
-    , deskUsbPort :: Int
     , systemLedPipe :: FilePath
     , powerOffPipe :: FilePath
     , setLED :: forall m. (MonadState AppState m, MonadLog Text m, MonadIO m) => Int -> Bool -> m ()
@@ -166,10 +176,17 @@ runAction opts@ActionOpts{getLight, setLED {- TODO GHC doesn't yet support impre
         -- these have no effect for this type of LIFX bulb
         hue = 0
         saturation = 0
-    SetDeskUSBPower b -> do
-        (ec, out, err) <- MQTT.Meross.send =<< MQTT.Meross.toggle opts.deskUsbPort b
+    SetDeskPower d b -> do
+        (ec, out, err) <- MQTT.Meross.send =<< MQTT.Meross.toggle port b
         showOutput out err
-        throwWhenFailureExitCode "Failed to set desk USB power" ec
+        throwWhenFailureExitCode "Failed to set desk power" ec
+      where
+        port = case d of
+            -- I'm actually not sure whether they have ID 0 or 4 anyway
+            Computer -> 3
+            MainMonitor -> 2
+            PortraitMonitor -> 1
+            UsbPorts -> 4
     SendEmail{subject, body} ->
         writePipe opts.emailPipe $ T.unlines [subject, body]
     SuspendLaptop ->
