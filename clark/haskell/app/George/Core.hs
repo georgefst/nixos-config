@@ -18,7 +18,7 @@ import Control.Monad
 import Control.Monad.Catch
 import Control.Monad.Except hiding (handleError)
 import Control.Monad.Freer
-import Control.Monad.Log (MonadLog)
+import Control.Monad.Log (MonadLog, logMessage)
 import Control.Monad.State.Strict
 import Data.Bool
 import Data.ByteString qualified as B
@@ -174,8 +174,8 @@ runAction opts@ActionOpts{getLight, setLED {- TODO GHC doesn't yet support impre
         writePipe opts.emailPipe $ T.unlines [subject, body]
     SuspendLaptop ->
         maybe
-            (throwError $ SimpleError "SSH timeout")
-            (throwWhenFailureExitCode "SSH failure")
+            (logMessage "SSH timeout")
+            (logWhenFailureExitCode "SSH failure")
             =<< liftIO
                 ( traverse (\(e, out, err) -> showOutput out err >> pure e)
                     <=< readProcessWithExitCodeTimeout (opts.sshTimeout * 1_000_000)
@@ -188,6 +188,9 @@ runAction opts@ActionOpts{getLight, setLED {- TODO GHC doesn't yet support impre
         unless (B.null t) $ T.putStrLn ("    " <> s <> ": ") >> B.putStr t
     throwWhenFailureExitCode s ec =
         unless (ec == ExitSuccess) $ throwError $ Error s ec
+    logWhenFailureExitCode s = \case
+        ExitSuccess -> pure ()
+        ExitFailure ec -> logMessage $ s <> ": " <> showT ec
     writePipe p t =
         bool (throwError $ SimpleError "Pipe doesn't exist") (liftIO $ T.writeFile p t)
             =<< liftIO (Dir.doesFileExist p)
