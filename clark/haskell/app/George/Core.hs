@@ -22,7 +22,6 @@ import Control.Monad.Log (MonadLog, logMessage)
 import Control.Monad.State.Strict
 import Data.Bool
 import Data.ByteString qualified as B
-import Data.Either.Extra
 import Data.Foldable
 import Data.Function
 import Data.Map (Map)
@@ -39,7 +38,6 @@ import Streamly.Data.Fold qualified as SF
 import Streamly.Data.Stream.Prelude qualified as S
 import System.Directory qualified as Dir
 import System.Exit
-import Text.Read (readMaybe)
 import Util.Util
 import Web.HttpApiData (FromHttpApiData, parseUrlPiece)
 
@@ -147,7 +145,12 @@ instance FromHttpApiData (Light FullColours) where
         "lamp" -> Right Lamp
         s -> Left $ "unknown light name: " <> s
 instance FromHttpApiData DeskPowerDevice where
-    parseUrlPiece = maybeToEither "read failure" . readMaybe . T.unpack
+    parseUrlPiece = \case
+        "computer" -> Right Computer
+        "main-monitor" -> Right MainMonitor
+        "portrait-monitor" -> Right PortraitMonitor
+        "usb-ports" -> Right UsbPorts
+        s -> Left $ "unknown desk device: " <> s
 
 data ActionOpts = ActionOpts
     { ledErrorPin :: Int
