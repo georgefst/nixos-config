@@ -176,7 +176,7 @@ in
   # systemd
   systemd.user.services = {
     clark = service-with-crash-notification {
-      # TODO I think "debounced" events with periods of more than about 10ms are always just the button being released
+      # TODO I think "debounced" events with periods of more than about 10ms are always just the button being pressed
       # if our wiring wasn't dodgy, we could set `--button-debounce` much lower
       script = ''
         clark \
