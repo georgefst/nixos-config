@@ -423,7 +423,7 @@ in
         label = "Default";
         devices = [ "billy" ];
       };
-      fp3_4j86-photos = {
+      fp5_bu8k-photos = {
         path = syncthing-camera-dir;
         label = "Android Camera";
         devices = [ "billy" ];
