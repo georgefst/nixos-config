@@ -104,7 +104,6 @@ deriving instance Show (Action a)
 data Light (c :: LightColours) where
     Ceiling :: Light KelvinOnly
     Lamp :: Light FullColours
-    Spotlight :: Light KelvinOnly
 deriving instance Show (Light c)
 type data LightColours = FullColours | KelvinOnly
 data DeskPowerDevice
@@ -121,25 +120,21 @@ instance FromHttpApiData (Exists' Light) where
     parseUrlPiece = \case
         "ceiling" -> Right $ Exists Ceiling
         "lamp" -> Right $ Exists Lamp
-        "spotlight" -> Right $ Exists Spotlight
         s -> Left $ "unknown light name: " <> s
 instance Bounded (Exists' Light) where
     minBound = Exists Ceiling
-    maxBound = Exists Spotlight
+    maxBound = Exists Lamp
 instance Enum (Exists' Light) where
     toEnum = \case
         0 -> Exists Ceiling
         1 -> Exists Lamp
-        2 -> Exists Spotlight
         _ -> error "out of bounds for light enum"
     fromEnum = \case
         Exists Ceiling -> 0
         Exists Lamp -> 1
-        Exists Spotlight -> 2
 instance FromHttpApiData (Light KelvinOnly) where
     parseUrlPiece = \case
         "ceiling" -> Right Ceiling
-        "spotlight" -> Right Spotlight
         s -> Left $ "unknown light name: " <> s
 instance FromHttpApiData (Light FullColours) where
     parseUrlPiece = \case
