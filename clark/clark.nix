@@ -153,9 +153,8 @@ in
   networking.wireless.interfaces = [ "wlan0" ];
   networking.wireless.environmentFile = config.age.secrets.wifi.path;
   networking.wireless.networks = {
-    TNCAPA620AF.psk = "@PSK_TNCAPA620AF@";
-    RML-5ghz.psk = "@PSK_RML-5ghz@";
-    GT.psk = "@PSK_GT@";
+    lisa.psk = "@PSK_lisa@";
+    Zeus.psk = "@PSK_Zeus@";
   };
 
   # git
