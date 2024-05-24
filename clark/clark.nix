@@ -383,7 +383,7 @@ in
       script = ''
         sleep 30 # usually requires < 10, but err on the safe side - it's never really a serious bottleneck in practice
         # ensures correct orientation on the portrait monitor usually used
-        echo 3 > /sys/class/graphics/fbcon/rotate
+        echo 1 > /sys/class/graphics/fbcon/rotate
       '';
       description = "rotate video output";
       wantedBy = startup-root;
