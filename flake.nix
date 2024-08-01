@@ -6,7 +6,6 @@
     haskellNix.url = "github:input-output-hk/haskell.nix";
     nixpkgs-haskell.follows = "haskellNix/nixpkgs-unstable";
     evdev-share.url = "github:georgefst/evdev-share";
-    tennis-scraper = { url = "git+ssh://git@github.com/georgefst/tennis-scraper"; flake = false; };
   };
   outputs = inputs@{ self, nixpkgs, flake-utils, agenix, ... }: rec {
     haskell =
@@ -37,7 +36,6 @@
         )))
         {
           clark = ./.;
-          tennis-scraper = inputs.tennis-scraper;
         };
 
     nixosConfigurations = {
@@ -51,7 +49,7 @@
         specialArgs = {
           extraPkgs = builtins.listToAttrs
             (map (name: { inherit name; value = (inputs // haskell)."${name}".packages.aarch64-linux.default; })
-              [ "clark" "evdev-share" "tennis-scraper" ]
+              [ "clark" "evdev-share" ]
             );
         };
       };

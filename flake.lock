@@ -775,8 +775,7 @@
         "nixpkgs-haskell": [
           "haskellNix",
           "nixpkgs-unstable"
-        ],
-        "tennis-scraper": "tennis-scraper"
+        ]
       }
     },
     "rust-overlay": {
@@ -835,22 +834,6 @@
         "owner": "nix-systems",
         "repo": "default",
         "type": "github"
-      }
-    },
-    "tennis-scraper": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1700234962,
-        "narHash": "sha256-rrXjEWi5ExskKOy4M8AhA2xBPrj56yPsS++aUF7Ntic=",
-        "ref": "refs/heads/master",
-        "rev": "1ddcfb62a39b529fbf25022d71a0263e5b35e21c",
-        "revCount": 245,
-        "type": "git",
-        "url": "ssh://git@github.com/georgefst/tennis-scraper"
-      },
-      "original": {
-        "type": "git",
-        "url": "ssh://git@github.com/georgefst/tennis-scraper"
       }
     }
   },

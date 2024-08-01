@@ -95,7 +95,6 @@ in
   age.secrets.gh-key = agenix-user-secret ../secrets/github.key.age;
   age.secrets.mailgun-key = agenix-user-secret ../secrets/mailgun.key.age;
   age.secrets.mailgun-sandbox = agenix-user-secret ../secrets/mailgun.sandbox.age;
-  age.secrets.passwords-lta = agenix-user-secret ../secrets/passwords.lta.age;
   age.secrets.wifi = agenix-user-secret ../secrets/wifi.age;
 
   # overlays
@@ -282,26 +281,6 @@ in
       path = [ pkgs.curl pkgs.dhall pkgs.dhall-json pkgs.diffutils pkgs.jq ];
       wantedBy = startup;
     };
-    tennis-scraper = service-with-crash-notification {
-      script = ''
-        tennis-scraper \
-          --username georgefst \
-          --password $(<${config.age.secrets.passwords-lta.path}) \
-          --dhall ${home}/sync/config/tennis-scraper.dhall \
-          --notify ${
-            pkgs.writeShellScript "notify" ''
-              printf "$1\n$2" > ${email-pipe}
-            ''
-          } \
-          --headless \
-          --wait-multiplier 3 \
-          --failure-limit 10 \
-      '';
-      description = "tennis scraper";
-      path = [ pkgs.curl extraPkgs.tennis-scraper ];
-      wantedBy = startup;
-      wants = [ "geckodriver.service" ];
-    };
     email-handler = {
       script = ''
         data=$(<${email-pipe})
@@ -325,11 +304,6 @@ in
       description = "email handler";
       path = [ pkgs.curl ];
       wantedBy = startup;
-    };
-    geckodriver = service-with-crash-notification {
-      script = "geckodriver";
-      description = "firefox webdriver interface";
-      path = [ pkgs.geckodriver pkgs.firefox ];
     };
     mosquitto = service-with-crash-notification {
       script = "mosquitto -c ${syncthing-main-dir}/config/mqtt/meross.conf -v";
