@@ -44,7 +44,7 @@ executable clark
         georgefst-utils:streamly-gpio,
         georgefst-utils:streamly-udp,
         georgefst-utils:streamly-okapi,
-        aeson ^>= 2.1.1,
+        aeson ^>= {2.1.1, 2.2},
         async >= 2.2.4,
         binary >= 0.8.9,
         bytestring >= 0.10.12,

@@ -12,6 +12,7 @@ source-repository-package
     location: https://github.com/georgefst/lifx-lan
     tag: 4795c0d940f7ed5b9df66a8c97b72fd91f3b2f97
     --sha256: dIwNr8MyV7ksf8IOi9hHT7RMHg08bHS0JO2KkY7bfns=
+allow-newer: lifx-lan:base
 
 -- using `okapi-prerelease` branch due to dependening on non-Hackage version of Okapi (see below)
 source-repository-package
