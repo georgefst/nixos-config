@@ -50,7 +50,7 @@ instance NullConstraint a
 pattern Exists' :: () => t a -> Exists' t
 pattern Exists' a = Exists a
 type Exists' = Exists NullConstraint
-withExists' :: (forall a. t a -> b) -> Exists NullConstraint t -> b
+withExists' :: (forall a. t a -> b) -> Exists' t -> b
 withExists' f (Exists a) = f a
 class ToProxyList (c :: Type -> Constraint) (ts :: [Type]) where
     toProxyList :: [Exists c Proxy]
