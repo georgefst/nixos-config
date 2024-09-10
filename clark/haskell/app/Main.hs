@@ -96,7 +96,7 @@ main = do
                             (handleError (Error "Light not found" l) >> pure Nothing)
                             (pure . Just . (l,) . fst)
                             (find ((== l) . (.label) . snd) ds)
-                let getLight :: forall a. Light a -> Lifx.Device
+                let getLight :: forall c. Light c -> Lifx.Device
                     getLight l = fromMaybe (error "light map not exhaustive") $ Map.lookup (lightName l) lightMap
                 runEventStream handleError logMessage (runAction (opts & \Opts{..} -> ActionOpts{..}))
                     . S.morphInner liftIO

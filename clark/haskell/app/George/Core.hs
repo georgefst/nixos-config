@@ -157,7 +157,7 @@ data ActionOpts = ActionOpts
     , ledOtherPin :: Int
     , emailPipe :: FilePath
     , sshTimeout :: Int
-    , getLight :: forall a. Light a -> Device
+    , getLight :: forall c. Light c -> Device
     , laptopHostName :: Text
     , systemLedPipe :: FilePath
     , powerOffPipe :: FilePath
@@ -220,7 +220,7 @@ runAction opts@ActionOpts{getLight, setLED {- TODO GHC doesn't yet support impre
       where
         catchDNE = catchIf isDoesNotExistError
 
-toggleLight :: Light a ->CompoundAction ()
+toggleLight :: Light c ->CompoundAction ()
 toggleLight l = send . SetLightPower l . not =<< send (GetLightPower l)
 sleepOrWake :: NominalDiffTime -> Word16 -> CompoundAction ()
 sleepOrWake lifxMorningDelay lifxMorningKelvin =
