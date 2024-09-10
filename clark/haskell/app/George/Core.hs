@@ -181,7 +181,6 @@ runAction opts@ActionOpts{getLight, setLED {- TODO GHC doesn't yet support impre
         throwWhenFailureExitCode "Failed to set desk power" ec
       where
         port = case d of
-            -- I'm actually not sure whether they have ID 0 or 4 anyway
             Computer -> 3
             MainMonitor -> 2
             PortraitMonitor -> 1
