@@ -219,7 +219,7 @@ toggleLight :: Light a ->CompoundAction ()
 toggleLight l = send . SetLightPower l . not =<< send (GetLightPower l)
 sleepOrWake :: NominalDiffTime -> Word16 -> CompoundAction ()
 sleepOrWake lifxMorningDelay lifxMorningKelvin =
-    send (GetLightPower Ceiling) >>= \night@(not -> morning) -> do
+    send (GetLightPower light) >>= \night@(not -> morning) -> do
         send $ SetSystemLEDs morning
         send $ SetLightPower light morning
         when morning do
