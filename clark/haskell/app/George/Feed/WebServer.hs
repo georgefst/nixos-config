@@ -41,6 +41,8 @@ feed opts =
                         f showT act . send .: SetLightPower
                     , lit "get-light-colour" . param . simpleGet . withExists' $
                         f showT act . send . GetLightColour
+                    , lit "toggle-light" . param . simpleGet . withExists' $
+                        f showT act . toggleLight
                     , lit "set-light-colour" $
                         choice
                             [ param . param . param . param $
@@ -55,7 +57,6 @@ feed opts =
                     , lit "suspend-laptop" . simpleGet . f showT act $ send SuspendLaptop
                     , lit "set-other-led" . param . simpleGet $ f showT act . send . SetOtherLED
                     , lit "set-system-leds" . param . simpleGet $ f showT act . send . SetSystemLEDs
-                    , lit "toggle-light" . param . simpleGet . withExists' $ f showT act . toggleLight
                     , lit "sleep-or-wake" . simpleGet . f showT act $
                         sleepOrWake opts.lifxMorningDelay opts.lifxMorningKelvin
                     ]
