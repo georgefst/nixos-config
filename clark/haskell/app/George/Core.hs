@@ -89,9 +89,9 @@ data Action a where
     Exit :: ExitCode -> Action ()
     PowerOff :: Action ()
     ResetError :: Action ()
-    GetLightPower :: Light a -> Action Bool
-    SetLightPower :: Light a -> Bool -> Action ()
-    GetLightColour :: Light a -> Action HSBK
+    GetLightPower :: Light c -> Action Bool
+    SetLightPower :: Light c -> Bool -> Action ()
+    GetLightColour :: Light c -> Action HSBK
     SetLightColour :: {light :: Light FullColours, delay :: NominalDiffTime, colour :: HSBK} -> Action ()
     SetLightColourBK :: {lightBK :: Light KelvinOnly, delay :: NominalDiffTime, brightness :: Word16, kelvin :: Word16} -> Action () -- TODO we should in principle be allowed to reuse the name `light` for the field - https://github.com/ghc-proposals/ghc-proposals/pull/535#issuecomment-1694388075
     SetDeskPower :: DeskPowerDevice -> Bool -> Action ()
