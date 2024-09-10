@@ -30,7 +30,6 @@ import Streamly.Data.Stream.Prelude qualified as S
 import System.IO
 import Text.Pretty.Simple
 import Util
-import Util.Util
 
 data Opts = Opts
     { gpioChip :: B.ByteString
@@ -92,13 +91,13 @@ main = do
                 -- TODO this would be slightly cleaner if GHC were better about retaining polymorphism in do-bindings
                 lightMap <- do
                     ds <- discoverLifx
-                    Map.fromList . catMaybes <$> for enumerate \(Exists @NullConstraint @_ @Light (showT -> l)) ->
+                    Map.fromList . catMaybes <$> for enumerate \(Exists @NullConstraint @_ @Light (lightName -> l)) ->
                         maybe
                             (handleError (Error "Light not found" l) >> pure Nothing)
                             (pure . Just . (l,) . fst)
                             (find ((== l) . (.label) . snd) ds)
                 let getLight :: forall a. Light a -> Lifx.Device
-                    getLight l = fromMaybe (error "light map not exhaustive") $ Map.lookup (showT l) lightMap
+                    getLight l = fromMaybe (error "light map not exhaustive") $ Map.lookup (lightName l) lightMap
                 runEventStream handleError logMessage (runAction (opts & \Opts{..} -> ActionOpts{..}))
                     . S.morphInner liftIO
                     $ S.parList

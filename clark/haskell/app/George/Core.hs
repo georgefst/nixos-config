@@ -113,6 +113,11 @@ data DeskPowerDevice
       UsbPorts
     deriving (Show, Read)
 
+lightName :: Light c -> Text
+lightName = \case
+    Ceiling -> "Ceiling"
+    Lamp -> "Lamp"
+
 -- TODO is there a way to derive some of this?
 -- if we could do `deriving instance Read (Light NoColour)` that might be a good start
 instance FromHttpApiData (Exists' Light) where
