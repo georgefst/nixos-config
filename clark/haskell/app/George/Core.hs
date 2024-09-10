@@ -20,7 +20,6 @@ import Control.Monad.Except hiding (handleError)
 import Control.Monad.Freer
 import Control.Monad.Log (MonadLog, logMessage)
 import Control.Monad.State.Strict
-import Data.Bool
 import Data.ByteString qualified as B
 import Data.ByteString.Char8 qualified as BC8
 import Data.Foldable
@@ -37,8 +36,8 @@ import Options.Generic
 import RawFilePath
 import Streamly.Data.Fold qualified as SF
 import Streamly.Data.Stream.Prelude qualified as S
-import System.Directory qualified as Dir
 import System.Exit
+import System.IO.Error
 import Util.Util
 import Web.HttpApiData (FromHttpApiData, parseUrlPiece)
 
@@ -161,7 +160,7 @@ data ActionOpts = ActionOpts
     }
 
 runAction ::
-    (MonadIO m, MonadState AppState m, MonadLifx m, MonadLog Text m, MonadError Error m) => ActionOpts -> Action a -> m a
+    (MonadIO m, MonadState AppState m, MonadLifx m, MonadLog Text m, MonadError Error m, MonadCatch m) => ActionOpts -> Action a -> m a
 runAction opts@ActionOpts{getLight, setLED {- TODO GHC doesn't yet support impredicative fields -}} = \case
     Exit c -> liftIO $ exitWith c
     PowerOff -> writePipe opts.powerOffPipe "."
@@ -207,8 +206,11 @@ runAction opts@ActionOpts{getLight, setLED {- TODO GHC doesn't yet support impre
         ExitSuccess -> pure ()
         ExitFailure ec -> logMessage $ s <> ": " <> showT ec
     writePipe p t =
-        bool (throwError $ SimpleError "Pipe doesn't exist") (liftIO $ T.writeFile p t)
-            =<< liftIO (Dir.doesFileExist p)
+        liftIO (T.writeFile p t)
+            `catchDNE` \_ ->
+                throwError $ SimpleError "Pipe doesn't exist"
+      where
+        catchDNE = catchIf isDoesNotExistError
 
 toggleCeilingLight :: CompoundAction ()
 toggleCeilingLight = send . SetLightPower Ceiling . not =<< send (GetLightPower Ceiling)
