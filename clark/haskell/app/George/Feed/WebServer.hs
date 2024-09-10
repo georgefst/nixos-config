@@ -55,7 +55,7 @@ feed opts =
                     , lit "suspend-laptop" . simpleGet . f showT act $ send SuspendLaptop
                     , lit "set-other-led" . param . simpleGet $ f showT act . send . SetOtherLED
                     , lit "set-system-leds" . param . simpleGet $ f showT act . send . SetSystemLEDs
-                    , lit "toggle-ceiling-light" . simpleGet . f showT act $ toggleCeilingLight
+                    , lit "toggle-ceiling-light" . simpleGet . f showT act $ toggleLight Ceiling
                     , lit "sleep-or-wake" . simpleGet . f showT act $
                         sleepOrWake opts.lifxMorningDelay opts.lifxMorningKelvin
                     ]

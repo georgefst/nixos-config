@@ -215,8 +215,8 @@ runAction opts@ActionOpts{getLight, setLED {- TODO GHC doesn't yet support impre
       where
         catchDNE = catchIf isDoesNotExistError
 
-toggleCeilingLight :: CompoundAction ()
-toggleCeilingLight = send . SetLightPower Ceiling . not =<< send (GetLightPower Ceiling)
+toggleLight :: Light a ->CompoundAction ()
+toggleLight l = send . SetLightPower l . not =<< send (GetLightPower l)
 sleepOrWake :: NominalDiffTime -> Word16 -> CompoundAction ()
 sleepOrWake lifxMorningDelay lifxMorningKelvin =
     send (GetLightPower Ceiling) >>= \night@(not -> morning) -> do

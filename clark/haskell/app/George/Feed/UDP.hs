@@ -29,7 +29,7 @@ decodeAction opts =
     fmap thd3 . runGetOrFail do
         B.get @Word8 >>= \case
             0 -> pure $ send ResetError
-            1 -> pure toggleCeilingLight
+            1 -> pure $ toggleLight Ceiling
             2 -> do
                 subject <- decodeUtf8 <$> (B.getByteString . fromIntegral =<< B.get @Word8)
                 body <- decodeUtf8 <$> (B.getByteString . fromIntegral =<< B.get @Word16)
