@@ -29,17 +29,18 @@ decodeAction opts =
     fmap thd3 . runGetOrFail do
         B.get @Word8 >>= \case
             0 -> pure $ send ResetError
-            1 -> pure $ toggleLight Ceiling
+            1 -> pure $ toggleLight bedroom
             2 -> do
                 subject <- decodeUtf8 <$> (B.getByteString . fromIntegral =<< B.get @Word8)
                 body <- decodeUtf8 <$> (B.getByteString . fromIntegral =<< B.get @Word16)
                 pure $ send SendEmail{..}
             3 -> pure $ send SuspendLaptop
-            5 -> send <$> (SetLightColourBK Ceiling . secondsToNominalDiffTime <$> B.get <*> B.get <*> B.get)
+            5 -> send <$> (SetLightColourBK bedroom . secondsToNominalDiffTime <$> B.get <*> B.get <*> B.get)
             6 -> pure $ sleepOrWake opts.lifxMorningDelay opts.lifxMorningKelvin
-            7 -> send . SetLightPower Ceiling <$> B.get @Bool
+            7 -> send . SetLightPower bedroom <$> B.get @Bool
             8 -> send . SetSystemLEDs <$> B.get @Bool
             n -> fail $ "unknown action: " <> show n
+    where bedroom = RoomLightPair SBedroom BedroomLight
 
 feed :: (MonadIO m) => Opts -> S.Stream m [Event]
 feed opts =

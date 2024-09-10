@@ -7,8 +7,10 @@ import Control.Concurrent
 import Control.Monad
 import Control.Monad.Freer
 import Data.Functor
+import Data.Proxy
 import Data.Text (Text)
 import Data.Time
+import Data.Typeable
 import Data.Word
 import Lifx.Lan (HSBK (..))
 import Network.HTTP.Types
@@ -19,6 +21,7 @@ import Streamly.Data.Stream.Prelude qualified as S
 import System.Exit
 import Util.Streamly.Okapi qualified as Okapi
 import Util.Util
+import Web.HttpApiData
 
 data Opts = Opts
     { port :: Warp.Port
@@ -35,21 +38,25 @@ feed opts =
                 , routes = \act ->
                     [ lit "reset-error" . simpleGet $ f showT act $ send ResetError
                     , lit "exit" . param . simpleGet $ f showT act . send . Exit . maybe ExitSuccess ExitFailure
-                    , lit "get-light-power" . param . simpleGet . withExists' $
-                        f showT act . send . GetLightPower
-                    , lit "set-light-power" . param . param . simpleGet . withExists' $
-                        f showT act . send .: SetLightPower
-                    , lit "get-light-colour" . param . simpleGet . withExists' $
-                        f showT act . send . GetLightColour
-                    , lit "toggle-light" . param . simpleGet . withExists' $
-                        f showT act . toggleLight
-                    , lit "set-light-colour" $
+                    , lit "get-light-power" $ forEachRoom \(Proxy @r) ->
+                        param . param . simpleGet . pairArgsE @r $
+                            (f showT act . send . GetLightPower)
+                    , lit "set-light-power" $ forEachRoom \(Proxy @r) ->
+                        param . param . param . simpleGet . pairArgsE @r $
+                            f showT act . send .: SetLightPower
+                    , lit "get-light-colour" $ forEachRoom \(Proxy @r) ->
+                        param . param . simpleGet . pairArgsE @r $
+                            f showT act . send . GetLightColour
+                    , lit "toggle-light" $ forEachRoom \(Proxy @r) ->
+                        param . param . simpleGet . pairArgsE @r $
+                            f showT act . toggleLight
+                    , lit "set-light-colour" $ forEachRoom \(Proxy @r) ->
                         choice
-                            [ param . param . param . param $
-                                simpleGet \light delay brightness kelvin ->
+                            [ param . param . param . param . param $
+                                simpleGet $ pairArgs @r \light delay brightness kelvin ->
                                     f showT act $ send SetLightColourBK{lightBK = light, ..}
-                            , param . param . param . param . param . param $
-                                simpleGet \light delay hue saturation brightness kelvin ->
+                            , param . param . param . param . param . param . param $
+                                simpleGet $ pairArgs @r \light delay hue saturation brightness kelvin ->
                                     f showT act $ send SetLightColour{colour = HSBK{..}, ..}
                             ]
                     , lit "set-desk-power" . param . param . simpleGet $ f showT act . send .: SetDeskPower
@@ -71,3 +78,31 @@ feed opts =
         act $ ActionEvent (putMVar m) a
         ok noHeaders . (<> "\n") . show' <$> takeMVar m
     simpleGet = responder @200 @'[] @Text @Text . method GET id
+
+-- we could easily inline these, but they just make the code prettier, to a surprising extent
+pairArgs :: forall r c x. (RoomLightPair c -> x) -> SRoom r -> Light r c -> x
+pairArgs f = f .: RoomLightPair
+pairArgsE :: forall r x. (forall c. RoomLightPair c -> x) -> SRoom r -> Exists' (Light r) -> x
+pairArgsE f r = withExists' $ pairArgs f r
+
+-- TODO use explicit type arguments once available (GHC 9.10?) to simplify this
+forEachRoom ::
+    ( forall (r :: Room).
+      -- TODO not all of these constraints are always needed
+      -- we could parameterise this function by the required constraint, but that complicates things for little real gain
+      ( Typeable r
+      , FromHttpApiData (Exists' (Light r))
+      , FromHttpApiData (SRoom r)
+      , FromHttpApiData (Light r KelvinOnly)
+      , FromHttpApiData (Light r FullColours)
+      ) =>
+      Proxy r ->
+      Node '[]
+    ) ->
+    Node '[]
+forEachRoom f =
+    choice
+        [ f $ Proxy @LivingRoom
+        , f $ Proxy @Bedroom
+        , f $ Proxy @Office
+        ]

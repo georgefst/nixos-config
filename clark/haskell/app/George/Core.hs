@@ -89,22 +89,27 @@ data Action a where
     Exit :: ExitCode -> Action ()
     PowerOff :: Action ()
     ResetError :: Action ()
-    GetLightPower :: Light c -> Action Bool
-    SetLightPower :: Light c -> Bool -> Action ()
-    GetLightColour :: Light c -> Action HSBK
-    SetLightColour :: {light :: Light FullColours, delay :: NominalDiffTime, colour :: HSBK} -> Action ()
-    SetLightColourBK :: {lightBK :: Light KelvinOnly, delay :: NominalDiffTime, brightness :: Word16, kelvin :: Word16} -> Action () -- TODO we should in principle be allowed to reuse the name `light` for the field - https://github.com/ghc-proposals/ghc-proposals/pull/535#issuecomment-1694388075
+    GetLightPower :: RoomLightPair c -> Action Bool
+    SetLightPower :: RoomLightPair c -> Bool -> Action ()
+    GetLightColour :: RoomLightPair c -> Action HSBK
+    SetLightColour :: {light :: RoomLightPair FullColours, delay :: NominalDiffTime, colour :: HSBK} -> Action ()
+    SetLightColourBK :: {lightBK :: RoomLightPair KelvinOnly, delay :: NominalDiffTime, brightness :: Word16, kelvin :: Word16} -> Action () -- TODO we should in principle be allowed to reuse the name `light` for the field - https://github.com/ghc-proposals/ghc-proposals/pull/535#issuecomment-1694388075
     SetDeskPower :: DeskPowerDevice -> Bool -> Action ()
     SendEmail :: {subject :: Text, body :: Text} -> Action ()
     SuspendLaptop :: Action ()
     SetOtherLED :: Bool -> Action ()
     SetSystemLEDs :: Bool -> Action ()
 deriving instance Show (Action a)
-data Light (c :: LightColours) where
-    Ceiling :: Light KelvinOnly
-    Lamp :: Light FullColours
-deriving instance Show (Light c)
+data Light (r :: Room) (c :: LightColours) where
+    Lamp :: Light LivingRoom FullColours
+    BedroomLight :: Light Bedroom KelvinOnly
+    OfficeLight :: Light Office KelvinOnly
+deriving instance Show (Light r c)
 type data LightColours = FullColours | KelvinOnly
+type data Room
+    = LivingRoom
+    | Bedroom
+    | Office
 data DeskPowerDevice
     = Computer
     | MainMonitor
@@ -113,36 +118,88 @@ data DeskPowerDevice
       UsbPorts
     deriving (Show, Read)
 
-lightName :: Light c -> Text
+-- TODO can we use singletons for this?
+data SRoom (r :: Room) where
+    SLivingRoom :: SRoom LivingRoom
+    SBedroom :: SRoom Bedroom
+    SOffice :: SRoom Office
+deriving instance Show (SRoom r)
+
+-- | A dependent pair of a room and a light in that room.
+data RoomLightPair c where
+    RoomLightPair :: SRoom r -> Light r c -> RoomLightPair c
+deriving instance Show (RoomLightPair c)
+
+lightName :: Light r c -> Text
 lightName = \case
-    Ceiling -> "Ceiling"
     Lamp -> "Lamp"
+    BedroomLight -> "Ceiling"
+    OfficeLight -> "Ceiling"
+lightRoom :: Light r c -> Text
+lightRoom = \case
+    Lamp -> "Living Room"
+    BedroomLight -> "Bedroom"
+    OfficeLight -> "Office"
 
 -- TODO is there a way to derive some of this?
 -- if we could do `deriving instance Read (Light NoColour)` that might be a good start
-instance FromHttpApiData (Exists' Light) where
+instance FromHttpApiData (SRoom LivingRoom) where
     parseUrlPiece = \case
-        "ceiling" -> Right $ Exists Ceiling
-        "lamp" -> Right $ Exists Lamp
-        s -> Left $ "unknown light name: " <> s
-instance Bounded (Exists' Light) where
-    minBound = Exists Ceiling
-    maxBound = Exists Lamp
-instance Enum (Exists' Light) where
+        "living-room" -> Right SLivingRoom
+        s -> Left $ "unknown room name: " <> s
+instance FromHttpApiData (SRoom Bedroom) where
+    parseUrlPiece = \case
+        "bedroom" -> Right SBedroom
+        s -> Left $ "unknown room name: " <> s
+instance FromHttpApiData (SRoom Office) where
+    parseUrlPiece = \case
+        "office" -> Right SOffice
+        s -> Left $ "unknown room name: " <> s
+instance Bounded (Exists2' Light) where
+    minBound = Exists2' Lamp
+    maxBound = Exists2' OfficeLight
+instance Enum (Exists2' Light) where
     toEnum = \case
-        0 -> Exists Ceiling
-        1 -> Exists Lamp
+        0 -> Exists2' Lamp
+        1 -> Exists2' BedroomLight
+        2 -> Exists2' OfficeLight
         _ -> error "out of bounds for light enum"
     fromEnum = \case
-        Exists Ceiling -> 0
-        Exists Lamp -> 1
-instance FromHttpApiData (Light KelvinOnly) where
+        Exists2' Lamp -> 0
+        Exists2' BedroomLight -> 1
+        Exists2' OfficeLight -> 2
+instance FromHttpApiData (Exists' (Light LivingRoom)) where
     parseUrlPiece = \case
-        "ceiling" -> Right Ceiling
+        "lamp" -> Right $ Exists' Lamp
         s -> Left $ "unknown light name: " <> s
-instance FromHttpApiData (Light FullColours) where
+instance FromHttpApiData (Exists' (Light Bedroom)) where
+    parseUrlPiece = \case
+        "main" -> Right $ Exists' BedroomLight
+        s -> Left $ "unknown light name: " <> s
+instance FromHttpApiData (Exists' (Light Office)) where
+    parseUrlPiece = \case
+        "main" -> Right $ Exists' OfficeLight
+        s -> Left $ "unknown light name: " <> s
+instance FromHttpApiData (Light LivingRoom FullColours) where
     parseUrlPiece = \case
         "lamp" -> Right Lamp
+        s -> Left $ "unknown light name: " <> s
+instance FromHttpApiData (Light LivingRoom KelvinOnly) where
+    parseUrlPiece = \case
+        s -> Left $ "unknown light name: " <> s
+instance FromHttpApiData (Light Bedroom FullColours) where
+    parseUrlPiece = \case
+        s -> Left $ "unknown light name: " <> s
+instance FromHttpApiData (Light Bedroom KelvinOnly) where
+    parseUrlPiece = \case
+        "ceiling" -> Right BedroomLight
+        s -> Left $ "unknown light name: " <> s
+instance FromHttpApiData (Light Office FullColours) where
+    parseUrlPiece = \case
+        s -> Left $ "unknown light name: " <> s
+instance FromHttpApiData (Light Office KelvinOnly) where
+    parseUrlPiece = \case
+        "ceiling" -> Right OfficeLight
         s -> Left $ "unknown light name: " <> s
 instance FromHttpApiData DeskPowerDevice where
     parseUrlPiece = \case
@@ -157,7 +214,7 @@ data ActionOpts = ActionOpts
     , ledOtherPin :: Int
     , emailPipe :: FilePath
     , sshTimeout :: Int
-    , getLight :: forall c. Light c -> Device
+    , getLight :: forall c. RoomLightPair c -> Device
     , laptopHostName :: Text
     , systemLedPipe :: FilePath
     , powerOffPipe :: FilePath
@@ -220,7 +277,7 @@ runAction opts@ActionOpts{getLight, setLED {- TODO GHC doesn't yet support impre
       where
         catchDNE = catchIf isDoesNotExistError
 
-toggleLight :: Light c ->CompoundAction ()
+toggleLight :: RoomLightPair c -> CompoundAction ()
 toggleLight l = send . SetLightPower l . not =<< send (GetLightPower l)
 sleepOrWake :: NominalDiffTime -> Word16 -> CompoundAction ()
 sleepOrWake lifxMorningDelay lifxMorningKelvin =
@@ -244,4 +301,4 @@ sleepOrWake lifxMorningDelay lifxMorningKelvin =
                     }
         when night . void $ send SuspendLaptop
   where
-    light = Ceiling
+    light = RoomLightPair SBedroom BedroomLight

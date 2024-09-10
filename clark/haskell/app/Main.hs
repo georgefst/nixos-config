@@ -7,17 +7,19 @@ import George.Feed.WebServer qualified as WebServer
 import Util.GPIO qualified as GPIO
 import Util.Lifx
 
+import Control.Monad
 import Control.Monad.Log (MonadLog, logMessage, runLoggingT)
 import Control.Monad.State
 import Data.Bool
 import Data.ByteString qualified as B
-import Data.List
+import Data.Functor
 import Data.List.Extra
 import Data.Map qualified as Map
 import Data.Maybe
 import Data.Text.IO qualified as T
 import Data.Time
 import Data.Traversable
+import Data.Tuple.Extra
 import Data.Void
 import Data.Word
 import Lifx.Lan qualified as Lifx
@@ -91,13 +93,13 @@ main = do
                 -- TODO this would be slightly cleaner if GHC were better about retaining polymorphism in do-bindings
                 lightMap <- do
                     ds <- discoverLifx
-                    Map.fromList . catMaybes <$> for enumerate \(Exists @NullConstraint @_ @Light (lightName -> l)) ->
+                    Map.fromList . catMaybes <$> for enumerate \(Exists2' (lightName &&& lightRoom -> (l, r))) ->
                         maybe
                             (handleError (Error "Light not found" l) >> pure Nothing)
-                            (pure . Just . (l,) . fst)
-                            (find ((== l) . (.label) . snd) ds)
-                let getLight :: forall c. Light c -> Lifx.Device
-                    getLight l = fromMaybe (error "light map not exhaustive") $ Map.lookup (lightName l) lightMap
+                            (pure . Just)
+                            (ds & firstJust \(d, s, g) -> guard (s.label == l && g.label == r) $> ((l, r), d))
+                let getLight :: forall c. RoomLightPair c -> Lifx.Device
+                    getLight (RoomLightPair _ l) = fromMaybe (error "light map not exhaustive") $ Map.lookup (lightName l, lightRoom l) lightMap
                 runEventStream handleError logMessage (runAction (opts & \Opts{..} -> ActionOpts{..}))
                     . S.morphInner liftIO
                     $ S.parList
