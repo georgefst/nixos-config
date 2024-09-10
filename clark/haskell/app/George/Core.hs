@@ -160,7 +160,10 @@ data ActionOpts = ActionOpts
     }
 
 runAction ::
-    (MonadIO m, MonadState AppState m, MonadLifx m, MonadLog Text m, MonadError Error m, MonadCatch m) => ActionOpts -> Action a -> m a
+    (MonadIO m, MonadState AppState m, MonadLifx m, MonadLog Text m, MonadError Error m, MonadCatch m) =>
+    ActionOpts ->
+    Action a ->
+    m a
 runAction opts@ActionOpts{getLight, setLED {- TODO GHC doesn't yet support impredicative fields -}} = \case
     Exit c -> liftIO $ exitWith c
     PowerOff -> writePipe opts.powerOffPipe "."
