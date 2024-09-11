@@ -94,16 +94,16 @@ main = do
                     ds <- discoverLifx
                     Map.fromList . catMaybes <$> for
                         ( concatMap
-                            (\(Exists r) -> map (\(Exists l) -> (lightName l, roomName r)) $ enumerateLights r)
+                            (\(Exists r) -> map (\(Exists l) -> (roomName r, lightName l)) $ enumerateLights r)
                             enumerateRooms
                         )
-                        \(l, r) ->
+                        \(r, l) ->
                             maybe
                                 (handleError (Error "Light not found" (r, l)) >> pure Nothing)
                                 (pure . Just)
-                                (ds & firstJust \(d, s, g) -> guard (s.label == l && g.label == r) $> ((l, r), d))
+                                (ds & firstJust \(d, s, g) -> guard (g.label == r && s.label == l) $> ((r, l), d))
                 let getLight :: forall c. RoomLightPair c -> Lifx.Device
-                    getLight (RoomLightPair r l) = fromMaybe (error "light map not exhaustive") $ Map.lookup (lightName l, roomName r) lightMap
+                    getLight (RoomLightPair r l) = fromMaybe (error "light map not exhaustive") $ Map.lookup (roomName r, lightName l) lightMap
                 runEventStream handleError logMessage (runAction (opts & \Opts{..} -> ActionOpts{..}))
                     . S.morphInner liftIO
                     $ S.parList
