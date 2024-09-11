@@ -34,6 +34,7 @@ executable clark
         OverloadedStrings
         PartialTypeSignatures
         RecordWildCards
+        TypeAbstractions
         TypeData
         ViewPatterns
     build-depends:
