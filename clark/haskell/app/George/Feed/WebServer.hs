@@ -88,8 +88,9 @@ pairArgsE f r = withExists' $ pairArgs f r
 -- TODO use explicit type arguments once available (GHC 9.10?) to simplify this
 forEachRoom ::
     ( forall (r :: Room).
-      -- TODO not all of these constraints are always needed
-      -- we could parameterise this function by the required constraint, but that complicates things for little real gain
+      -- TODO not all of these constraints are _always_ needed
+      -- but these are the constraints which we want to ensure hold for _all_ rooms
+      -- so, in lieu of a more direct way to assert this, this function is a handy way to ensure this is the case
       ( Typeable r
       , FromHttpApiData (Exists' (Light r))
       , FromHttpApiData (SRoom r)
