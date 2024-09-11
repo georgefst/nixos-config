@@ -28,6 +28,7 @@ import Data.Map (Map)
 import Data.Text qualified as T
 import Data.Text.IO qualified as T
 import Data.Time
+import Data.Typeable
 import Data.Word
 import Lifx.Lan hiding (SetColor, SetLightPower)
 import Lifx.Lan qualified as Lifx
@@ -142,6 +143,28 @@ lightRoom = \case
     Lamp -> "Living Room"
     BedroomLight -> "Bedroom"
     OfficeLight -> "Office"
+
+-- TODO use explicit type arguments once available (GHC 9.10?) to simplify this
+forEachRoom ::
+    ( forall (r :: Room).
+      -- TODO not all of these constraints are _always_ needed
+      -- but these are the constraints which we want to ensure hold for _all_ rooms
+      -- so, in lieu of a more direct way to assert this, this function is a handy way to ensure this is the case
+      ( Typeable r
+      , FromHttpApiData (Exists' (Light r))
+      , FromHttpApiData (SRoom r)
+      , FromHttpApiData (Light r KelvinOnly)
+      , FromHttpApiData (Light r FullColours)
+      ) =>
+      Proxy r ->
+      x
+    ) ->
+    [x]
+forEachRoom f =
+    [ f $ Proxy @LivingRoom
+    , f $ Proxy @Bedroom
+    , f $ Proxy @Office
+    ]
 
 -- TODO is there a way to derive some of this?
 -- if we could do `deriving instance Read (Light NoColour)` that might be a good start

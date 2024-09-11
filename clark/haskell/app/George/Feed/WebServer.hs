@@ -10,7 +10,6 @@ import Data.Functor
 import Data.Proxy
 import Data.Text (Text)
 import Data.Time
-import Data.Typeable
 import Data.Word
 import Lifx.Lan (HSBK (..))
 import Network.HTTP.Types
@@ -21,7 +20,6 @@ import Streamly.Data.Stream.Prelude qualified as S
 import System.Exit
 import Util.Streamly.Okapi qualified as Okapi
 import Util.Util
-import Web.HttpApiData
 
 data Opts = Opts
     { port :: Warp.Port
@@ -84,25 +82,3 @@ pairArgs :: forall r c x. (RoomLightPair c -> x) -> SRoom r -> Light r c -> x
 pairArgs f = f .: RoomLightPair
 pairArgsE :: forall r x. (forall c. RoomLightPair c -> x) -> SRoom r -> Exists' (Light r) -> x
 pairArgsE f r = withExists' $ pairArgs f r
-
--- TODO use explicit type arguments once available (GHC 9.10?) to simplify this
-forEachRoom ::
-    ( forall (r :: Room).
-      -- TODO not all of these constraints are _always_ needed
-      -- but these are the constraints which we want to ensure hold for _all_ rooms
-      -- so, in lieu of a more direct way to assert this, this function is a handy way to ensure this is the case
-      ( Typeable r
-      , FromHttpApiData (Exists' (Light r))
-      , FromHttpApiData (SRoom r)
-      , FromHttpApiData (Light r KelvinOnly)
-      , FromHttpApiData (Light r FullColours)
-      ) =>
-      Proxy r ->
-      x
-    ) ->
-    [x]
-forEachRoom f =
-    [ f $ Proxy @LivingRoom
-    , f $ Proxy @Bedroom
-    , f $ Proxy @Office
-    ]
