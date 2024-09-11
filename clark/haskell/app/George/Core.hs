@@ -164,16 +164,17 @@ data RoomLightPair c where
 -- TODO separation is annoying - fix in Fourmolu
 deriving instance Show (RoomLightPair c)
 
+roomName :: SRoom r -> Text
+roomName = \case
+    SLivingRoom -> "Living Room"
+    SBedroom -> "Bedroom"
+    SOffice -> "Office"
+
 lightName :: Light r c -> Text
 lightName = \case
     Lamp -> "Lamp"
     BedroomLight -> "Ceiling"
     OfficeLight -> "Ceiling"
-lightRoom :: Light r c -> Text
-lightRoom = \case
-    Lamp -> "Living Room"
-    BedroomLight -> "Bedroom"
-    OfficeLight -> "Office"
 
 -- TODO is there a way to derive some of this?
 -- if we could do `deriving instance Read (Light NoColour)` that might be a good start

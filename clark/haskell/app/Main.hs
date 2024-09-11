@@ -19,7 +19,6 @@ import Data.Maybe
 import Data.Text.IO qualified as T
 import Data.Time
 import Data.Traversable
-import Data.Tuple.Extra
 import Data.Void
 import Data.Word
 import Lifx.Lan qualified as Lifx
@@ -95,7 +94,7 @@ main = do
                     ds <- discoverLifx
                     Map.fromList . catMaybes <$> for
                         ( concatMap
-                            (withExists $ map (withExists' (lightName &&& lightRoom)) . enumerateLights)
+                            (\(Exists r) -> map (\(Exists l) -> (lightName l, roomName r)) $ enumerateLights r)
                             enumerateRooms
                         )
                         \(l, r) ->
@@ -104,7 +103,7 @@ main = do
                                 (pure . Just)
                                 (ds & firstJust \(d, s, g) -> guard (s.label == l && g.label == r) $> ((l, r), d))
                 let getLight :: forall c. RoomLightPair c -> Lifx.Device
-                    getLight (RoomLightPair _ l) = fromMaybe (error "light map not exhaustive") $ Map.lookup (lightName l, lightRoom l) lightMap
+                    getLight (RoomLightPair r l) = fromMaybe (error "light map not exhaustive") $ Map.lookup (lightName l, roomName r) lightMap
                 runEventStream handleError logMessage (runAction (opts & \Opts{..} -> ActionOpts{..}))
                     . S.morphInner liftIO
                     $ S.parList
