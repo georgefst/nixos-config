@@ -99,7 +99,7 @@ main = do
                         )
                         \(l, r) ->
                             maybe
-                                (handleError (Error "Light not found" l) >> pure Nothing)
+                                (handleError (Error "Light not found" (r, l)) >> pure Nothing)
                                 (pure . Just)
                                 (ds & firstJust \(d, s, g) -> guard (s.label == l && g.label == r) $> ((l, r), d))
                 let getLight :: forall c. RoomLightPair c -> Lifx.Device
