@@ -20,8 +20,8 @@
                   hixProject =
                     final.haskell-nix.hix.project {
                       inherit src;
-                      compiler-nix-name = "ghc963";
-                      index-state = "2023-12-01T00:00:00Z";
+                      compiler-nix-name = "ghc9101";
+                      index-state = "2024-09-11T00:00:00Z";
                       evalSystem = "x86_64-linux";
                     };
                 })
