@@ -38,19 +38,19 @@ feed opts =
                 , routes = \act ->
                     [ lit "reset-error" . simpleGet $ f showT act $ send ResetError
                     , lit "exit" . param . simpleGet $ f showT act . send . Exit . maybe ExitSuccess ExitFailure
-                    , lit "get-light-power" $ forEachRoom \(Proxy @r) ->
+                    , lit "get-light-power" . choice $ forEachRoom \(Proxy @r) ->
                         param . param . simpleGet . pairArgsE @r $
                             (f showT act . send . GetLightPower)
-                    , lit "set-light-power" $ forEachRoom \(Proxy @r) ->
+                    , lit "set-light-power" . choice $ forEachRoom \(Proxy @r) ->
                         param . param . param . simpleGet . pairArgsE @r $
                             f showT act . send .: SetLightPower
-                    , lit "get-light-colour" $ forEachRoom \(Proxy @r) ->
+                    , lit "get-light-colour" . choice $ forEachRoom \(Proxy @r) ->
                         param . param . simpleGet . pairArgsE @r $
                             f showT act . send . GetLightColour
-                    , lit "toggle-light" $ forEachRoom \(Proxy @r) ->
+                    , lit "toggle-light" . choice $ forEachRoom \(Proxy @r) ->
                         param . param . simpleGet . pairArgsE @r $
                             f showT act . toggleLight
-                    , lit "set-light-colour" $ forEachRoom \(Proxy @r) ->
+                    , lit "set-light-colour" . choice $ forEachRoom \(Proxy @r) ->
                         choice
                             [ param . param . param . param . param $
                                 simpleGet $ pairArgs @r \light delay brightness kelvin ->
@@ -98,12 +98,11 @@ forEachRoom ::
       , FromHttpApiData (Light r FullColours)
       ) =>
       Proxy r ->
-      Node '[]
+      x
     ) ->
-    Node '[]
+    [x]
 forEachRoom f =
-    choice
-        [ f $ Proxy @LivingRoom
-        , f $ Proxy @Bedroom
-        , f $ Proxy @Office
-        ]
+    [ f $ Proxy @LivingRoom
+    , f $ Proxy @Bedroom
+    , f $ Proxy @Office
+    ]
