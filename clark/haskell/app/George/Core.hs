@@ -128,6 +128,8 @@ deriving instance Show (SRoom r)
 -- | A dependent pair of a room and a light in that room.
 data RoomLightPair c where
     RoomLightPair :: SRoom r -> Light r c -> RoomLightPair c
+
+-- TODO separation is annoying - fix in Fourmolu
 deriving instance Show (RoomLightPair c)
 
 lightName :: Light r c -> Text
