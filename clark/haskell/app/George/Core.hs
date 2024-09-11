@@ -139,8 +139,8 @@ enumerateRooms =
 -- TODO we can't use the type synonym directly without the unreleased `-XUnsaturatedTypeFamilies`
 type RoomConstraints0 r =
     ( Typeable r
-    , FromHttpApiData (Exists' (Light r))
     , FromHttpApiData (SRoom r)
+    , FromHttpApiData (Exists' (Light r))
     , FromHttpApiData (Light r KelvinOnly)
     , FromHttpApiData (Light r FullColours)
     )
