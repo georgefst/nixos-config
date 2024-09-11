@@ -94,7 +94,10 @@ main = do
                 lightMap <- do
                     ds <- discoverLifx
                     Map.fromList . catMaybes <$> for
-                        (map (withExists2' (lightName &&& lightRoom)) enumerate)
+                        ( concatMap
+                            (withExists $ map (withExists' (lightName &&& lightRoom)) . enumerateLights)
+                            enumerateRooms
+                        )
                         \(l, r) ->
                             maybe
                                 (handleError (Error "Light not found" l) >> pure Nothing)

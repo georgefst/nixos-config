@@ -136,6 +136,12 @@ enumerateRooms =
     , Exists SOffice
     ]
 
+enumerateLights :: SRoom r -> [Exists' (Light r)]
+enumerateLights = \case
+    SLivingRoom -> [Exists' Lamp]
+    SBedroom -> [Exists' BedroomLight]
+    SOffice -> [Exists' OfficeLight]
+
 -- TODO we can't use the type synonym directly without the unreleased `-XUnsaturatedTypeFamilies`
 type RoomConstraints0 r =
     ( Typeable r
@@ -183,19 +189,6 @@ instance FromHttpApiData (SRoom Office) where
     parseUrlPiece = \case
         "office" -> Right SOffice
         s -> Left $ "unknown room name: " <> s
-instance Bounded (Exists2' Light) where
-    minBound = Exists2' Lamp
-    maxBound = Exists2' OfficeLight
-instance Enum (Exists2' Light) where
-    toEnum = \case
-        0 -> Exists2' Lamp
-        1 -> Exists2' BedroomLight
-        2 -> Exists2' OfficeLight
-        _ -> error "out of bounds for light enum"
-    fromEnum = \case
-        Exists2' Lamp -> 0
-        Exists2' BedroomLight -> 1
-        Exists2' OfficeLight -> 2
 instance FromHttpApiData (Exists' (Light LivingRoom)) where
     parseUrlPiece = \case
         "lamp" -> Right $ Exists' Lamp

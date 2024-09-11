@@ -58,10 +58,6 @@ instance ToProxyList c '[] where
     toProxyList = []
 instance (c t, ToProxyList c ts) => ToProxyList c (t : ts) where
     toProxyList = Exists @c (Proxy @t) : toProxyList @c @ts
-data Exists2' t where
-    Exists2' :: t a b -> Exists2' t
-withExists2' :: (forall a b. t a b -> x) -> Exists2' t -> x
-withExists2' f (Exists2' a) = f a
 
 -- this is a nicer "modern Haskell" interface than I've seen elsewhere for catching multiple exception types
 -- we keep the second version around because it gives slightly more flexibility in obscure cases
