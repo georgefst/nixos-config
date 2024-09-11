@@ -93,7 +93,7 @@ main = do
                 -- TODO this would be slightly cleaner if GHC were better about retaining polymorphism in do-bindings
                 lightMap <- do
                     ds <- discoverLifx
-                    Map.fromList . catMaybes <$> for enumerate \(Exists2' (lightName &&& lightRoom -> (l, r))) ->
+                    Map.fromList . catMaybes <$> for (map (withExists2' (lightName &&& lightRoom)) enumerate) \(l, r) ->
                         maybe
                             (handleError (Error "Light not found" l) >> pure Nothing)
                             (pure . Just)
