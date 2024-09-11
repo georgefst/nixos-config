@@ -93,11 +93,13 @@ main = do
                 -- TODO this would be slightly cleaner if GHC were better about retaining polymorphism in do-bindings
                 lightMap <- do
                     ds <- discoverLifx
-                    Map.fromList . catMaybes <$> for (map (withExists2' (lightName &&& lightRoom)) enumerate) \(l, r) ->
-                        maybe
-                            (handleError (Error "Light not found" l) >> pure Nothing)
-                            (pure . Just)
-                            (ds & firstJust \(d, s, g) -> guard (s.label == l && g.label == r) $> ((l, r), d))
+                    Map.fromList . catMaybes <$> for
+                        (map (withExists2' (lightName &&& lightRoom)) enumerate)
+                        \(l, r) ->
+                            maybe
+                                (handleError (Error "Light not found" l) >> pure Nothing)
+                                (pure . Just)
+                                (ds & firstJust \(d, s, g) -> guard (s.label == l && g.label == r) $> ((l, r), d))
                 let getLight :: forall c. RoomLightPair c -> Lifx.Device
                     getLight (RoomLightPair _ l) = fromMaybe (error "light map not exhaustive") $ Map.lookup (lightName l, lightRoom l) lightMap
                 runEventStream handleError logMessage (runAction (opts & \Opts{..} -> ActionOpts{..}))
