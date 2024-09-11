@@ -6,6 +6,7 @@ Receiving and
 Generating
 Events
 -}
+{-# LANGUAGE UndecidableInstances #-}
 
 module George.Core where
 
@@ -24,6 +25,7 @@ import Data.ByteString qualified as B
 import Data.ByteString.Char8 qualified as BC8
 import Data.Foldable
 import Data.Function
+import Data.Functor
 import Data.Map (Map)
 import Data.Text qualified as T
 import Data.Text.IO qualified as T
@@ -126,6 +128,29 @@ data SRoom (r :: Room) where
     SOffice :: SRoom Office
 deriving instance Show (SRoom r)
 
+-- NB this also serves as a handy way to assert that `RoomConstraints` holds for all rooms
+enumerateRooms :: [Exists RoomConstraints SRoom]
+enumerateRooms =
+    [ Exists SLivingRoom
+    , Exists SBedroom
+    , Exists SOffice
+    ]
+
+-- TODO we can't use the type synonym directly without the unreleased `-XUnsaturatedTypeFamilies`
+type RoomConstraints0 r =
+    ( Typeable r
+    , FromHttpApiData (Exists' (Light r))
+    , FromHttpApiData (SRoom r)
+    , FromHttpApiData (Light r KelvinOnly)
+    , FromHttpApiData (Light r FullColours)
+    )
+class (RoomConstraints0 r) => RoomConstraints r
+instance (RoomConstraints0 r) => RoomConstraints r
+
+-- TODO use explicit type arguments once available (GHC 9.10?) to simplify this
+forEachRoom :: (forall (r :: Room). (RoomConstraints r) => Proxy r -> x) -> [x]
+forEachRoom f = enumerateRooms <&> \(Exists @_ @r _) -> f $ Proxy @r
+
 -- | A dependent pair of a room and a light in that room.
 data RoomLightPair c where
     RoomLightPair :: SRoom r -> Light r c -> RoomLightPair c
@@ -143,28 +168,6 @@ lightRoom = \case
     Lamp -> "Living Room"
     BedroomLight -> "Bedroom"
     OfficeLight -> "Office"
-
--- TODO use explicit type arguments once available (GHC 9.10?) to simplify this
-forEachRoom ::
-    ( forall (r :: Room).
-      -- TODO not all of these constraints are _always_ needed
-      -- but these are the constraints which we want to ensure hold for _all_ rooms
-      -- so, in lieu of a more direct way to assert this, this function is a handy way to ensure this is the case
-      ( Typeable r
-      , FromHttpApiData (Exists' (Light r))
-      , FromHttpApiData (SRoom r)
-      , FromHttpApiData (Light r KelvinOnly)
-      , FromHttpApiData (Light r FullColours)
-      ) =>
-      Proxy r ->
-      x
-    ) ->
-    [x]
-forEachRoom f =
-    [ f $ Proxy @LivingRoom
-    , f $ Proxy @Bedroom
-    , f $ Proxy @Office
-    ]
 
 -- TODO is there a way to derive some of this?
 -- if we could do `deriving instance Read (Light NoColour)` that might be a good start
