@@ -214,14 +214,14 @@ instance FromHttpApiData (Light Bedroom FullColours) where
         s -> Left $ "unknown light name: " <> s
 instance FromHttpApiData (Light Bedroom KelvinOnly) where
     parseUrlPiece = \case
-        "ceiling" -> Right BedroomLight
+        "main" -> Right BedroomLight
         s -> Left $ "unknown light name: " <> s
 instance FromHttpApiData (Light Office FullColours) where
     parseUrlPiece = \case
         s -> Left $ "unknown light name: " <> s
 instance FromHttpApiData (Light Office KelvinOnly) where
     parseUrlPiece = \case
-        "ceiling" -> Right OfficeLight
+        "main" -> Right OfficeLight
         s -> Left $ "unknown light name: " <> s
 instance FromHttpApiData DeskPowerDevice where
     parseUrlPiece = \case
