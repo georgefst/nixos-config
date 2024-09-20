@@ -227,7 +227,9 @@ in
             git push --set-upstream origin $BRANCH
 
             export GH_TOKEN=$(<${config.age.secrets.gh-key.path})
-            URL=$(gh pr create --title "$MSG" --body "" | tee /dev/tty | tail -n1)
+            OUT=$(gh pr create --title "$MSG" --body "")
+            printf '%s' "$OUT"
+            URL=$(printf '%s' "$OUT" | tail -n1)
 
             printf "Public IP address changed\n$URL" > ${email-pipe}
           fi
