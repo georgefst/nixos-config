@@ -150,10 +150,10 @@ in
   # wifi
   networking.wireless.enable = true;
   networking.wireless.interfaces = [ "wlan0" ];
-  networking.wireless.environmentFile = config.age.secrets.wifi.path;
+  networking.wireless.secretsFile = config.age.secrets.wifi.path;
   networking.wireless.networks = {
-    lisa.psk = "@PSK_lisa@";
-    Zeus.psk = "@PSK_Zeus@";
+    lisa.pskRaw = "ext:PSK_lisa";
+    Zeus.pskRaw = "ext:PSK_Zeus";
   };
 
   # git
