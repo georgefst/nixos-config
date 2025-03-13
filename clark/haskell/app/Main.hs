@@ -8,6 +8,7 @@ import Util.GPIO qualified as GPIO
 import Util.Lifx
 
 import Control.Monad
+import Control.Monad.Except (throwError)
 import Control.Monad.Log (MonadLog, logMessage, runLoggingT)
 import Control.Monad.State
 import Data.Bool
@@ -19,7 +20,6 @@ import Data.Maybe
 import Data.Text.IO qualified as T
 import Data.Time
 import Data.Traversable
-import Data.Void
 import Data.Word
 import Lifx.Lan qualified as Lifx
 import Network.Socket (PortNumber)
@@ -85,22 +85,22 @@ main = do
     flip evalStateT AppState{activeLEDs = mempty}
         . flip runLoggingT (liftIO . T.putStrLn)
         $ runLifxUntilSuccess
-            (either (handleError . Error @Void "") (handleError . Error "LIFX error"))
+            (either (handleError . Error "Light not found") (handleError . Error "LIFX error"))
             (lifxTime opts.lifxTimeout)
             (Just $ fromIntegral opts.lifxPort)
             do
                 -- TODO this would be slightly cleaner if GHC were better about retaining polymorphism in do-bindings
                 lightMap <- do
                     ds <- discoverLifx
-                    Map.fromList . catMaybes <$> for
+                    Map.fromList <$> for
                         ( concatMap
                             (\(Exists r) -> map (\(Exists l) -> (roomName r, lightName l)) $ enumerateLights r)
                             enumerateRooms
                         )
                         \(r, l) ->
                             maybe
-                                (handleError (Error "Light not found" (r, l)) >> pure Nothing)
-                                (pure . Just)
+                                (throwError (r, l))
+                                (pure)
                                 (ds & firstJust \(d, s, g) -> guard (g.label == r && s.label == l) $> ((r, l), d))
                 let getLight :: forall c. RoomLightPair c -> Lifx.Device
                     getLight (RoomLightPair r l) = fromMaybe (error "light map not exhaustive") $ Map.lookup (roomName r, lightName l) lightMap
