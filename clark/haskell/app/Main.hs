@@ -107,7 +107,9 @@ main = do
                                             $ (ds & firstJust \(d, s, g) -> guard (g.label == r && s.label == l) $> d)
                     maybe (pure $ Map.fromList ds') (throwError @(NonEmpty (Text, Text))) $ nonEmpty notFound
                 let getLight :: forall c. RoomLightPair c -> Lifx.Device
-                    getLight (RoomLightPair r l) = fromMaybe (error "light map not exhaustive") $ Map.lookup (roomName r, lightName l) lightMap
+                    getLight (RoomLightPair r l) =
+                        fromMaybe (error "light map not exhaustive") $
+                            Map.lookup (roomName r, lightName l) lightMap
                 runEventStream handleError logMessage (runAction (opts & \Opts{..} -> ActionOpts{..}))
                     . S.morphInner liftIO
                     $ S.parList
