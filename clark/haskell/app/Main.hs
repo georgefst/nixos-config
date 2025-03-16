@@ -11,15 +11,18 @@ import Control.Monad
 import Control.Monad.Except (throwError)
 import Control.Monad.Log (MonadLog, logMessage, runLoggingT)
 import Control.Monad.State
+import Data.Bifunctor
 import Data.Bool
 import Data.ByteString qualified as B
+import Data.Either.Extra
+import Data.Foldable
 import Data.Functor
 import Data.List.Extra
+import Data.List.NonEmpty (NonEmpty, nonEmpty)
 import Data.Map qualified as Map
 import Data.Maybe
 import Data.Text.IO qualified as T
 import Data.Time
-import Data.Traversable
 import Data.Word
 import Lifx.Lan qualified as Lifx
 import Network.Socket (PortNumber)
@@ -85,23 +88,24 @@ main = do
     flip evalStateT AppState{activeLEDs = mempty}
         . flip runLoggingT (liftIO . T.putStrLn)
         $ runLifxUntilSuccess
-            (either (handleError . Error "Light not found") (handleError . Error "LIFX error"))
+            (either (handleError . Error "Lights not found" . toList @NonEmpty) (handleError . Error "LIFX error"))
             (lifxTime opts.lifxTimeout)
             (Just $ fromIntegral opts.lifxPort)
             do
                 -- TODO this would be slightly cleaner if GHC were better about retaining polymorphism in do-bindings
                 lightMap <- do
                     ds <- discoverLifx
-                    Map.fromList <$> for
-                        ( concatMap
-                            (\(Exists r) -> map (\(Exists l) -> (roomName r, lightName l)) $ enumerateLights r)
-                            enumerateRooms
-                        )
-                        \(r, l) ->
-                            maybe
-                                (throwError (r, l))
-                                pure
-                                (ds & firstJust \(d, s, g) -> guard (g.label == r && s.label == l) $> ((r, l), d))
+                    let (notFound, ds') =
+                            partitionEithers $
+                                concatMap
+                                    (\(Exists r) -> map (\(Exists l) -> (roomName r, lightName l)) $ enumerateLights r)
+                                    enumerateRooms
+                                    <&> \(r, l) ->
+                                        uncurry (\t -> bimap (const t) (t,))
+                                            . fmap (maybeToEither ())
+                                            . ((r, l),)
+                                            $ (ds & firstJust \(d, s, g) -> guard (g.label == r && s.label == l) $> d)
+                    maybe (pure $ Map.fromList ds') (throwError @(NonEmpty (Text, Text))) $ nonEmpty notFound
                 let getLight :: forall c. RoomLightPair c -> Lifx.Device
                     getLight (RoomLightPair r l) = fromMaybe (error "light map not exhaustive") $ Map.lookup (roomName r, lightName l) lightMap
                 runEventStream handleError logMessage (runAction (opts & \Opts{..} -> ActionOpts{..}))
