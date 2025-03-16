@@ -100,7 +100,7 @@ main = do
                         \(r, l) ->
                             maybe
                                 (throwError (r, l))
-                                (pure)
+                                pure
                                 (ds & firstJust \(d, s, g) -> guard (g.label == r && s.label == l) $> ((r, l), d))
                 let getLight :: forall c. RoomLightPair c -> Lifx.Device
                     getLight (RoomLightPair r l) = fromMaybe (error "light map not exhaustive") $ Map.lookup (roomName r, lightName l) lightMap
