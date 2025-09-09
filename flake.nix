@@ -39,8 +39,8 @@
         };
 
     nixosConfigurations = {
-      clark = nixpkgs.lib.nixosSystem {
-        system = "aarch64-linux";
+      clark = let system = "aarch64-linux"; in nixpkgs.lib.nixosSystem {
+        system = system;
         modules = [
           "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
           ./clark/clark.nix
@@ -48,7 +48,7 @@
         ];
         specialArgs = {
           extraPkgs = builtins.listToAttrs
-            (map (name: { inherit name; value = (inputs // haskell)."${name}".packages.aarch64-linux.default; })
+            (map (name: { inherit name; value = (inputs // haskell)."${name}".packages."${system}".default; })
               [ "clark" "evdev-share" ]
             );
         };
