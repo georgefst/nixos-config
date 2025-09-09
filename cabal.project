@@ -10,8 +10,8 @@ packages: clark/haskell
 source-repository-package
     type: git
     location: https://github.com/georgefst/lifx-lan
-    tag: 4795c0d940f7ed5b9df66a8c97b72fd91f3b2f97
-    --sha256: dIwNr8MyV7ksf8IOi9hHT7RMHg08bHS0JO2KkY7bfns=
+    tag: 6209f4cd1d6ff8033c5d294d2388af66a0a87620
+    --sha256: mkjexaeRkw5m2Q+Doz+PhAFaFut6+G6qDJyMdRfPsqU=
 allow-newer: lifx-lan:base
 
 -- using `okapi-prerelease` branch due to depending on non-Hackage version of Okapi (see below)
@@ -28,26 +28,11 @@ source-repository-package
     tag: d502f56eddff53d960ffe9cf687fa6f86397ab93
     subdir: lib
     --sha256: ivNvLHgoPDK3u1sSba5PK/x23OGku3cznmXJi86+IDw=
+allow-newer: okapi:*
 
-allow-newer:
-    okapi:*,
-
-if impl(ghc >= 9.10)
-    -- 9.10 supported but unreleased:
-    -- https://github.com/composewell/streamly/pull/2749
-    -- https://github.com/composewell/streamly/issues/2748
-    source-repository-package
-        type: git
-        location: https://github.com/composewell/streamly
-        tag: 9539dcca361bb05eaa04cfe5be99ce38d8a1f98f
-        subdir: . core
-        --sha256: YNz1gvuHGzF9AmbWu1uHIiIYZpsCnfZUvEej3fiGEw8=
-    -- https://github.com/lexi-lambda/freer-simple/pull/45
-    source-repository-package
-        type: git
-        location: https://github.com/georgefst/freer-simple
-        tag: 365bf9294477783b29186cdf48dc608e060a6ec9
-        --sha256: yf1WjNZUZaP+PxLjNgm5H8z/QhtMVQlU7SZ44ifAXmg=
-    allow-newer:
-        -- my library - fixes will be released shortly
-        lifx-lan:*,
+-- https://github.com/lexi-lambda/freer-simple/pull/45
+source-repository-package
+    type: git
+    location: https://github.com/georgefst/freer-simple
+    tag: e1d88c1ee036115ef527bda8c66da997962b3f34
+    --sha256: /AnRoCx5IRf9Q8+fLk+Wilo16LNxhRxYvCLkuBIWIy0=

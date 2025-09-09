@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "nixpkgs/nixos-24.11";
+    nixpkgs.url = "nixpkgs/nixos-25.05";
     flake-utils.url = "github:numtide/flake-utils";
     agenix.url = "github:ryantm/agenix";
     haskellNix.url = "github:input-output-hk/haskell.nix";
@@ -20,8 +20,8 @@
                   hixProject =
                     final.haskell-nix.hix.project {
                       inherit src;
-                      compiler-nix-name = "ghc9101";
-                      index-state = "2024-09-11T00:00:00Z";
+                      compiler-nix-name = "ghc9122";
+                      index-state = "2025-09-02T00:00:00Z";
                       evalSystem = "x86_64-linux";
                     };
                 })
