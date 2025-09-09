@@ -40,7 +40,7 @@
 
     nixosConfigurations = {
       clark = let system = "aarch64-linux"; in nixpkgs.lib.nixosSystem {
-        system = system;
+        inherit system;
         modules = [
           "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
           ./clark/clark.nix
