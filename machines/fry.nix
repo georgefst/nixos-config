@@ -35,7 +35,6 @@
   # global installs
   environment.systemPackages = with pkgs; [
     firefox
-    git
     tree
     vscode
   ];
