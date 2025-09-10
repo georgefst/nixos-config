@@ -6,6 +6,7 @@
 
 {
   # stuff that will probably never change
+  networking.hostName = "fry";
   networking.hostId = "69619c1a";
   system.stateVersion = "25.05"; # https://nixos.wiki/wiki/FAQ/When_do_I_update_stateVersion
   boot.initrd.luks.devices.root.device = "/dev/disk/by-uuid/55f8d764-0338-4a46-a037-670137a42b63";
