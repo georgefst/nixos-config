@@ -5,39 +5,37 @@
 { pkgs, ... }:
 
 {
-  boot.initrd.luks.devices.root = {
-    device = "/dev/disk/by-uuid/55f8d764-0338-4a46-a037-670137a42b63";
-    allowDiscards = true;
-  };
-
+  # stuff that will probably never change
   networking.hostId = "69619c1a";
-
+  system.stateVersion = "25.05"; # https://nixos.wiki/wiki/FAQ/When_do_I_update_stateVersion
+  boot.initrd.luks.devices.root.device = "/dev/disk/by-uuid/55f8d764-0338-4a46-a037-670137a42b63";
+  boot.initrd.luks.devices.root.allowDiscards = true;
+  boot.loader.systemd-boot.enable = true;
+  boot.loader.efi.canTouchEfiVariables = true;
+  users.extraGroups.wheel.members = [ "gthomas" ];
   services.pipewire = {
     enable = true;
+    audio.enable = true;
+    alsa.enable = true;
+    alsa.support32Bit = true;
     pulse.enable = true;
     jack.enable = true;
-    alsa = {
-      enable = true;
-      support32Bit = true;
-    };
-    audio.enable = true;
   };
-
   services.zfs.autoScrub = {
     enable = true;
     interval = "monthly";
   };
 
-  environment.systemPackages = [
-    pkgs.firefox
-    pkgs.git
+  # desktop
+  services.xserver.enable = true;
+  services.xserver.displayManager.gdm.enable = true;
+  services.xserver.desktopManager.gnome.enable = true;
+
+  # global installs
+  environment.systemPackages = with pkgs; [
+    firefox
+    git
   ];
-
-  users.extraGroups.wheel.members = [ "gthomas" ];
-
-  # Use the systemd-boot EFI boot loader.
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
 
   # networking.hostName = "nixos"; # Define your hostname.
   # Pick only one of the below networking options.
@@ -58,15 +56,6 @@
   #   keyMap = "us";
   #   useXkbConfig = true; # use xkb.options in tty.
   # };
-
-  # Enable the X11 windowing system.
-  services.xserver.enable = true;
-
-
-  # Enable the GNOME Desktop Environment.
-  services.xserver.displayManager.gdm.enable = true;
-  services.xserver.desktopManager.gnome.enable = true;
-
 
   # Configure keymap in X11
   # services.xserver.xkb.layout = "us";
@@ -127,24 +116,4 @@
   # (/run/current-system/configuration.nix). This is useful in case you
   # accidentally delete configuration.nix.
   # system.copySystemConfiguration = true;
-
-  # This option defines the first version of NixOS you have installed on this particular machine,
-  # and is used to maintain compatibility with application data (e.g. databases) created on older NixOS versions.
-  #
-  # Most users should NEVER change this value after the initial install, for any reason,
-  # even if you've upgraded your system to a new NixOS release.
-  #
-  # This value does NOT affect the Nixpkgs version your packages and OS are pulled from,
-  # so changing it will NOT upgrade your system - see https://nixos.org/manual/nixos/stable/#sec-upgrading for how
-  # to actually do that.
-  #
-  # This value being lower than the current NixOS release does NOT mean your system is
-  # out of date, out of support, or vulnerable.
-  #
-  # Do NOT change this value unless you have manually inspected all the changes it would make to your configuration,
-  # and migrated your data accordingly.
-  #
-  # For more information, see `man configuration.nix` or https://nixos.org/manual/nixos/stable/options#opt-system.stateVersion .
-  system.stateVersion = "25.05"; # Did you read the comment?
-
 }
