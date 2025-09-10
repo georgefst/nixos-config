@@ -36,6 +36,7 @@
   environment.systemPackages = with pkgs; [
     firefox
     git
+    tree
   ];
 
   # networking.hostName = "nixos"; # Define your hostname.
