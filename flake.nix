@@ -47,6 +47,7 @@
         nixpkgs.lib.nixosSystem {
           inherit system;
           modules = [
+            ./util/common.nix
             "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
             ./machines/clark.nix
             agenix.nixosModules.default
@@ -65,6 +66,7 @@
         nixpkgs.lib.nixosSystem {
           inherit system;
           modules = [
+            ./util/common.nix
             ./hardware-configuration/fry.nix
             ./machines/fry.nix
             ./obsidian
