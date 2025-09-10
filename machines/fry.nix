@@ -39,6 +39,37 @@
     vscode
   ];
 
+  # syncthing
+  services.syncthing = {
+    enable = true;
+    openDefaultPorts = true;
+    group = "users";
+    user = "gthomas";
+    dataDir = "/home/gthomas/sync";
+    settings.devices = {
+      billy = {
+        id = "3WIFNUH-VIST5DA-RROQ732-DDCKOQK-PWVERCB-7RNNG5R-JGRZX3M-WMAUQQP";
+        introducer = true;
+      };
+    };
+    settings.folders = {
+      default = {
+        path = "~/sync/main";
+        devices = [ "billy" ];
+      };
+      fp5_bu8k-photos = {
+        path = "~/sync/camera";
+        label = "Android Camera";
+        devices = [ "billy" ];
+        enable = false;
+      };
+    };
+  };
+
+  system.activationScripts = {
+    syncthing-root-link = "if [[ ! -e /sync ]]; then ln -s /home/gthomas/sync/main /sync ; fi";
+  };
+
   # networking.hostName = "nixos"; # Define your hostname.
   # Pick only one of the below networking options.
   # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
