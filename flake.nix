@@ -6,6 +6,7 @@
     haskellNix.url = "github:input-output-hk/haskell.nix";
     nixpkgs-haskell.follows = "haskellNix/nixpkgs-unstable";
     evdev-share.url = "github:georgefst/evdev-share";
+    self.submodules = true;
   };
   outputs = inputs@{ self, nixpkgs, flake-utils, agenix, ... }: rec {
     haskell =
@@ -56,6 +57,20 @@
                 [ "clark" "evdev-share" ]
               );
           };
+        };
+      fry =
+        let
+          system = "x86_64-linux";
+        in
+        nixpkgs.lib.nixosSystem {
+          inherit system;
+          modules = [
+            ./hardware-configuration/fry.nix
+            ./machines/fry.nix
+            ./obsidian
+            ./obsidian/users
+            agenix.nixosModules.default
+          ];
         };
     };
 
