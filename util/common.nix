@@ -42,4 +42,5 @@
     user.name = "George Thomas";
     user.email = "georgefsthomas@gmail.com";
   };
+  users.users.gthomas.shell = pkgs.bash;
 }
