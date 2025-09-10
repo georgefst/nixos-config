@@ -22,6 +22,7 @@
     "https://cache.iog.io"
     "https://cache.zw3rk.com"
   ];
+  nixpkgs.config.allowUnfree = true;
   programs.bash.promptInit = ''
     green=$(tput setaf 10)
     blue=$(tput setaf 4)

@@ -37,6 +37,7 @@
     firefox
     git
     tree
+    vscode
   ];
 
   # networking.hostName = "nixos"; # Define your hostname.
