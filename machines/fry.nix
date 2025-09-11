@@ -28,6 +28,7 @@
   };
 
   # desktop
+  # note that we aren't actually using X (just bad naming): https://github.com/NixOS/nixpkgs/issues/94799
   services.xserver.enable = true;
   services.xserver.displayManager.gdm.enable = true;
   services.xserver.desktopManager.gnome.enable = true;
