@@ -36,6 +36,8 @@
   # global installs
   environment.systemPackages = with pkgs; [
     firefox
+    nil
+    nixpkgs-fmt
     tree
     (vscode-with-extensions.override {
       inherit vscode;
