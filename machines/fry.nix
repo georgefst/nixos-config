@@ -32,6 +32,28 @@
   services.xserver.enable = true;
   services.xserver.displayManager.gdm.enable = true;
   services.xserver.desktopManager.gnome.enable = true;
+  programs.dconf.profiles.user.databases = [
+    {
+      lockAll = true;
+      settings = with pkgs.lib.gvariant; {
+        "org/gnome/desktop/input-sources" = {
+          sources = [ (mkTuple [ "xkb" "gb" ]) ];
+        };
+        "org/gnome/desktop/interface" = {
+          color-scheme = "prefer-dark";
+        };
+        "org/gnome/desktop/session" = {
+          idle-delay = mkUint32 0;
+        };
+        "org/gnome/settings-daemon/plugins/power" = {
+          power-saver-profile-on-low-battery = false;
+          idle-dim = false;
+          sleep-inactive-battery-type = "nothing";
+          sleep-inactive-ac-type = "nothing";
+        };
+      };
+    }
+  ];
 
   # global installs
   environment.systemPackages = with pkgs; [
