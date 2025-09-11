@@ -38,6 +38,7 @@
     firefox
     nil
     nixpkgs-fmt
+    spotify
     tree
     (vscode-with-extensions.override {
       inherit vscode;
