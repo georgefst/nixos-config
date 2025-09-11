@@ -37,7 +37,19 @@
   environment.systemPackages = with pkgs; [
     firefox
     tree
-    vscode
+    (vscode-with-extensions.override {
+      inherit vscode;
+      vscodeExtensions = with nix-vscode-extensions.vscode-marketplace; [
+        arrterian.nix-env-selector
+        asuka.insertnumbers
+        brunnerh.insert-unicode
+        gruntfuggly.todo-tree
+        haskell.haskell
+        janw4ld.lambda-black
+        jnoortheen.nix-ide
+        jsynowiec.vscode-insertdatestring
+      ];
+    })
   ];
 
   # syncthing

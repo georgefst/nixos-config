@@ -6,6 +6,7 @@
     haskellNix.url = "github:input-output-hk/haskell.nix";
     nixpkgs-haskell.follows = "haskellNix/nixpkgs-unstable";
     evdev-share.url = "github:georgefst/evdev-share";
+    nix-vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
     self.submodules = true;
   };
   outputs = inputs@{ self, nixpkgs, flake-utils, agenix, ... }: rec {
@@ -72,6 +73,7 @@
             ./obsidian
             ./obsidian/users
             agenix.nixosModules.default
+            { nixpkgs.overlays = nixpkgs.lib.mkBefore [ inputs.nix-vscode-extensions.overlays.default ]; }
             {
               # avoid some broken caches
               options.nix.settings.substituters = nixpkgs.lib.mkOption {
