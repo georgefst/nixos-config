@@ -57,6 +57,7 @@
 
   # global installs
   environment.systemPackages = with pkgs; [
+    chromium
     firefox
     nil
     nixpkgs-fmt
@@ -74,6 +75,11 @@
         jnoortheen.nix-ide
         jsynowiec.vscode-insertdatestring
       ];
+    })
+    (pkgs.makeDesktopItem {
+      name = "gather";
+      desktopName = "Gather";
+      exec = "chromium --app=https://app.gather.town/app/BMa0PDnHghjBlmqU/obsidiansystems";
     })
   ];
 
