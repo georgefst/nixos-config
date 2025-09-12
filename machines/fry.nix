@@ -51,6 +51,10 @@ in
         "org/gnome/desktop/session" = {
           idle-delay = mkUint32 0;
         };
+        "org/gnome/settings-daemon/plugins/color" = {
+          night-light-enabled = true;
+          night-light-temperature = mkUint32 3500;
+        };
         "org/gnome/settings-daemon/plugins/power" = {
           power-saver-profile-on-low-battery = false;
           idle-dim = false;
