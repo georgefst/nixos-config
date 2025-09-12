@@ -51,6 +51,10 @@
           sleep-inactive-battery-type = "nothing";
           sleep-inactive-ac-type = "nothing";
         };
+        "org/gnome/shell" = {
+          disabled-extensions = mkEmptyArray type.string;
+          enabled-extensions = [ "tilingshell@ferrarodomenico.com" ];
+        };
         "org/gnome/shell/app-switcher" = {
           current-workspace-only = true;
         };
@@ -78,6 +82,7 @@
         jsynowiec.vscode-insertdatestring
       ];
     })
+    gnomeExtensions.tiling-shell
     (pkgs.makeDesktopItem {
       name = "gather";
       desktopName = "Gather";
