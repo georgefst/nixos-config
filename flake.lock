@@ -813,6 +813,23 @@
         "type": "indirect"
       }
     },
+    "obelisk": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1756833963,
+        "narHash": "sha256-sVTUb9uj5imDfRq6bx0PWx89uLZ8v7VgDHFwdUqJJbo=",
+        "owner": "obsidiansystems",
+        "repo": "obelisk",
+        "rev": "31dbb7c6c2c710f2598d8feb29ffea8589629a67",
+        "type": "github"
+      },
+      "original": {
+        "owner": "obsidiansystems",
+        "ref": "develop",
+        "repo": "obelisk",
+        "type": "github"
+      }
+    },
     "old-ghc-nix": {
       "flake": false,
       "locked": {
@@ -841,7 +858,8 @@
         "nixpkgs-haskell": [
           "haskellNix",
           "nixpkgs-unstable"
-        ]
+        ],
+        "obelisk": "obelisk"
       }
     },
     "rust-overlay": {
