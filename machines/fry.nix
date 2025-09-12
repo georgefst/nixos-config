@@ -57,7 +57,6 @@
 
   # global installs
   environment.systemPackages = with pkgs; [
-    chromium
     firefox
     nil
     nixpkgs-fmt
@@ -79,7 +78,7 @@
     (pkgs.makeDesktopItem {
       name = "gather";
       desktopName = "Gather";
-      exec = "chromium --app=https://app.gather.town/app/BMa0PDnHghjBlmqU/obsidiansystems";
+      exec = "${pkgs.lib.getExe pkgs.chromium} --app=https://app.gather.town/app/BMa0PDnHghjBlmqU/obsidiansystems";
     })
   ];
 
