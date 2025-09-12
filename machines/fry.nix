@@ -64,6 +64,28 @@ in
         "org/gnome/shell/app-switcher" = {
           current-workspace-only = true;
         };
+        "org/gnome/shell/extensions/tilingshell" = {
+          layouts-json = builtins.toJSON
+            [
+              {
+                id = "gather-and-terminal-bottom";
+                tiles = [
+                  { x = 0; y = 0; width = 1; height = 0.68; groups = [ ]; }
+                  { x = 0; y = 0.68; width = 0.4; height = 0.32; groups = [ ]; }
+                  { x = 0.4; y = 0.68; width = 0.6; height = 0.32; groups = [ ]; }
+                ];
+              }
+              {
+                id = "test";
+                tiles =
+                  [
+                    { x = 0; y = 0; width = 0.27; height = 1; groups = [ ]; }
+                    { x = 0.27; y = 0; width = 0.73; height = 1; groups = [ ]; }
+                  ];
+              }
+            ];
+          selected-layouts = [ [ "gather-and-terminal-bottom" ] [ "test" ] ];
+        };
       };
     }
   ];
