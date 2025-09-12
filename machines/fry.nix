@@ -4,6 +4,12 @@
 
 { pkgs, ... }:
 
+let
+  gnomeExts = with pkgs; [
+    gnomeExtensions.tiling-shell
+  ];
+in
+
 {
   # stuff that will probably never change
   networking.hostName = "fry";
@@ -53,7 +59,7 @@
         };
         "org/gnome/shell" = {
           disabled-extensions = mkEmptyArray type.string;
-          enabled-extensions = [ pkgs.gnomeExtensions.tiling-shell.extensionUuid ];
+          enabled-extensions = map (e: e.extensionUuid) gnomeExts;
         };
         "org/gnome/shell/app-switcher" = {
           current-workspace-only = true;
@@ -82,13 +88,12 @@
         jsynowiec.vscode-insertdatestring
       ];
     })
-    gnomeExtensions.tiling-shell
     (makeDesktopItem {
       name = "gather";
       desktopName = "Gather";
       exec = "${lib.getExe chromium} --app=https://app.gather.town/app/BMa0PDnHghjBlmqU/obsidiansystems";
     })
-  ];
+  ] ++ gnomeExts;
 
   # syncthing
   services.syncthing = {
