@@ -53,7 +53,7 @@
         };
         "org/gnome/shell" = {
           disabled-extensions = mkEmptyArray type.string;
-          enabled-extensions = [ "tilingshell@ferrarodomenico.com" ];
+          enabled-extensions = [ pkgs.gnomeExtensions.tiling-shell.extensionUuid ];
         };
         "org/gnome/shell/app-switcher" = {
           current-workspace-only = true;
