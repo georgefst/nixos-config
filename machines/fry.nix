@@ -83,10 +83,10 @@
       ];
     })
     gnomeExtensions.tiling-shell
-    (pkgs.makeDesktopItem {
+    (makeDesktopItem {
       name = "gather";
       desktopName = "Gather";
-      exec = "${pkgs.lib.getExe pkgs.chromium} --app=https://app.gather.town/app/BMa0PDnHghjBlmqU/obsidiansystems";
+      exec = "${lib.getExe chromium} --app=https://app.gather.town/app/BMa0PDnHghjBlmqU/obsidiansystems";
     })
   ];
 
