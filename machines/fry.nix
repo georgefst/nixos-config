@@ -51,6 +51,9 @@
           sleep-inactive-battery-type = "nothing";
           sleep-inactive-ac-type = "nothing";
         };
+        "org/gnome/shell/app-switcher" = {
+          current-workspace-only = true;
+        };
       };
     }
   ];
