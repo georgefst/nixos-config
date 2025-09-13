@@ -50,6 +50,11 @@ in
         "org/gnome/desktop/session" = {
           idle-delay = mkUint32 0;
         };
+        "org/gnome/desktop/wm/keybindings" = {
+          close = [ "<Super>space" ];
+          switch-input-source = [ "<Alt><Super>space" ];
+          switch-input-source-backward = [ "<Shift><Alt><Super>space" ];
+        };
         "org/gnome/settings-daemon/plugins/color" = {
           night-light-enabled = true;
           night-light-temperature = mkUint32 3500;
