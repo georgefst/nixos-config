@@ -1,5 +1,5 @@
 # config we want to share across all machines
-{ pkgs, config, extraPkgs, ... }:
+{ pkgs, ... }:
 {
   i18n.defaultLocale = "en_GB.UTF-8";
   time.timeZone = "Europe/London";
