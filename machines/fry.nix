@@ -63,6 +63,16 @@ in
         "org/gnome/shell" = {
           disabled-extensions = mkEmptyArray type.string;
           enabled-extensions = map (e: e.extensionUuid) gnomeExts;
+          favorite-apps =
+            [
+              "firefox.desktop"
+              "code.desktop"
+              "spotify.desktop"
+              "gather.desktop"
+              "org.gnome.Console.desktop"
+              "org.gnome.Nautilus.desktop"
+              "org.gnome.Settings.desktop"
+            ];
         };
         "org/gnome/shell/app-switcher" = {
           current-workspace-only = true;
