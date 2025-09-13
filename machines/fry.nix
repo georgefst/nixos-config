@@ -118,7 +118,6 @@ in
 
   # global installs
   environment.systemPackages = with pkgs; [
-    firefox
     nil
     nixpkgs-fmt
     spotify
@@ -142,6 +141,12 @@ in
       exec = "${lib.getExe chromium} --app=https://app.gather.town/app/BMa0PDnHghjBlmqU/obsidiansystems";
     })
   ] ++ gnomeExts;
+
+  # firefox
+  programs.firefox = {
+    enable = true;
+    preferences = { "toolkit.legacyUserProfileCustomizations.stylesheets" = true; };
+  };
 
   # syncthing
   services.syncthing = {
