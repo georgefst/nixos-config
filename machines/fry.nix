@@ -103,8 +103,30 @@ in
                     { x = 0.27; y = 0; width = 0.73; height = 1; groups = [ ]; }
                   ];
               }
+              {
+                id = "uniform-grid";
+                tiles =
+                  [
+                    { x = 0.00; y = 0.00; width = 0.25; height = 0.25; groups = [ ]; }
+                    { x = 0.25; y = 0.00; width = 0.25; height = 0.25; groups = [ ]; }
+                    { x = 0.50; y = 0.00; width = 0.25; height = 0.25; groups = [ ]; }
+                    { x = 0.75; y = 0.00; width = 0.25; height = 0.25; groups = [ ]; }
+                    { x = 0.00; y = 0.25; width = 0.25; height = 0.25; groups = [ ]; }
+                    { x = 0.25; y = 0.25; width = 0.25; height = 0.25; groups = [ ]; }
+                    { x = 0.50; y = 0.25; width = 0.25; height = 0.25; groups = [ ]; }
+                    { x = 0.75; y = 0.25; width = 0.25; height = 0.25; groups = [ ]; }
+                    { x = 0.00; y = 0.50; width = 0.25; height = 0.25; groups = [ ]; }
+                    { x = 0.25; y = 0.50; width = 0.25; height = 0.25; groups = [ ]; }
+                    { x = 0.50; y = 0.50; width = 0.25; height = 0.25; groups = [ ]; }
+                    { x = 0.75; y = 0.50; width = 0.25; height = 0.25; groups = [ ]; }
+                    { x = 0.00; y = 0.75; width = 0.25; height = 0.25; groups = [ ]; }
+                    { x = 0.25; y = 0.75; width = 0.25; height = 0.25; groups = [ ]; }
+                    { x = 0.50; y = 0.75; width = 0.25; height = 0.25; groups = [ ]; }
+                    { x = 0.75; y = 0.75; width = 0.25; height = 0.25; groups = [ ]; }
+                  ];
+              }
             ];
-          selected-layouts = [ [ "gather-and-terminal-bottom" ] [ "test" ] ];
+          selected-layouts = [ [ "gather-and-terminal-bottom" ] [ "test" ] [ "uniform-grid" ] ];
         };
       } // (with pkgs;
         let
