@@ -2,6 +2,7 @@
 
 let
   gnomeExts = with pkgs; [
+    gnomeExtensions.hide-cursor
     gnomeExtensions.tiling-shell
   ];
 in
