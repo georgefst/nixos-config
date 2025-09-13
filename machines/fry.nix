@@ -106,24 +106,11 @@ in
               {
                 id = "uniform-grid";
                 tiles =
-                  [
-                    { x = 0.00; y = 0.00; width = 0.25; height = 0.25; groups = [ ]; }
-                    { x = 0.25; y = 0.00; width = 0.25; height = 0.25; groups = [ ]; }
-                    { x = 0.50; y = 0.00; width = 0.25; height = 0.25; groups = [ ]; }
-                    { x = 0.75; y = 0.00; width = 0.25; height = 0.25; groups = [ ]; }
-                    { x = 0.00; y = 0.25; width = 0.25; height = 0.25; groups = [ ]; }
-                    { x = 0.25; y = 0.25; width = 0.25; height = 0.25; groups = [ ]; }
-                    { x = 0.50; y = 0.25; width = 0.25; height = 0.25; groups = [ ]; }
-                    { x = 0.75; y = 0.25; width = 0.25; height = 0.25; groups = [ ]; }
-                    { x = 0.00; y = 0.50; width = 0.25; height = 0.25; groups = [ ]; }
-                    { x = 0.25; y = 0.50; width = 0.25; height = 0.25; groups = [ ]; }
-                    { x = 0.50; y = 0.50; width = 0.25; height = 0.25; groups = [ ]; }
-                    { x = 0.75; y = 0.50; width = 0.25; height = 0.25; groups = [ ]; }
-                    { x = 0.00; y = 0.75; width = 0.25; height = 0.25; groups = [ ]; }
-                    { x = 0.25; y = 0.75; width = 0.25; height = 0.25; groups = [ ]; }
-                    { x = 0.50; y = 0.75; width = 0.25; height = 0.25; groups = [ ]; }
-                    { x = 0.75; y = 0.75; width = 0.25; height = 0.25; groups = [ ]; }
-                  ];
+                  map ({ x, y }: { inherit x y; width = 0.25; height = 0.25; groups = [ ]; })
+                    (builtins.concatMap
+                      (y: map (x: { inherit x y; })
+                        [ 0.00 0.25 0.50 0.75 ])
+                      [ 0.00 0.25 0.50 0.75 ]);
               }
             ];
           selected-layouts = [ [ "gather-and-terminal-bottom" ] [ "test" ] [ "uniform-grid" ] ];
