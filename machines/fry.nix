@@ -135,6 +135,7 @@ in
         janw4ld.lambda-black
         jnoortheen.nix-ide
         jsynowiec.vscode-insertdatestring
+        justusadam.language-haskell
       ];
     })
     (makeDesktopItem {
