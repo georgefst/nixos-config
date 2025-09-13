@@ -55,6 +55,23 @@ in
           night-light-enabled = true;
           night-light-temperature = mkUint32 3500;
         };
+        "org/gnome/settings-daemon/plugins/media-keys" = {
+          custom-keybindings =
+            [
+              "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/"
+              "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1/"
+            ];
+        };
+        "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0" = {
+          name = "brightness-small-step-down";
+          binding = "<Shift>MonBrightnessDown";
+          command = with pkgs; "${lib.getExe brightnessctl} set 1%-";
+        };
+        "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1" = {
+          name = "brightness-small-step-up";
+          binding = "<Shift>MonBrightnessUp";
+          command = with pkgs; "${lib.getExe brightnessctl} set +1%";
+        };
         "org/gnome/settings-daemon/plugins/power" = {
           power-saver-profile-on-low-battery = false;
           idle-dim = false;
