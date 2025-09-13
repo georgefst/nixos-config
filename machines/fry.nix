@@ -84,6 +84,7 @@ in
           current-workspace-only = true;
         };
         "org/gnome/shell/extensions/tilingshell" = {
+          enable-autotiling = true;
           inner-gaps = mkUint32 0;
           outer-gaps = mkUint32 0;
           layouts-json = builtins.toJSON
