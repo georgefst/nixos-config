@@ -55,23 +55,6 @@ in
           night-light-enabled = true;
           night-light-temperature = mkUint32 3500;
         };
-        "org/gnome/settings-daemon/plugins/media-keys" = {
-          custom-keybindings =
-            [
-              "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/"
-              "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1/"
-            ];
-        };
-        "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0" = {
-          name = "brightness-small-step-down";
-          binding = "<Shift>MonBrightnessDown";
-          command = with pkgs; "${lib.getExe brightnessctl} set 1%-";
-        };
-        "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1" = {
-          name = "brightness-small-step-up";
-          binding = "<Shift>MonBrightnessUp";
-          command = with pkgs; "${lib.getExe brightnessctl} set +1%";
-        };
         "org/gnome/settings-daemon/plugins/power" = {
           power-saver-profile-on-low-battery = false;
           idle-dim = false;
@@ -107,7 +90,29 @@ in
             ];
           selected-layouts = [ [ "gather-and-terminal-bottom" ] [ "test" ] ];
         };
-      };
+      } // (with pkgs;
+        let
+          bindings = lib.imap0
+            (i: value: {
+              name = "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom${toString i}";
+              inherit value;
+            })
+            [
+              {
+                name = "brightness-small-step-down";
+                binding = "<Shift>MonBrightnessDown";
+                command = "${lib.getExe brightnessctl} set 1%-";
+              }
+              {
+                name = "brightness-small-step-up";
+                binding = "<Shift>MonBrightnessUp";
+                command = "${lib.getExe brightnessctl} set +1%";
+              }
+            ];
+        in
+        { "org/gnome/settings-daemon/plugins/media-keys".custom-keybindings = map (b: "/${b.name}/") bindings; }
+          // lib.listToAttrs bindings
+      );
     }
   ];
 
