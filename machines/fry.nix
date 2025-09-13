@@ -120,6 +120,7 @@ in
 
   # global installs
   environment.systemPackages = with pkgs; [
+    eyedropper
     nil
     nixpkgs-fmt
     spotify
