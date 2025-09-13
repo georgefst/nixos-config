@@ -69,6 +69,8 @@ in
           current-workspace-only = true;
         };
         "org/gnome/shell/extensions/tilingshell" = {
+          inner-gaps = mkUint32 0;
+          outer-gaps = mkUint32 0;
           layouts-json = builtins.toJSON
             [
               {
