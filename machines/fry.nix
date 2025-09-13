@@ -142,6 +142,7 @@ in
       name = "gather";
       desktopName = "Gather";
       exec = "${lib.getExe chromium} --app=https://app.gather.town/app/BMa0PDnHghjBlmqU/obsidiansystems";
+      icon = "${../media/gather.png}";
     })
   ] ++ gnomeExts;
 
