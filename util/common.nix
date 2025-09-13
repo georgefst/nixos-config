@@ -30,7 +30,6 @@
     reset=$(tput sgr0)
     PS1="\[$bold\]\[$blue\]\H\[$reset\]\[$bold\]:\[$green\]\w\[$reset\]\[$bold\]\\$ \[$reset\]"
   '';
-  services.openssh.enable = true;
   services.openssh.settings.PasswordAuthentication = false;
   users.users.gthomas.openssh.authorizedKeys.keys = [
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINUnvz6Q8zIzqbIG2iy72u6zl5Xg/tem1r93G3FNwGF9 gthomas@billy"

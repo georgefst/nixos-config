@@ -114,6 +114,9 @@ in
     Zeus.pskRaw = "ext:PSK_Zeus";
   };
 
+  # ssh
+  services.openssh.enable = true;
+
   # global installs
   environment.systemPackages = with pkgs; [
     autoPatchelfHook
