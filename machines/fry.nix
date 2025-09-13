@@ -82,6 +82,20 @@ in
           current-workspace-only = true;
         };
         "org/gnome/shell/extensions/tilingshell" = {
+          untile-window = [ "<Super>z" ];
+          span-window-all-tiles = [ "<Super>backslash" ];
+          focus-window-right = [ "<Super>Right" ];
+          focus-window-left = [ "<Super>Left" ];
+          focus-window-up = [ "<Super>Up" ];
+          focus-window-down = [ "<Super>Down" ];
+          move-window-right = [ "<Control><Super>Right" ];
+          move-window-left = [ "<Control><Super>Left" ];
+          move-window-up = [ "<Control><Super>Up" ];
+          move-window-down = [ "<Control><Super>Down" ];
+          span-window-right = [ "<Shift><Control><Super>Right" ];
+          span-window-left = [ "<Shift><Control><Super>Left" ];
+          span-window-up = [ "<Shift><Control><Super>Up" ];
+          span-window-down = [ "<Shift><Control><Super>Down" ];
           enable-autotiling = true;
           inner-gaps = mkUint32 0;
           outer-gaps = mkUint32 0;
