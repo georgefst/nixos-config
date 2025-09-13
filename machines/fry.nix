@@ -38,6 +38,9 @@ in
     {
       lockAll = true;
       settings = with pkgs.lib.gvariant; {
+        "org/gnome/desktop/background" = {
+          picture-uri-dark = "file:///${../media/mandelbrot.png}";
+        };
         "org/gnome/desktop/input-sources" = {
           sources = [ (mkTuple [ "xkb" "gb" ]) ];
         };
