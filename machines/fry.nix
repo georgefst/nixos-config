@@ -1,12 +1,10 @@
 { pkgs, ... }:
-
 let
   gnomeExts = with pkgs; [
     gnomeExtensions.hide-cursor
     gnomeExtensions.tiling-shell
   ];
 in
-
 {
   # stuff that will probably never change
   networking.hostName = "fry";
