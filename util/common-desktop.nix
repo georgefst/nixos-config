@@ -163,6 +163,7 @@ in
         jsynowiec.vscode-insertdatestring
         justusadam.language-haskell
         ms-vsliveshare.vsliveshare
+        nwolverson.language-purescript
       ];
     })
     (makeDesktopItem {
