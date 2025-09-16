@@ -162,6 +162,7 @@ in
         jnoortheen.nix-ide
         jsynowiec.vscode-insertdatestring
         justusadam.language-haskell
+        ms-vsliveshare.vsliveshare
       ];
     })
     (makeDesktopItem {
