@@ -16,11 +16,13 @@
     "billy.george.fst-1:fgYMFJlaXSY7PVn+DTqB8xd8Difv9X4g1Repc2j77A0="
     "crow.george.fst-1:vOnc1YKNNo4bQSQ+dcuzdaP3W5motYonCi2jnXGobb0="
     "haskell-pretty-simple.cachix.org-1:AWHkzPidwcDzWUIUjKcx/PYgud2OBAa9SNUEoIOsATY="
+    "cache.soopy.moe-1:0RZVsQeR+GOh0VQI9rvnHz55nVXkFardDqfm4+afjPo="
   ];
   nix.settings.substituters = [
     "https://cache.nixos.org"
     "https://cache.iog.io"
     "https://cache.zw3rk.com"
+    "https://cache.soopy.moe"
   ];
   nixpkgs.config.allowUnfree = true;
   programs.bash.promptInit = ''

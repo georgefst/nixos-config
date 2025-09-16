@@ -79,31 +79,13 @@ in
     (self: super: { })
   ];
 
-  # gpio
-  users.groups.gpio = { };
+  # gpio and uinput permissions
+  users.groups.gpio = { members = [ "gthomas" ]; };
+  users.groups.uinput = { members = [ "gthomas" ]; };
   services.udev.extraRules = ''
     SUBSYSTEM=="gpio", KERNEL=="gpiochip*", GROUP="gpio", MODE="0660"
     KERNEL=="uinput", GROUP="uinput", MODE:="0660", OPTIONS+="static_node=uinput"
   '';
-
-  # users
-  users.groups.uinput = { };
-  users.users = {
-    root = { };
-    gthomas = {
-      isNormalUser = true;
-      linger = true;
-      createHome = true;
-      home = home;
-      extraGroups = [
-        "gpio"
-        "wheel"
-        "input"
-        "uinput"
-      ];
-      hashedPassword = "$6$jgaC/YaKr634BoKQ$KIv3VvRRaYShRibX5O3lAaqZ2qE3XRcYQEd0EF6YP61a9YBYUcPtljpDPE8.wEnMDNeUw9/ePBjsrK9JUv5i5/";
-    };
-  };
 
   # wifi
   networking.wireless.enable = true;
@@ -126,6 +108,7 @@ in
   ];
 
   # systemd
+  users.users.gthomas.linger = true;
   systemd.user.services = {
     clark = service-with-crash-notification {
       script = ''

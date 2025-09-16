@@ -1,6 +1,8 @@
 {
   inputs = {
     nixpkgs.url = "nixpkgs/nixos-25.05";
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixos-hardware.url = "github:NixOS/nixos-hardware";
     flake-utils.url = "github:numtide/flake-utils";
     agenix.url = "github:ryantm/agenix";
     haskellNix.url = "github:input-output-hk/haskell.nix";
@@ -10,7 +12,7 @@
     obelisk = { url = "github:obsidiansystems/obelisk/develop"; flake = false; };
     self.submodules = true;
   };
-  outputs = inputs@{ self, nixpkgs, flake-utils, agenix, ... }: rec {
+  outputs = inputs@{ self, nixpkgs, nixpkgs-unstable, nixos-hardware, flake-utils, agenix, ... }: rec {
     haskell =
       builtins.mapAttrs
         (name: src: (flake-utils.lib.eachDefaultSystem (system:
@@ -50,6 +52,7 @@
           inherit system;
           modules = [
             ./util/common.nix
+            ./util/common-users.nix
             "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
             ./machines/clark.nix
             agenix.nixosModules.default
@@ -69,6 +72,7 @@
           inherit system;
           modules = [
             ./util/common.nix
+            (import ./util/common-desktop.nix { hostName = "fry"; stateVersion = "25.05"; })
             ./hardware-configuration/fry.nix
             ./machines/fry.nix
             ./obsidian
@@ -85,6 +89,23 @@
                 ));
               };
             }
+          ];
+        };
+      crow =
+        let
+          system = "x86_64-linux";
+        in
+        nixpkgs-unstable.lib.nixosSystem {
+          inherit system;
+          modules = [
+            ./util/common.nix
+            ./util/common-users.nix
+            (import ./util/common-desktop.nix { hostName = "crow"; stateVersion = "25.11"; })
+            ./hardware-configuration/crow.nix
+            ./machines/crow.nix
+            agenix.nixosModules.default
+            { nixpkgs.overlays = nixpkgs.lib.mkBefore [ inputs.nix-vscode-extensions.overlays.default ]; }
+            nixos-hardware.nixosModules.apple-t2
           ];
         };
     };
