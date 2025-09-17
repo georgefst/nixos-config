@@ -18,6 +18,7 @@ hpkgs: with hpkgs; [
   file-io
   fsnotify
   generic-optics
+  gloss
   graphviz
   http-client-tls
   JuicyPixels
