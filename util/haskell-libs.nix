@@ -1,5 +1,8 @@
 hpkgs: with hpkgs; [
   aeson
+  aeson-optics
+  ansi-terminal
+  async
   cassava
   colour
   diagrams-contrib
@@ -8,28 +11,46 @@ hpkgs: with hpkgs; [
   diagrams-lib
   diagrams-svg
   evdev
+  exceptions
   extra
   fgl
+  file-embed
   file-io
+  fsnotify
   generic-optics
   graphviz
+  http-client-tls
   JuicyPixels
   lens
   lifx-lan
+  linear
   lucid2
   massiv
+  megaparsec
+  monad-loops
   network
+  nonempty-containers
   optics
   optics-extra
   optparse-applicative
   optparse-generic
   pretty-simple
+  prettyprinter
+  prettyprinter-graphviz
+  prettyprinter-lucid
   process-extras
+  random
   safe
   servant
   servant-client
   servant-server
   shake
+  streamly
+  uuid
+  vector
+  Vis
   wai
+  wai-app-static
   warp
+  websockets
 ]
