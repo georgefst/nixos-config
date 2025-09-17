@@ -10,6 +10,7 @@
     evdev-share.url = "github:georgefst/evdev-share";
     nix-vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
     obelisk = { url = "github:obsidiansystems/obelisk/develop"; flake = false; };
+    hs-scripts.url = "github:georgefst/hs-scripts/nix";
     self.submodules = true;
   };
   outputs = inputs@{ self, nixpkgs, nixpkgs-unstable, nixos-hardware, flake-utils, agenix, ... }: rec {
@@ -43,7 +44,16 @@
           clark = ./.;
         };
 
-    nixosConfigurations = {
+    nixosConfigurations =
+      let
+        mandelbrot = system: pkgs: { xMin, xMax, yMin, yMax }: pkgs.runCommand "mandelbrot" { } ''
+          ${inputs.hs-scripts.packages.${system}.mandelbrot}/bin/mandelbrot \
+            --width 3840 --height 3840 \
+            --xMin ${builtins.toString xMin} --xMax ${builtins.toString xMax} \
+            --yMin ${builtins.toString yMin} --yMax ${builtins.toString yMax} \
+            --out $out
+        '';
+      in {
       clark =
         let
           system = "aarch64-linux";
@@ -72,11 +82,14 @@
           inherit system;
           modules = [
             ./util/common.nix
-            (import ./util/common-desktop.nix {
-              hostName = "fry";
-              stateVersion = "25.05";
-              wallpaper = ./media/mandelbrot.png;
-            })
+            (args@{ pkgs, ... }: (import ./util/common-desktop.nix
+              {
+                hostName = "fry";
+                stateVersion = "25.05";
+                wallpaper = mandelbrot system pkgs { xMin = -3; xMax = 1.8; yMin = -2.4; yMax = 2.4; };
+              }
+              args)
+            )
             ./hardware-configuration/fry.nix
             ./machines/fry.nix
             ./obsidian
@@ -104,13 +117,16 @@
           modules = [
             ./util/common.nix
             ./util/common-users.nix
-            (import ./util/common-desktop.nix {
-              hostName = "crow";
-              stateVersion = "25.11";
-              wallpaper = ./media/mandelbrot2.png;
-              syncCamera = true;
-              keyboardLayout = "gb+mac";
-            })
+            (args@{ pkgs, ... }: (import ./util/common-desktop.nix
+              {
+                hostName = "crow";
+                stateVersion = "25.11";
+                wallpaper = mandelbrot system pkgs { xMin = -1; xMax = -0.5; yMin = 0; yMax = 0.5; };
+                syncCamera = true;
+                keyboardLayout = "gb+mac";
+              }
+              args)
+            )
             ./hardware-configuration/crow.nix
             ./machines/crow.nix
             agenix.nixosModules.default
