@@ -171,6 +171,9 @@ in
     fourmolu
     haskell-language-server
   ] ++ gnomeExts;
+  fonts.packages = with pkgs; [
+    hasklig
+  ];
 
   # firefox
   programs.firefox = {
