@@ -164,21 +164,7 @@ in
     tree
     (vscode-with-extensions.override {
       inherit vscode;
-      vscodeExtensions = with nix-vscode-extensions.vscode-marketplace; [
-        arrterian.nix-env-selector
-        asuka.insertnumbers
-        brunnerh.insert-unicode
-        gruntfuggly.todo-tree
-        esbenp.prettier-vscode
-        haskell.haskell
-        janw4ld.lambda-black
-        jnoortheen.nix-ide
-        jsynowiec.vscode-insertdatestring
-        justusadam.language-haskell
-        ms-vsliveshare.vsliveshare
-        nwolverson.ide-purescript
-        nwolverson.language-purescript
-      ];
+      vscodeExtensions = (import ./vscode-extensions.nix nix-vscode-extensions.vscode-marketplace);
     })
     (haskellPackages.ghcWithPackages (import ./haskell-libs.nix))
     fourmolu
