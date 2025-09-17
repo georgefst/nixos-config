@@ -49,6 +49,9 @@ in
           switch-input-source = [ "<Alt><Super>space" ];
           switch-input-source-backward = [ "<Shift><Alt><Super>space" ];
         };
+        "org/gnome/mutter" = {
+          experimental-features = [ "scale-monitor-framebuffer" ];
+        };
         "org/gnome/settings-daemon/plugins/color" = {
           night-light-enabled = true;
           night-light-temperature = mkUint32 3500;
@@ -149,6 +152,8 @@ in
       );
     }
   ];
+  # forces electron apps to use Wayland - needed for VSCode, at least, to avoid blurry text
+  environment.variables.ELECTRON_OZONE_PLATFORM_HINT = "auto";
 
   # global installs
   environment.systemPackages = with pkgs; [
