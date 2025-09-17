@@ -7,6 +7,7 @@
 { pkgs, ... }:
 let
   gnomeExts = with pkgs; [
+    gnomeExtensions.clipboard-indicator
     gnomeExtensions.hide-cursor
     gnomeExtensions.tiling-shell
   ];
