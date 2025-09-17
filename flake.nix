@@ -75,6 +75,7 @@
             (import ./util/common-desktop.nix {
               hostName = "fry";
               stateVersion = "25.05";
+              wallpaper = ./media/mandelbrot.png;
             })
             ./hardware-configuration/fry.nix
             ./machines/fry.nix
@@ -106,6 +107,7 @@
             (import ./util/common-desktop.nix {
               hostName = "crow";
               stateVersion = "25.11";
+              wallpaper = ./media/mandelbrot2.png;
               syncCamera = true;
               keyboardLayout = "gb+mac";
             })
