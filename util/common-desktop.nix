@@ -174,6 +174,7 @@ in
   programs.firefox = {
     enable = true;
     preferences = {
+      "browser.tabs.closeWindowWithLastTab" = false;
       "toolkit.legacyUserProfileCustomizations.stylesheets" = true;
     };
   };
