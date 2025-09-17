@@ -174,6 +174,7 @@ in
   # firefox
   programs.firefox = {
     enable = true;
+    languagePacks = [ "en-GB" ];
     preferences = {
       "browser.tabs.closeWindowWithLastTab" = false;
       "toolkit.legacyUserProfileCustomizations.stylesheets" = true;
