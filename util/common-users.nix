@@ -16,7 +16,7 @@
           "wheel"
           "input"
         ];
-        hashedPassword = "$6$jgaC/YaKr634BoKQ$KIv3VvRRaYShRibX5O3lAaqZ2qE3XRcYQEd0EF6YP61a9YBYUcPtljpDPE8.wEnMDNeUw9/ePBjsrK9JUv5i5/";
+        hashedPassword = "$y$j9T$vJ0UjKdFINGa1tabMcLll/$g1WJkXkmdAufJze7Em4zMv.ee6zUW77mF1q2xcR13H9";
       };
     };
   };
