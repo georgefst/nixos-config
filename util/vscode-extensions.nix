@@ -1,4 +1,5 @@
 exts: with exts; [
+  akashagarwal.markdown-meaningful-wordcount
   arrterian.nix-env-selector
   asuka.insertnumbers
   brunnerh.insert-unicode
