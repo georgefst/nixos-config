@@ -1,3 +1,4 @@
+{ pkgs, ... }:
 {
   # from Obsidian setup docs
   networking.hostId = "69619c1a";
@@ -8,4 +9,14 @@
     enable = true;
     interval = "monthly";
   };
+
+  # Gather as desktop app, via Chromium
+  environment.systemPackages = with pkgs; [
+    (makeDesktopItem {
+      name = "gather";
+      desktopName = "Gather";
+      exec = "${lib.getExe chromium} --app=https://app.gather.town/app/BMa0PDnHghjBlmqU/obsidiansystems";
+      icon = "${../media/gather.png}";
+    })
+  ];
 }

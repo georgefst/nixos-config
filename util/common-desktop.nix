@@ -60,10 +60,10 @@ in
               "firefox.desktop"
               "code.desktop"
               "spotify.desktop"
-              "gather.desktop"
               "org.gnome.Console.desktop"
               "org.gnome.Nautilus.desktop"
               "org.gnome.Settings.desktop"
+              "gather.desktop"
             ];
         };
         "org/gnome/shell/app-switcher" = {
@@ -90,7 +90,7 @@ in
           layouts-json = builtins.toJSON
             [
               {
-                id = "gather-and-terminal-bottom";
+                id = "top-and-split-bottom";
                 tiles = [
                   { x = 0; y = 0; width = 1; height = 0.68; groups = [ ]; }
                   { x = 0; y = 0.68; width = 0.4; height = 0.32; groups = [ ]; }
@@ -115,7 +115,7 @@ in
                       [ 0.00 0.25 0.50 0.75 ]);
               }
             ];
-          selected-layouts = [ [ "gather-and-terminal-bottom" ] [ "test" ] [ "uniform-grid" ] ];
+          selected-layouts = [ [ "top-and-split-bottom" ] [ "test" ] [ "uniform-grid" ] ];
         };
       } // (with pkgs;
         let
@@ -165,12 +165,6 @@ in
         ms-vsliveshare.vsliveshare
         nwolverson.language-purescript
       ];
-    })
-    (makeDesktopItem {
-      name = "gather";
-      desktopName = "Gather";
-      exec = "${lib.getExe chromium} --app=https://app.gather.town/app/BMa0PDnHghjBlmqU/obsidiansystems";
-      icon = "${../media/gather.png}";
     })
   ] ++ gnomeExts;
 
