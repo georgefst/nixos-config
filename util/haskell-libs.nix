@@ -1,0 +1,35 @@
+hpkgs: with hpkgs; [
+  aeson
+  cassava
+  colour
+  diagrams-contrib
+  diagrams-core
+  diagrams-graphviz
+  diagrams-lib
+  diagrams-svg
+  evdev
+  extra
+  fgl
+  file-io
+  generic-optics
+  graphviz
+  JuicyPixels
+  lens
+  lifx-lan
+  lucid2
+  massiv
+  network
+  optics
+  optics-extra
+  optparse-applicative
+  optparse-generic
+  pretty-simple
+  process-extras
+  safe
+  servant
+  servant-client
+  servant-server
+  shake
+  wai
+  warp
+]
