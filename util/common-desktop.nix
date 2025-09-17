@@ -169,6 +169,7 @@ in
         asuka.insertnumbers
         brunnerh.insert-unicode
         gruntfuggly.todo-tree
+        esbenp.prettier-vscode
         haskell.haskell
         janw4ld.lambda-black
         jnoortheen.nix-ide
