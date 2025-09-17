@@ -53,88 +53,89 @@
             --yMin ${builtins.toString yMin} --yMax ${builtins.toString yMax} \
             --out $out
         '';
-      in {
-      clark =
-        let
-          system = "aarch64-linux";
-        in
-        nixpkgs.lib.nixosSystem {
-          inherit system;
-          modules = [
-            ./util/common.nix
-            ./util/common-users.nix
-            "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
-            ./machines/clark.nix
-            agenix.nixosModules.default
-          ];
-          specialArgs = {
-            extraPkgs = builtins.listToAttrs
-              (map (name: { inherit name; value = (inputs // haskell)."${name}".packages."${system}".default; })
-                [ "clark" "evdev-share" ]
-              );
+      in
+      {
+        clark =
+          let
+            system = "aarch64-linux";
+          in
+          nixpkgs.lib.nixosSystem {
+            inherit system;
+            modules = [
+              ./util/common.nix
+              ./util/common-users.nix
+              "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
+              ./machines/clark.nix
+              agenix.nixosModules.default
+            ];
+            specialArgs = {
+              extraPkgs = builtins.listToAttrs
+                (map (name: { inherit name; value = (inputs // haskell)."${name}".packages."${system}".default; })
+                  [ "clark" "evdev-share" ]
+                );
+            };
           };
-        };
-      fry =
-        let
-          system = "x86_64-linux";
-        in
-        nixpkgs.lib.nixosSystem {
-          inherit system;
-          modules = [
-            ./util/common.nix
-            (args@{ pkgs, ... }: (import ./util/common-desktop.nix
+        fry =
+          let
+            system = "x86_64-linux";
+          in
+          nixpkgs.lib.nixosSystem {
+            inherit system;
+            modules = [
+              ./util/common.nix
+              (args@{ pkgs, ... }: (import ./util/common-desktop.nix
+                {
+                  hostName = "fry";
+                  stateVersion = "25.05";
+                  wallpaper = mandelbrot system pkgs { xMin = -3; xMax = 1.8; yMin = -2.4; yMax = 2.4; };
+                }
+                args)
+              )
+              ./hardware-configuration/fry.nix
+              ./machines/fry.nix
+              ./obsidian
+              ./obsidian/users
+              agenix.nixosModules.default
+              { nixpkgs.overlays = nixpkgs.lib.mkBefore [ inputs.nix-vscode-extensions.overlays.default ]; }
+              ({ pkgs, ... }: { environment.systemPackages = [ (pkgs.callPackage inputs.obelisk { }).command ]; })
               {
-                hostName = "fry";
-                stateVersion = "25.05";
-                wallpaper = mandelbrot system pkgs { xMin = -3; xMax = 1.8; yMin = -2.4; yMax = 2.4; };
+                # avoid some broken caches
+                options.nix.settings.substituters = nixpkgs.lib.mkOption {
+                  apply = nixpkgs.lib.filter (s: !(
+                    s == "s3://obsidian-open-source" ||
+                    nixpkgs.lib.hasPrefix "http://obsidian.webhop.org" s
+                  ));
+                };
               }
-              args)
-            )
-            ./hardware-configuration/fry.nix
-            ./machines/fry.nix
-            ./obsidian
-            ./obsidian/users
-            agenix.nixosModules.default
-            { nixpkgs.overlays = nixpkgs.lib.mkBefore [ inputs.nix-vscode-extensions.overlays.default ]; }
-            ({ pkgs, ... }: { environment.systemPackages = [ (pkgs.callPackage inputs.obelisk { }).command ]; })
-            {
-              # avoid some broken caches
-              options.nix.settings.substituters = nixpkgs.lib.mkOption {
-                apply = nixpkgs.lib.filter (s: !(
-                  s == "s3://obsidian-open-source" ||
-                  nixpkgs.lib.hasPrefix "http://obsidian.webhop.org" s
-                ));
-              };
-            }
-          ];
-        };
-      crow =
-        let
-          system = "x86_64-linux";
-        in
-        nixpkgs-unstable.lib.nixosSystem {
-          inherit system;
-          modules = [
-            ./util/common.nix
-            ./util/common-users.nix
-            (args@{ pkgs, ... }: (import ./util/common-desktop.nix
-              {
-                hostName = "crow";
-                stateVersion = "25.11";
-                wallpaper = mandelbrot system pkgs { xMin = -1; xMax = -0.5; yMin = 0; yMax = 0.5; };
-                syncCamera = true;
-                keyboardLayout = "gb+mac";
-              }
-              args)
-            )
-            ./hardware-configuration/crow.nix
-            ./machines/crow.nix
-            agenix.nixosModules.default
-            { nixpkgs.overlays = nixpkgs.lib.mkBefore [ inputs.nix-vscode-extensions.overlays.default ]; }
-            nixos-hardware.nixosModules.apple-t2
-          ];
-        };
-    };
+            ];
+          };
+        crow =
+          let
+            system = "x86_64-linux";
+          in
+          nixpkgs-unstable.lib.nixosSystem {
+            inherit system;
+            modules = [
+              ./util/common.nix
+              ./util/common-users.nix
+              (args@{ pkgs, ... }: (import ./util/common-desktop.nix
+                {
+                  hostName = "crow";
+                  stateVersion = "25.11";
+                  wallpaper = mandelbrot system pkgs { xMin = -1; xMax = -0.5; yMin = 0; yMax = 0.5; };
+                  syncCamera = true;
+                  keyboardLayout = "gb+mac";
+                }
+                args)
+              )
+              ./hardware-configuration/crow.nix
+              ./machines/crow.nix
+              agenix.nixosModules.default
+              { nixpkgs.overlays = nixpkgs.lib.mkBefore [ inputs.nix-vscode-extensions.overlays.default ]; }
+              nixos-hardware.nixosModules.apple-t2
+            ];
+          };
+      };
 
     images = builtins.mapAttrs (_: system: system.config.system.build.sdImage) nixosConfigurations;
     configs = builtins.mapAttrs (_: system: system.config.system.build.toplevel) nixosConfigurations;
