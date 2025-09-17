@@ -173,7 +173,9 @@ in
   # firefox
   programs.firefox = {
     enable = true;
-    preferences = { "toolkit.legacyUserProfileCustomizations.stylesheets" = true; };
+    preferences = {
+      "toolkit.legacyUserProfileCustomizations.stylesheets" = true;
+    };
   };
 
   # pipewire

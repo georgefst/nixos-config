@@ -72,7 +72,10 @@
           inherit system;
           modules = [
             ./util/common.nix
-            (import ./util/common-desktop.nix { hostName = "fry"; stateVersion = "25.05"; })
+            (import ./util/common-desktop.nix {
+              hostName = "fry";
+              stateVersion = "25.05";
+            })
             ./hardware-configuration/fry.nix
             ./machines/fry.nix
             ./obsidian
@@ -100,7 +103,12 @@
           modules = [
             ./util/common.nix
             ./util/common-users.nix
-            (import ./util/common-desktop.nix { hostName = "crow"; stateVersion = "25.11"; syncCamera = true; keyboardLayout = "gb+mac"; })
+            (import ./util/common-desktop.nix {
+              hostName = "crow";
+              stateVersion = "25.11";
+              syncCamera = true;
+              keyboardLayout = "gb+mac";
+            })
             ./hardware-configuration/crow.nix
             ./machines/crow.nix
             agenix.nixosModules.default
