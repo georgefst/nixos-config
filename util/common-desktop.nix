@@ -176,6 +176,7 @@ in
         jsynowiec.vscode-insertdatestring
         justusadam.language-haskell
         ms-vsliveshare.vsliveshare
+        nwolverson.ide-purescript
         nwolverson.language-purescript
       ];
     })
