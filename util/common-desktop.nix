@@ -1,5 +1,6 @@
 { hostName
 , stateVersion # https://nixos.wiki/wiki/FAQ/When_do_I_update_stateVersion
+, syncCamera ? false
 }:
 { pkgs, ... }:
 let
@@ -206,7 +207,7 @@ in
         path = "~/sync/camera";
         label = "Android Camera";
         devices = [ "billy" ];
-        enable = false;
+        enable = syncCamera;
       };
     };
   };
