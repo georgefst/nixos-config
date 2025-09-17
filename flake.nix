@@ -100,7 +100,7 @@
           modules = [
             ./util/common.nix
             ./util/common-users.nix
-            (import ./util/common-desktop.nix { hostName = "crow"; stateVersion = "25.11"; syncCamera = true; })
+            (import ./util/common-desktop.nix { hostName = "crow"; stateVersion = "25.11"; syncCamera = true; keyboardLayout = "gb+mac"; })
             ./hardware-configuration/crow.nix
             ./machines/crow.nix
             agenix.nixosModules.default

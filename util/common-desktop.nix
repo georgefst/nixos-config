@@ -1,6 +1,7 @@
 { hostName
 , stateVersion # https://nixos.wiki/wiki/FAQ/When_do_I_update_stateVersion
 , syncCamera ? false
+, keyboardLayout ? "gb"
 }:
 { pkgs, ... }:
 let
@@ -30,7 +31,7 @@ in
           picture-uri-dark = "file:///${../media/mandelbrot.png}";
         };
         "org/gnome/desktop/input-sources" = {
-          sources = [ (mkTuple [ "xkb" "gb" ]) ];
+          sources = [ (mkTuple [ "xkb" keyboardLayout ]) ];
         };
         "org/gnome/desktop/interface" = {
           color-scheme = "prefer-dark";
