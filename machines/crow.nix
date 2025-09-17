@@ -15,4 +15,6 @@
   services.udev.extraRules = ''
     SUBSYSTEM=="net", ACTION=="add", ATTR{address}=="ac:de:48:00:11:22", NAME="t2_ncm"
   '';
+
+  services.openssh.enable = true;
 }
