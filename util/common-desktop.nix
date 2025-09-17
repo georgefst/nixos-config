@@ -36,6 +36,9 @@ in
         "org/gnome/desktop/interface" = {
           color-scheme = "prefer-dark";
         };
+        "org/gnome/desktop/peripherals/mouse" = {
+          natural-scroll = true;
+        };
         "org/gnome/desktop/session" = {
           idle-delay = mkUint32 0;
         };
