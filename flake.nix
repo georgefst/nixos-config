@@ -46,8 +46,9 @@
 
     nixosConfigurations =
       let
+        # don't commit `getExe` - see warning
         mandelbrot = system: pkgs: { xMin, xMax, yMin, yMax }: pkgs.runCommand "mandelbrot" { } ''
-          ${inputs.hs-scripts.packages.${system}.mandelbrot}/bin/mandelbrot \
+          ${pkgs.lib.getExe inputs.hs-scripts.packages.${system}.mandelbrot} \
             --width 3840 --height 3840 \
             --xMin ${builtins.toString xMin} --xMax ${builtins.toString xMax} \
             --yMin ${builtins.toString yMin} --yMax ${builtins.toString yMax} \
@@ -122,6 +123,10 @@
                 {
                   hostName = "crow";
                   stateVersion = "25.11";
+                  # rotate?
+                  # if so, look in to file extension while at it
+                  # might have to, in order to use ImageMagick
+                  # unless we add rotation logic to the Haskell script itself
                   wallpaper = mandelbrot system pkgs { xMin = -1; xMax = -0.5; yMin = 0; yMax = 0.5; };
                   syncCamera = true;
                   keyboardLayout = "gb+mac";

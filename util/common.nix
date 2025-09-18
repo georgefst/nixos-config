@@ -1,6 +1,7 @@
 # config we want to share across all machines
 { pkgs, ... }:
 {
+  # keep longer Systemd journal logs (default 1000 lines?)
   i18n.defaultLocale = "en_GB.UTF-8";
   time.timeZone = "Europe/London";
   nix.settings.experimental-features = [ "nix-command" "flakes" ];

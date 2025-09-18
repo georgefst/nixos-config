@@ -49,6 +49,13 @@ hpkgs: with hpkgs; [
   streamly
   uuid
   vector
+  # not working - see unnamed FF tab group
+  # oh wtf, this works on Crow but not Fry? guess it must be a hardware thing
+  # nope, it works on Fry as well
+  # wtf changed from like two days ago? only thing that looks remotely relevant is adding Gloss...
+  # keep an eye on it, and I guess when sure it's fine do `gio trash /sync/tmp/GlossNotGloss.hs`
+  # or I guess move it back to Fry `hs-scripts`
+  # and save the tabs somewhere just in case
   Vis
   wai
   wai-app-static

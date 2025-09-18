@@ -17,4 +17,8 @@
   '';
 
   services.openssh.enable = true;
+  environment.systemPackages = with pkgs;  [
+    discord
+    libreoffice
+  ];
 }
