@@ -642,11 +642,11 @@
         "nixpkgs": "nixpkgs_3"
       },
       "locked": {
-        "lastModified": 1758137346,
-        "narHash": "sha256-hVrztf/O8q4uGIHrfPYqMwR1LzJgsrbO4Sc5ggYzTuA=",
+        "lastModified": 1758238978,
+        "narHash": "sha256-tvJORQ4CGprBmmPpXRAHAUeawq6JGRVGmt1aSWMJw/w=",
         "owner": "georgefst",
         "repo": "hs-scripts",
-        "rev": "04d2b30d69593c3e2ab66c90a9635b2a91900fa7",
+        "rev": "dfc52cce2a3799906f0fed61eecbfbbfb1dea016",
         "type": "github"
       },
       "original": {

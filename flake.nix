@@ -47,7 +47,7 @@
     nixosConfigurations =
       let
         mandelbrot = system: pkgs: { xMin, xMax, yMin, yMax }: pkgs.runCommand "mandelbrot" { } ''
-          ${inputs.hs-scripts.packages.${system}.mandelbrot}/bin/mandelbrot \
+          ${pkgs.lib.getExe inputs.hs-scripts.packages.${system}.mandelbrot} \
             --width 3840 --height 3840 \
             --xMin ${builtins.toString xMin} --xMax ${builtins.toString xMax} \
             --yMin ${builtins.toString yMin} --yMax ${builtins.toString yMax} \
