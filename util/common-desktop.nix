@@ -159,6 +159,11 @@ in
 
   # global installs
   environment.systemPackages = with pkgs; [
+    mesa
+    mesa.drivers
+    vulkan-tools
+    vulkan-loader
+    vulkan-validation-layers
     eyedropper
     nil
     nixpkgs-fmt
@@ -225,4 +230,14 @@ in
   system.activationScripts.syncthing-root-link = ''
     if [[ ! -e /sync ]]; then ln -s /home/gthomas/sync/main /sync ; fi
   '';
+  hardware.opengl = {
+    enable = true;
+    # driSupport = true;
+    driSupport32Bit = true; # For 32-bit applications if needed
+    extraPackages = with pkgs; [
+      mesa.drivers
+      amdvlk
+      driversi686Linux.amdvlk # For 32-bit applications
+    ];
+  };
 }
