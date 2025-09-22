@@ -159,6 +159,7 @@ in
 
   # global installs
   environment.systemPackages = with pkgs; [
+    jq
     eyedropper
     nil
     nixpkgs-fmt
