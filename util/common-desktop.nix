@@ -171,6 +171,7 @@ in
     })
     (haskellPackages.ghcWithPackages (import ./haskell-libs.nix))
     fourmolu
+    ghciwatch
     haskell-language-server
   ] ++ gnomeExts;
   fonts.packages = with pkgs; [
