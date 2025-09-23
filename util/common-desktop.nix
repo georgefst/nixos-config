@@ -110,7 +110,7 @@ in
                 ];
               }
               {
-                id = "test";
+                id = "small-left-and-big-right";
                 tiles =
                   [
                     { x = 0; y = 0; width = 0.27; height = 1; groups = [ ]; }
