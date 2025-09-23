@@ -127,7 +127,6 @@ in
                       [ 0.00 0.25 0.50 0.75 ]);
               }
             ];
-          selected-layouts = [ [ "top-and-split-bottom" ] [ "test" ] [ "uniform-grid" ] ];
         };
       } // (with pkgs;
         let
