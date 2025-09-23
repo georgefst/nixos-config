@@ -50,6 +50,7 @@ in
           close = [ "<Super>space" ];
           switch-input-source = [ "<Alt><Super>space" ];
           switch-input-source-backward = [ "<Shift><Alt><Super>space" ];
+          toggle-on-all-workspaces = [ "<Super>s" ];
         };
         "org/gnome/mutter" = {
           experimental-features = [ "scale-monitor-framebuffer" ];
