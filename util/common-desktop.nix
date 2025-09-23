@@ -81,6 +81,9 @@ in
         "org/gnome/shell/app-switcher" = {
           current-workspace-only = true;
         };
+        "org/gnome/shell/extensions/clipboard-indicator" = {
+          toggle-menu = [ "<Super>c" ];
+        };
         "org/gnome/shell/extensions/tilingshell" = {
           untile-window = [ "<Super>z" ];
           span-window-all-tiles = [ "<Super>backslash" ];
@@ -127,6 +130,10 @@ in
                       [ 0.00 0.25 0.50 0.75 ]);
               }
             ];
+        };
+        "org/gnome/shell/keybindings" = {
+          toggle-message-tray = [ "<Super>period" ];
+          toggle-quick-settings = [ "<Super>comma" ];
         };
       } // (with pkgs;
         let
