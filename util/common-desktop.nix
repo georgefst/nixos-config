@@ -54,6 +54,7 @@ in
         };
         "org/gnome/mutter" = {
           experimental-features = [ "scale-monitor-framebuffer" ];
+          workspaces-only-on-primary = false;
         };
         "org/gnome/settings-daemon/plugins/color" = {
           night-light-enabled = true;
