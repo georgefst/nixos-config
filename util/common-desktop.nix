@@ -181,6 +181,14 @@ in
     fourmolu
     ghciwatch
     haskell-language-server
+    (pkgs.writeShellScriptBin "nix-shell-vscode" # https://github.com/arrterian/nix-env-selector/issues/95
+      ''
+        if [[ "$*" == *"--run export"* ]]; then
+          nix-shell "$@" | grep -v '^declare -x TMP=' | grep -v '^declare -x TMPDIR='
+        else
+          exec nix-shell "$@"
+        fi
+      '')
   ] ++ gnomeExts;
   fonts.packages = with pkgs; [
     hasklig
