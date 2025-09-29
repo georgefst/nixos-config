@@ -91,7 +91,10 @@
                 ];
               }
               ./util/common.nix
-              "${nixpkgs}/nixos/modules/installer/cd-dvd/iso-image.nix"
+              # "${nixpkgs}/nixos/modules/installer/cd-dvd/installation-cd-base.nix"
+              # Failed assertions:- You can not use networking.networkmanager with networking.wireless.
+              # "solved" by removing `services.xserver = {` but that's weird and I suspect would cause issues...
+              "${nixpkgs}/nixos/modules/installer/cd-dvd/installation-cd-graphical-gnome.nix"
               (args@{ pkgs, ... }: (import ./util/common-desktop.nix
                 {
                   hostName = "fry";
