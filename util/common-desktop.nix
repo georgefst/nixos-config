@@ -26,7 +26,24 @@ in
     enable = true;
     displayManager.gdm.enable = true;
     desktopManager.gnome.enable = true;
+    # was an attempt to fix Civ 5, since crash seems to be do with XDG desktop portal
+    # g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+    # NB. needed to `sudo systemctl restart display-manager` to get XFCE to show as option in GDM
+    # I have fiddled imperatively with touchpad settings in XFCE - much faster speed, and flipped scroll
+    # also, since coming back to Gnome, cursor is smaller
+    # and slower?
+    # and console icon weird?
+    # and two finger slide for back in Firefox not working?
+    # and my cursor hiding is no longer magically disabled in Civ 5
+    # and Firefox smooth scroll messed up...
+    # am I using X? yes!
+    # weird that this happens even when selecting the Watland option - probably gonna have to do a full reinstall
+    # also this gives me a good reason to not use Nix for Billy for a while - fallback for Nix stuff and Gnome+Wayland
+    # and fine because I basically have no day-to-day use case for Billy now anyway
+    # desktopManager.xfce.enable = true;
   };
+  # services.displayManager.defaultSession = "xfce";
+  # xdg.portal.enable = pkgs.lib.mkForce false;
   programs.dconf.profiles.user.databases = [
     {
       lockAll = true;
@@ -145,6 +162,7 @@ in
               inherit value;
             })
             [
+              # worth noting (complaining?) that Gnome already has this functionality for volume?
               {
                 name = "brightness-small-step-down";
                 binding = "<Shift>MonBrightnessDown";
@@ -181,6 +199,10 @@ in
     fourmolu
     ghciwatch
     haskell-language-server
+    # comment and update link
+    # including mentioning VSCode config change
+    # "nixEnvSelector.nixShellPath": "nix-shell-vscode"
+    # also add TEMP?
     (pkgs.writeShellScriptBin "nix-shell-vscode" # https://github.com/arrterian/nix-env-selector/issues/95
       ''
         if [[ "$*" == *"--run export"* ]]; then
@@ -243,4 +265,16 @@ in
   system.activationScripts.syncthing-root-link = ''
     if [[ ! -e /sync ]]; then ln -s /home/gthomas/sync/main /sync ; fi
   '';
+
+  programs.steam = {
+    enable = true;
+    remotePlay.openFirewall = true;
+    dedicatedServer.openFirewall = true;
+    localNetworkGameTransfers.openFirewall = true;
+  };
+
+  # allows me to build RPi configs and images
+  # like I previously had with `qemu-full qemu-system-aarch64 qemu-user-static qemu-user-static-binfmt`
+  # of course, as I may have written before, this is pretty inefficient as cross-compilation for e.g. Haskell parts would be much faster than emulation
+  boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
 }

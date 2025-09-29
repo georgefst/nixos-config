@@ -82,6 +82,13 @@
           nixpkgs.lib.nixosSystem {
             inherit system;
             modules = [
+              {
+                system.nixos.tags = [
+                  "test"
+                  "test2"
+                  self.rev
+                ];
+              }
               ./util/common.nix
               (args@{ pkgs, ... }: (import ./util/common-desktop.nix
                 {

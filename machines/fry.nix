@@ -15,6 +15,8 @@
     (makeDesktopItem {
       name = "gather";
       desktopName = "Gather";
+      # worth checking whether V2 works with Firefox...
+      # also, how do I capture the app so that it's not a separate entry in the dock?
       exec = "${lib.getExe chromium} --app=https://app.v2.gather.town/app/obsidian-3812d4d3-1a3e-4e30-b603-b31c7b22e94f";
       icon = "${../media/gather.png}";
     })
