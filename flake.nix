@@ -91,7 +91,6 @@
                 ];
               }
               ./util/common.nix
-              "${nixpkgs}/nixos/modules/installer/cd-dvd/iso-image.nix"
               "${nixpkgs}/nixos/modules/installer/cd-dvd/installation-cd-minimal.nix"
               (args@{ pkgs, ... }: (import ./util/common-desktop.nix
                 {
@@ -127,7 +126,6 @@
             inherit system;
             modules = [
               ./util/common.nix
-              "${nixpkgs}/nixos/modules/installer/cd-dvd/iso-image.nix"
               "${nixpkgs}/nixos/modules/installer/cd-dvd/installation-cd-minimal.nix"
               ./util/common-users.nix
               (args@{ pkgs, ... }: (import ./util/common-desktop.nix
