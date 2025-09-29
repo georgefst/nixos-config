@@ -126,7 +126,6 @@
             inherit system;
             modules = [
               ./util/common.nix
-              "${nixpkgs}/nixos/modules/installer/cd-dvd/installation-cd-minimal.nix"
               ./util/common-users.nix
               (args@{ pkgs, ... }: (import ./util/common-desktop.nix
                 {
