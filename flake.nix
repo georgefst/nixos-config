@@ -91,7 +91,7 @@
                 ];
               }
               ./util/common.nix
-              "${nixpkgs}/nixos/modules/installer/cd-dvd/installation-cd-minimal.nix"
+              "${nixpkgs}/nixos/modules/installer/cd-dvd/iso-image.nix"
               (args@{ pkgs, ... }: (import ./util/common-desktop.nix
                 {
                   hostName = "fry";
