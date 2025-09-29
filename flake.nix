@@ -84,8 +84,6 @@
             modules = [
               {
                 system.nixos.tags = [
-                  "test"
-                  "test2"
                   # so this complains (`attribute 'rev' missing`) unless the commit is clean... that could be annoying but we'll try it for now
                   self.rev
                 ];
