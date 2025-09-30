@@ -53,38 +53,39 @@
         ];
       };
       fry = system: nixpkgs.lib.nixosSystem (fryArgs system);
-    in rec {
-    haskell =
-      builtins.mapAttrs
-        (name: src: (flake-utils.lib.eachDefaultSystem (system:
-          let
-            flake = (import inputs.nixpkgs-haskell {
-              inherit system;
-              overlays = [
-                inputs.haskellNix.overlay
-                (final: prev: {
-                  hixProject =
-                    final.haskell-nix.hix.project {
-                      inherit src;
-                      compiler-nix-name = "ghc9122";
-                      index-state = "2025-09-02T00:00:00Z";
-                      evalSystem = "x86_64-linux";
-                    };
-                })
-              ];
-              inherit (inputs.haskellNix) config;
-            }).hixProject.flake { };
-            default = "${name}:exe:${name}"; # only factored out because of issues with vscode syntax highlighter
-          in
-          flake // {
-            packages = flake.packages // { default = flake.packages."${default}"; };
-          }
-        )))
-        {
-          clark = ./.;
-        };
+    in
+    rec {
+      haskell =
+        builtins.mapAttrs
+          (name: src: (flake-utils.lib.eachDefaultSystem (system:
+            let
+              flake = (import inputs.nixpkgs-haskell {
+                inherit system;
+                overlays = [
+                  inputs.haskellNix.overlay
+                  (final: prev: {
+                    hixProject =
+                      final.haskell-nix.hix.project {
+                        inherit src;
+                        compiler-nix-name = "ghc9122";
+                        index-state = "2025-09-02T00:00:00Z";
+                        evalSystem = "x86_64-linux";
+                      };
+                  })
+                ];
+                inherit (inputs.haskellNix) config;
+              }).hixProject.flake { };
+              default = "${name}:exe:${name}"; # only factored out because of issues with vscode syntax highlighter
+            in
+            flake // {
+              packages = flake.packages // { default = flake.packages."${default}"; };
+            }
+          )))
+          {
+            clark = ./.;
+          };
 
-    nixosConfigurations = {
+      nixosConfigurations = {
         clark =
           let
             system = "aarch64-linux";
@@ -134,11 +135,11 @@
           };
       };
 
-    images = builtins.mapAttrs (_: system: system.config.system.build.sdImage) nixosConfigurations;
-    configs = builtins.mapAttrs (_: system: system.config.system.build.toplevel) nixosConfigurations;
-    vms = builtins.mapAttrs (_: system: system.config.system.build.vm) nixosConfigurations;
+      images = builtins.mapAttrs (_: system: system.config.system.build.sdImage) nixosConfigurations;
+      configs = builtins.mapAttrs (_: system: system.config.system.build.toplevel) nixosConfigurations;
+      vms = builtins.mapAttrs (_: system: system.config.system.build.vm) nixosConfigurations;
 
-    # This is convenient while we only actually have one system, but will need changing eventually.
-    packages.x86_64-linux.default = configs.clark;
-  };
+      # This is convenient while we only actually have one system, but will need changing eventually.
+      packages.x86_64-linux.default = configs.clark;
+    };
 }
