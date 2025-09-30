@@ -21,4 +21,6 @@
       icon = "${../media/gather.png}";
     })
   ];
+
+  boot.supportedFilesystems = [ "zfs" ];
 }
