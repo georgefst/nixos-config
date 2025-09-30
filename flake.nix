@@ -22,7 +22,7 @@
           --yMin ${builtins.toString yMin} --yMax ${builtins.toString yMax} \
           --out $out
       '';
-      fryArgs = system: {
+      fryArgs = system: extraModules: {
         inherit system;
         modules = [
           ./util/common.nix
@@ -34,7 +34,6 @@
             }
             args)
           )
-          ./hardware-configuration/fry.nix
           ./machines/fry.nix
           ./obsidian
           ./obsidian/users
@@ -50,9 +49,25 @@
               ));
             };
           }
-        ];
+        ] ++ extraModules;
       };
-      fry = system: nixpkgs.lib.nixosSystem (fryArgs system);
+      fry = system: nixpkgs.lib.nixosSystem (fryArgs system [
+        ./hardware-configuration/fry.nix
+      ]);
+      fryInstaller = system: nixpkgs.lib.nixosSystem (fryArgs system [
+        # "${nixpkgs}/nixos/modules/installer/cd-dvd/installation-cd-base.nix"
+        # Failed assertions:- You can not use networking.networkmanager with networking.wireless.
+        # "solved" by removing `services.xserver = {` but that's weird and I suspect would cause issues...
+        "${nixpkgs}/nixos/modules/installer/cd-dvd/installation-cd-graphical-gnome.nix"
+        ({ pkgs, ... }: {
+          environment.systemPackages = [
+            (pkgs.writeShellScriptBin "install-system" ''
+              sudo nixos-install --system ${(fry system).config.system.build.toplevel} "$@"
+            '')
+          ];
+        })
+      ]
+      );
     in
     rec {
       haskell =
@@ -107,6 +122,7 @@
             };
           };
         fry = fry "x86_64-linux";
+        fryInstaller = fryInstaller "x86_64-linux";
         crow =
           let
             system = "x86_64-linux";
@@ -136,6 +152,7 @@
       };
 
       images = builtins.mapAttrs (_: system: system.config.system.build.sdImage) nixosConfigurations;
+      isos = builtins.mapAttrs (_: system: system.config.system.build.isoImage) nixosConfigurations;
       configs = builtins.mapAttrs (_: system: system.config.system.build.toplevel) nixosConfigurations;
       vms = builtins.mapAttrs (_: system: system.config.system.build.vm) nixosConfigurations;
 
