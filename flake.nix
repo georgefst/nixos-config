@@ -13,7 +13,47 @@
     hs-scripts.url = "github:georgefst/hs-scripts/nix";
     self.submodules = true;
   };
-  outputs = inputs@{ self, nixpkgs, nixpkgs-unstable, nixos-hardware, flake-utils, agenix, ... }: rec {
+  outputs = inputs@{ self, nixpkgs, nixpkgs-unstable, nixos-hardware, flake-utils, agenix, ... }:
+    let
+      mandelbrot = system: pkgs: { xMin, xMax, yMin, yMax }: pkgs.runCommand "mandelbrot" { } ''
+        ${pkgs.lib.getExe inputs.hs-scripts.packages.${system}.mandelbrot} \
+          --width 3840 --height 3840 \
+          --xMin ${builtins.toString xMin} --xMax ${builtins.toString xMax} \
+          --yMin ${builtins.toString yMin} --yMax ${builtins.toString yMax} \
+          --out $out
+      '';
+      fryArgs = system: {
+        inherit system;
+        modules = [
+          ./util/common.nix
+          (args@{ pkgs, ... }: (import ./util/common-desktop.nix
+            {
+              hostName = "fry";
+              stateVersion = "25.05";
+              wallpaper = mandelbrot system pkgs { xMin = -3; xMax = 1.8; yMin = -2.4; yMax = 2.4; };
+            }
+            args)
+          )
+          ./hardware-configuration/fry.nix
+          ./machines/fry.nix
+          ./obsidian
+          ./obsidian/users
+          agenix.nixosModules.default
+          { nixpkgs.overlays = nixpkgs.lib.mkBefore [ inputs.nix-vscode-extensions.overlays.default ]; }
+          ({ pkgs, ... }: { environment.systemPackages = [ (pkgs.callPackage inputs.obelisk { }).command ]; })
+          {
+            # avoid some broken caches
+            options.nix.settings.substituters = nixpkgs.lib.mkOption {
+              apply = nixpkgs.lib.filter (s: !(
+                s == "s3://obsidian-open-source" ||
+                nixpkgs.lib.hasPrefix "http://obsidian.webhop.org" s
+              ));
+            };
+          }
+        ];
+      };
+      fry = system: nixpkgs.lib.nixosSystem (fryArgs system);
+    in rec {
     haskell =
       builtins.mapAttrs
         (name: src: (flake-utils.lib.eachDefaultSystem (system:
@@ -44,17 +84,7 @@
           clark = ./.;
         };
 
-    nixosConfigurations =
-      let
-        mandelbrot = system: pkgs: { xMin, xMax, yMin, yMax }: pkgs.runCommand "mandelbrot" { } ''
-          ${pkgs.lib.getExe inputs.hs-scripts.packages.${system}.mandelbrot} \
-            --width 3840 --height 3840 \
-            --xMin ${builtins.toString xMin} --xMax ${builtins.toString xMax} \
-            --yMin ${builtins.toString yMin} --yMax ${builtins.toString yMax} \
-            --out $out
-        '';
-      in
-      {
+    nixosConfigurations = {
         clark =
           let
             system = "aarch64-linux";
@@ -75,40 +105,7 @@
                 );
             };
           };
-        fry =
-          let
-            system = "x86_64-linux";
-          in
-          nixpkgs.lib.nixosSystem {
-            inherit system;
-            modules = [
-              ./util/common.nix
-              (args@{ pkgs, ... }: (import ./util/common-desktop.nix
-                {
-                  hostName = "fry";
-                  stateVersion = "25.05";
-                  wallpaper = mandelbrot system pkgs { xMin = -3; xMax = 1.8; yMin = -2.4; yMax = 2.4; };
-                }
-                args)
-              )
-              ./hardware-configuration/fry.nix
-              ./machines/fry.nix
-              ./obsidian
-              ./obsidian/users
-              agenix.nixosModules.default
-              { nixpkgs.overlays = nixpkgs.lib.mkBefore [ inputs.nix-vscode-extensions.overlays.default ]; }
-              ({ pkgs, ... }: { environment.systemPackages = [ (pkgs.callPackage inputs.obelisk { }).command ]; })
-              {
-                # avoid some broken caches
-                options.nix.settings.substituters = nixpkgs.lib.mkOption {
-                  apply = nixpkgs.lib.filter (s: !(
-                    s == "s3://obsidian-open-source" ||
-                    nixpkgs.lib.hasPrefix "http://obsidian.webhop.org" s
-                  ));
-                };
-              }
-            ];
-          };
+        fry = fry "x86_64-linux";
         crow =
           let
             system = "x86_64-linux";
