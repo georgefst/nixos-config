@@ -123,13 +123,40 @@ in
                   ];
               }
               {
-                id = "uniform-grid";
+                id = "uniform-grid-2";
+                tiles =
+                  map ({ x, y }: { inherit x y; width = 0.5; height = 0.5; groups = [ ]; })
+                    (builtins.concatMap
+                      (y: map (x: { inherit x y; })
+                        [ 0.0 0.5 ])
+                      [ 0.0 0.5 ]);
+              }
+              {
+                id = "uniform-grid-3";
+                tiles =
+                  map ({ x, y }: { inherit x y; width = 0.33333; height = 0.33333; groups = [ ]; })
+                    (builtins.concatMap
+                      (y: map (x: { inherit x y; })
+                        [ 0.000 0.33333 0.66667 ])
+                      [ 0.000 0.33333 0.66667 ]);
+              }
+              {
+                id = "uniform-grid-4";
                 tiles =
                   map ({ x, y }: { inherit x y; width = 0.25; height = 0.25; groups = [ ]; })
                     (builtins.concatMap
                       (y: map (x: { inherit x y; })
                         [ 0.00 0.25 0.50 0.75 ])
                       [ 0.00 0.25 0.50 0.75 ]);
+              }
+              {
+                id = "uniform-grid-5";
+                tiles =
+                  map ({ x, y }: { inherit x y; width = 0.2; height = 0.2; groups = [ ]; })
+                    (builtins.concatMap
+                      (y: map (x: { inherit x y; })
+                        [ 0.0 0.2 0.4 0.6 0.8 ])
+                      [ 0.0 0.2 0.4 0.6 0.8 ]);
               }
             ];
         };
