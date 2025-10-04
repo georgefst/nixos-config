@@ -107,6 +107,15 @@ in
           layouts-json = builtins.toJSON
             [
               {
+                id = "side-by-side";
+                tiles =
+                  map ({ x, y }: { inherit x y; width = 0.5; height = 1.0; groups = [ ]; })
+                    (builtins.concatMap
+                      (y: map (x: { inherit x y; })
+                        [ 0.0 0.5 ])
+                      [ 0.0 ]);
+              }
+              {
                 id = "top-and-split-bottom";
                 tiles = [
                   { x = 0; y = 0; width = 1; height = 0.68; groups = [ ]; }
