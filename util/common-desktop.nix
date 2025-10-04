@@ -104,12 +104,12 @@ in
           enable-autotiling = true;
           inner-gaps = mkUint32 0;
           outer-gaps = mkUint32 0;
-          layouts-json = builtins.toJSON
-            [
+          layouts-json = builtins.toJSON (
+            map ({ id, tiles }: { inherit id; tiles = map (tile: tile // { groups = [ ]; }) tiles; }) [
               {
                 id = "side-by-side";
                 tiles =
-                  map ({ x, y }: { inherit x y; width = 0.5; height = 1.0; groups = [ ]; })
+                  map ({ x, y }: { inherit x y; width = 0.5; height = 1.0; })
                     (builtins.concatMap
                       (y: map (x: { inherit x y; })
                         [ 0.0 0.5 ])
@@ -118,31 +118,31 @@ in
               {
                 id = "top-and-split-bottom";
                 tiles = [
-                  { x = 0; y = 0; width = 1; height = 0.68; groups = [ ]; }
-                  { x = 0; y = 0.68; width = 0.4; height = 0.32; groups = [ ]; }
-                  { x = 0.4; y = 0.68; width = 0.6; height = 0.32; groups = [ ]; }
+                  { x = 0; y = 0; width = 1; height = 0.68; }
+                  { x = 0; y = 0.68; width = 0.4; height = 0.32; }
+                  { x = 0.4; y = 0.68; width = 0.6; height = 0.32; }
                 ];
               }
               {
                 id = "left-and-split-right";
                 tiles = [
-                  { x = 0; y = 0; width = 0.853; height = 1; groups = [ ]; }
-                  { x = 0.853; y = 0; width = 0.147; height = 0.158; groups = [ ]; }
-                  { x = 0.853; y = 0.158; width = 0.147; height = 0.842; groups = [ ]; }
+                  { x = 0; y = 0; width = 0.853; height = 1; }
+                  { x = 0.853; y = 0; width = 0.147; height = 0.158; }
+                  { x = 0.853; y = 0.158; width = 0.147; height = 0.842; }
                 ];
               }
               {
                 id = "small-left-and-big-right";
                 tiles =
                   [
-                    { x = 0; y = 0; width = 0.27; height = 1; groups = [ ]; }
-                    { x = 0.27; y = 0; width = 0.73; height = 1; groups = [ ]; }
+                    { x = 0; y = 0; width = 0.27; height = 1; }
+                    { x = 0.27; y = 0; width = 0.73; height = 1; }
                   ];
               }
               {
                 id = "uniform-grid-2";
                 tiles =
-                  map ({ x, y }: { inherit x y; width = 0.5; height = 0.5; groups = [ ]; })
+                  map ({ x, y }: { inherit x y; width = 0.5; height = 0.5; })
                     (builtins.concatMap
                       (y: map (x: { inherit x y; })
                         [ 0.0 0.5 ])
@@ -151,7 +151,7 @@ in
               {
                 id = "uniform-grid-3";
                 tiles =
-                  map ({ x, y }: { inherit x y; width = 0.33333; height = 0.33333; groups = [ ]; })
+                  map ({ x, y }: { inherit x y; width = 0.33333; height = 0.33333; })
                     (builtins.concatMap
                       (y: map (x: { inherit x y; })
                         [ 0.000 0.33333 0.66667 ])
@@ -160,7 +160,7 @@ in
               {
                 id = "uniform-grid-4";
                 tiles =
-                  map ({ x, y }: { inherit x y; width = 0.25; height = 0.25; groups = [ ]; })
+                  map ({ x, y }: { inherit x y; width = 0.25; height = 0.25; })
                     (builtins.concatMap
                       (y: map (x: { inherit x y; })
                         [ 0.00 0.25 0.50 0.75 ])
@@ -169,13 +169,14 @@ in
               {
                 id = "uniform-grid-5";
                 tiles =
-                  map ({ x, y }: { inherit x y; width = 0.2; height = 0.2; groups = [ ]; })
+                  map ({ x, y }: { inherit x y; width = 0.2; height = 0.2; })
                     (builtins.concatMap
                       (y: map (x: { inherit x y; })
                         [ 0.0 0.2 0.4 0.6 0.8 ])
                       [ 0.0 0.2 0.4 0.6 0.8 ]);
               }
-            ];
+            ]
+          );
         };
         "org/gnome/shell/keybindings" = {
           toggle-message-tray = [ "<Super>period" ];
