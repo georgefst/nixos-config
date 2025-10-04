@@ -17,7 +17,7 @@
   '';
 
   services.openssh.enable = true;
-  environment.systemPackages = with pkgs;  [
+  environment.systemPackages = with pkgs; [
     discord
     libreoffice
   ];
