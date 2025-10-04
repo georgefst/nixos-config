@@ -104,16 +104,21 @@ in
           enable-autotiling = true;
           inner-gaps = mkUint32 0;
           outer-gaps = mkUint32 0;
-          layouts-json = builtins.toJSON (
+          layouts-json = with pkgs; builtins.toJSON (
+            let
+              grid = xSplits: ySplits:
+                let adjacentPairs = l: lib.zipListsWith (start: end: { inherit start end; }) l (lib.tail l); in
+                lib.mapCartesianProduct
+                  ({ x, y }: { x = x.start; y = y.start; width = x.end - x.start; height = y.end - y.start; })
+                  {
+                    x = adjacentPairs ([ 0.0 ] ++ xSplits ++ [ 1.0 ]);
+                    y = adjacentPairs ([ 0.0 ] ++ ySplits ++ [ 1.0 ]);
+                  };
+            in
             map ({ id, tiles }: { inherit id; tiles = map (tile: tile // { groups = [ ]; }) tiles; }) [
               {
                 id = "side-by-side";
-                tiles =
-                  map ({ x, y }: { inherit x y; width = 0.5; height = 1.0; })
-                    (builtins.concatMap
-                      (y: map (x: { inherit x y; })
-                        [ 0.0 0.5 ])
-                      [ 0.0 ]);
+                tiles = grid [ 0.5 ] [ ];
               }
               {
                 id = "top-and-split-bottom";
@@ -133,47 +138,23 @@ in
               }
               {
                 id = "small-left-and-big-right";
-                tiles =
-                  [
-                    { x = 0; y = 0; width = 0.27; height = 1; }
-                    { x = 0.27; y = 0; width = 0.73; height = 1; }
-                  ];
+                tiles = grid [ 0.27 ] [ ];
               }
               {
                 id = "uniform-grid-2";
-                tiles =
-                  map ({ x, y }: { inherit x y; width = 0.5; height = 0.5; })
-                    (builtins.concatMap
-                      (y: map (x: { inherit x y; })
-                        [ 0.0 0.5 ])
-                      [ 0.0 0.5 ]);
+                tiles = grid [ 0.5 ] [ 0.5 ];
               }
               {
                 id = "uniform-grid-3";
-                tiles =
-                  map ({ x, y }: { inherit x y; width = 0.33333; height = 0.33333; })
-                    (builtins.concatMap
-                      (y: map (x: { inherit x y; })
-                        [ 0.000 0.33333 0.66667 ])
-                      [ 0.000 0.33333 0.66667 ]);
+                tiles = grid [ 0.33333 0.66667 ] [ 0.33333 0.66667 ];
               }
               {
                 id = "uniform-grid-4";
-                tiles =
-                  map ({ x, y }: { inherit x y; width = 0.25; height = 0.25; })
-                    (builtins.concatMap
-                      (y: map (x: { inherit x y; })
-                        [ 0.00 0.25 0.50 0.75 ])
-                      [ 0.00 0.25 0.50 0.75 ]);
+                tiles = grid [ 0.25 0.50 0.75 ] [ 0.25 0.50 0.75 ];
               }
               {
                 id = "uniform-grid-5";
-                tiles =
-                  map ({ x, y }: { inherit x y; width = 0.2; height = 0.2; })
-                    (builtins.concatMap
-                      (y: map (x: { inherit x y; })
-                        [ 0.0 0.2 0.4 0.6 0.8 ])
-                      [ 0.0 0.2 0.4 0.6 0.8 ]);
+                tiles = grid [ 0.2 0.4 0.6 0.8 ] [ 0.2 0.4 0.6 0.8 ];
               }
             ]
           );
