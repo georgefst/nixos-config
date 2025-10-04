@@ -136,6 +136,7 @@
               { environment.systemPackages = [ inputs.haskellNix.packages.${system}.hix ]; }
               nixos-hardware.nixosModules.apple-t2
             ];
+            specialArgs.magic-mouse = inputs.hs-scripts.packages.${system}.magicMouse;
           };
       };
 
