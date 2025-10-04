@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, magic-mouse, ... }:
 {
   # from official T2 Linux NixOS guide
   hardware.firmware = [
@@ -21,4 +21,9 @@
     discord
     libreoffice
   ];
+  systemd.services.magic-mouse = {
+    script = pkgs.lib.getExe magic-mouse;
+    description = "Magic mouse hack";
+    wantedBy = [ "multi-user.target" ];
+  };
 }
