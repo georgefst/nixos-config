@@ -124,6 +124,14 @@ in
                 ];
               }
               {
+                id = "left-and-split-right";
+                tiles = [
+                  { x = 0; y = 0; width = 0.853; height = 1; groups = [ ]; }
+                  { x = 0.853; y = 0; width = 0.147; height = 0.158; groups = [ ]; }
+                  { x = 0.853; y = 0.158; width = 0.147; height = 0.842; groups = [ ]; }
+                ];
+              }
+              {
                 id = "small-left-and-big-right";
                 tiles =
                   [
