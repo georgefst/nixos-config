@@ -115,7 +115,11 @@ in
                     y = adjacentPairs ([ 0.0 ] ++ ySplits ++ [ 1.0 ]);
                   };
             in
-            map ({ id, tiles }: { inherit id; tiles = map (tile: tile // { groups = [ ]; }) tiles; }) [
+            map
+              ({ id, tiles }: {
+                inherit id;
+                tiles = map (tile: tile // { groups = [ ]; }) tiles;
+              }) [
               {
                 id = "side-by-side";
                 tiles = grid [ 0.5 ] [ ];
