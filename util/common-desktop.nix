@@ -204,6 +204,7 @@ in
     dedicatedServer.openFirewall = true;
     localNetworkGameTransfers.openFirewall = true;
   };
+  boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
 
   # firefox
   programs.firefox = {
