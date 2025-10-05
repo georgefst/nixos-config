@@ -110,7 +110,7 @@ in
                 let adjacentPairs = l: lib.zipListsWith (start: end: { inherit start end; }) l (lib.tail l); in
                 lib.mapCartesianProduct
                   ({ x, y }: { x = x.start; y = y.start; width = x.end - x.start; height = y.end - y.start; })
-                  (builtins.mapAttrs (_: l: adjacentPairs ([ 0.0 ] ++ l ++ [ 1.0 ])) { x = xSplits; y = ySplits; });
+                  (builtins.mapAttrs (_: l: adjacentPairs ([ 0 ] ++ l ++ [ 1 ])) { x = xSplits; y = ySplits; });
             in
             lib.imap1
               (i: tiles: {
