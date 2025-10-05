@@ -174,6 +174,7 @@ in
     eyedropper
     nil
     nixpkgs-fmt
+    popsicle
     signal-desktop
     spotify
     tree
