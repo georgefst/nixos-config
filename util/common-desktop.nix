@@ -196,6 +196,12 @@ in
   fonts.packages = with pkgs; [
     hasklig
   ];
+  programs.steam = {
+    enable = true;
+    remotePlay.openFirewall = true;
+    dedicatedServer.openFirewall = true;
+    localNetworkGameTransfers.openFirewall = true;
+  };
 
   # firefox
   programs.firefox = {
