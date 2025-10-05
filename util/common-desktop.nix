@@ -174,6 +174,7 @@ in
     eyedropper
     nil
     nixpkgs-fmt
+    signal-desktop
     spotify
     tree
     (vscode-with-extensions.override {
