@@ -170,6 +170,7 @@ in
 
   # global installs
   environment.systemPackages = with pkgs; [
+    inotify-tools
     jq
     eyedropper
     nil
