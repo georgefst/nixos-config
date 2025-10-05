@@ -112,51 +112,27 @@ in
                   ({ x, y }: { x = x.start; y = y.start; width = x.end - x.start; height = y.end - y.start; })
                   (builtins.mapAttrs (_: l: adjacentPairs ([ 0.0 ] ++ l ++ [ 1.0 ])) { x = xSplits; y = ySplits; });
             in
-            map
-              ({ id, tiles }: {
-                inherit id;
+            lib.imap1
+              (i: tiles: {
+                id = toString i;
                 tiles = map (tile: tile // { groups = [ ]; }) tiles;
               }) [
-              {
-                id = "side-by-side";
-                tiles = grid [ 0.5 ] [ ];
-              }
-              {
-                id = "top-and-split-bottom";
-                tiles = [
-                  { x = 0; y = 0; width = 1; height = 0.68; }
-                  { x = 0; y = 0.68; width = 0.4; height = 0.32; }
-                  { x = 0.4; y = 0.68; width = 0.6; height = 0.32; }
-                ];
-              }
-              {
-                id = "left-and-split-right";
-                tiles = [
-                  { x = 0; y = 0; width = 0.853; height = 1; }
-                  { x = 0.853; y = 0; width = 0.147; height = 0.158; }
-                  { x = 0.853; y = 0.158; width = 0.147; height = 0.842; }
-                ];
-              }
-              {
-                id = "small-left-and-big-right";
-                tiles = grid [ 0.27 ] [ ];
-              }
-              {
-                id = "uniform-grid-2";
-                tiles = grid [ 0.5 ] [ 0.5 ];
-              }
-              {
-                id = "uniform-grid-3";
-                tiles = grid [ 0.33333 0.66667 ] [ 0.33333 0.66667 ];
-              }
-              {
-                id = "uniform-grid-4";
-                tiles = grid [ 0.25 0.50 0.75 ] [ 0.25 0.50 0.75 ];
-              }
-              {
-                id = "uniform-grid-5";
-                tiles = grid [ 0.2 0.4 0.6 0.8 ] [ 0.2 0.4 0.6 0.8 ];
-              }
+              (grid [ 0.5 ] [ ])
+              [
+                { x = 0; y = 0; width = 1; height = 0.68; }
+                { x = 0; y = 0.68; width = 0.4; height = 0.32; }
+                { x = 0.4; y = 0.68; width = 0.6; height = 0.32; }
+              ]
+              [
+                { x = 0; y = 0; width = 0.853; height = 1; }
+                { x = 0.853; y = 0; width = 0.147; height = 0.158; }
+                { x = 0.853; y = 0.158; width = 0.147; height = 0.842; }
+              ]
+              (grid [ 0.27 ] [ ])
+              (grid [ 0.5 ] [ 0.5 ])
+              (grid [ 0.33333 0.66667 ] [ 0.33333 0.66667 ])
+              (grid [ 0.25 0.50 0.75 ] [ 0.25 0.50 0.75 ])
+              (grid [ 0.2 0.4 0.6 0.8 ] [ 0.2 0.4 0.6 0.8 ])
             ]
           );
         };
