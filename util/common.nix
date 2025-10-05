@@ -47,4 +47,10 @@
     user.email = "georgefsthomas@gmail.com";
   };
   users.users.gthomas.shell = pkgs.bash;
+  environment.systemPackages = with pkgs; [
+    file
+    inotify-tools
+    jq
+    tree
+  ];
 }

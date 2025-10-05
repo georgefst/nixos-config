@@ -102,9 +102,7 @@ in
   # global installs
   environment.systemPackages = with pkgs; [
     autoPatchelfHook
-    file
     libgpiod
-    tree
   ];
 
   # systemd

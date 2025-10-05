@@ -170,15 +170,12 @@ in
 
   # global installs
   environment.systemPackages = with pkgs; [
-    inotify-tools
-    jq
     eyedropper
     nil
     nixpkgs-fmt
     popsicle
     signal-desktop
     spotify
-    tree
     (vscode-with-extensions.override {
       inherit vscode;
       vscodeExtensions = (import ./vscode-extensions.nix nix-vscode-extensions.vscode-marketplace);
