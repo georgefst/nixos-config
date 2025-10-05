@@ -104,7 +104,7 @@ in
           enable-autotiling = true;
           inner-gaps = mkUint32 0;
           outer-gaps = mkUint32 0;
-          layouts-json = let lib = pkgs.lib; in builtins.toJSON (
+          layouts-json = let inherit (pkgs) lib; in builtins.toJSON (
             let
               grid = xSplits: ySplits:
                 let adjacentPairs = l: lib.zipListsWith (start: end: { inherit start end; }) l (lib.tail l); in
