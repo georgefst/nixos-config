@@ -112,7 +112,7 @@ in
                   ({ x, y }: { x = x.start; y = y.start; width = x.end - x.start; height = y.end - y.start; })
                   (builtins.mapAttrs (_: l: adjacentPairs ([ 0 ] ++ l ++ [ 1 ])) { x = xSplits; y = ySplits; });
             in
-            lib.imap1
+            lib.imap
               (i: tiles: {
                 id = toString i;
                 tiles = map (tile: tile // { groups = [ ]; }) tiles;
