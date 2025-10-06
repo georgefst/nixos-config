@@ -47,6 +47,7 @@ in
           idle-delay = mkUint32 0;
         };
         "org/gnome/desktop/wm/keybindings" = {
+          always-on-top = [ "<Super>s" ];
           close = [ "<Super>space" ];
           switch-input-source = [ "<Alt><Super>space" ];
           switch-input-source-backward = [ "<Shift><Alt><Super>space" ];
@@ -137,6 +138,7 @@ in
           );
         };
         "org/gnome/shell/keybindings" = {
+          toggle-application-view = [ "<Super>0" ];
           toggle-message-tray = [ "<Super>period" ];
           toggle-quick-settings = [ "<Super>comma" ];
         };
