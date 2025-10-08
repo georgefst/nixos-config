@@ -9,6 +9,7 @@ hpkgs: with hpkgs; [
   diagrams-core
   diagrams-graphviz
   diagrams-lib
+  diagrams-rasterific
   diagrams-svg
   evdev
   exceptions
