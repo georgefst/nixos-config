@@ -32,6 +32,7 @@ hpkgs: with hpkgs; [
   monad-loops
   network
   nonempty-containers
+  openapi3
   optics
   optics-extra
   optparse-applicative
