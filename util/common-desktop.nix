@@ -167,8 +167,6 @@ in
       );
     }
   ];
-  # forces legacy GTK apps to use dark mode
-  environment.variables.GTK_THEME = "Adwaita:dark";
   # forces electron apps to use Wayland - needed for VSCode, at least, to avoid blurry text
   environment.variables.ELECTRON_OZONE_PLATFORM_HINT = "auto";
 
