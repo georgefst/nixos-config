@@ -10,6 +10,9 @@
     interval = "monthly";
   };
 
+  # gets us to 6.14, which provides necessary support for our network card
+  boot.kernelPackages = pkgs.linuxPackages_latest;
+
   # Gather as desktop app, via Chromium
   environment.systemPackages = with pkgs; [
     (makeDesktopItem {
