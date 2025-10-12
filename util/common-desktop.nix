@@ -10,6 +10,9 @@ let
     gnomeExtensions.clipboard-indicator
     gnomeExtensions.hide-cursor
     gnomeExtensions.tiling-shell
+    # also ydotool, and check that it works. e.g. permissions-wise
+    gnomeExtensions.window-calls
+    gnomeExtensions.window-calls-extended
   ];
 in
 {
@@ -64,6 +67,7 @@ in
         "org/gnome/settings-daemon/plugins/power" = {
           power-saver-profile-on-low-battery = false;
           idle-dim = false;
+          power-button-action = "interactive";
           sleep-inactive-battery-type = "nothing";
           sleep-inactive-ac-type = "nothing";
         };
@@ -85,6 +89,9 @@ in
           current-workspace-only = true;
         };
         "org/gnome/shell/extensions/clipboard-indicator" = {
+          # show more than 30 chars in preview
+          # up history
+          # up file size
           toggle-menu = [ "<Super>c" ];
         };
         "org/gnome/shell/extensions/tilingshell" = {
@@ -178,6 +185,7 @@ in
     popsicle
     signal-desktop
     spotify
+    wl-clipboard
     (vscode-with-extensions.override {
       inherit vscode;
       vscodeExtensions = (import ./vscode-extensions.nix nix-vscode-extensions.vscode-marketplace);
@@ -255,4 +263,8 @@ in
   system.activationScripts.syncthing-root-link = ''
     if [[ ! -e /sync ]]; then ln -s /home/gthomas/sync/main /sync ; fi
   '';
+
+  # creates file under `/etc/test-gt` etc.
+  # we actually want `/etc/xdg` for `~/.config` equivalent - `/etc` itself is not in `XDG_XONFIG_DIRS`
+  # environment.etc."test-gt/some-path/some-more-path".source = ../README.md;
 }

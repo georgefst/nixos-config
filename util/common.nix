@@ -43,14 +43,83 @@
   ];
   programs.git.enable = true;
   programs.git.config = {
+    # now this really is _user_ config, which makes the whole home-manager split look very silly
+    # this is also the first thing really where I do want to share this stuff with non-Nix machines...
+    # could put in separate Nix files, and parse them for non-Nix environments?
+    # same goes for `programs.bash.shellInit` (or `loginShellInit` or `interactiveShellInit`)
+    # can also use `bash.shellAliases` or more general `environment.shellAliases`, which take attrsets
+    # https://github.com/georgefst/george-conf/blob/master/bashrc.sh
+    # and to a lesser extent inputrc stuff (uncontroverially good?)
+    # and then open tabs are all that remains of the "home" config I need
     user.name = "George Thomas";
     user.email = "georgefsthomas@gmail.com";
+    core.editor = "code --wait";
+    pull.ff = "only";
+    submodule.recurse = true;
   };
+  # environment.etc.inputrc = pkgs.lib.mkAfter ''
+  # environment.etc.inputrc = pkgs.lib.mkForce ''
+  # environment.etc.inputrc = pkgs.lib.mkForce ''
+  environment.etc.inputrc.text = pkgs.lib.mkAfter ''
+    set bell-style none
+    set completion-ignore-case on
+    set completion-prefix-display-length 3
+    set show-all-if-ambiguous on
+    set show-all-if-unmodified on
+    set colored-stats on
+    set visible-stats on
+    set mark-symlinked-directories on
+
+    "\e[1~": beginning-of-line
+    "\e[4~": end-of-line
+    "\e[5~": beginning-of-history
+    "\e[6~": end-of-history
+    "\e[3~": delete-char
+    "\e[2~": quoted-insert
+    "\e[5C": forward-word
+    "\e[5D": backward-word
+    "\e[1;5C": forward-word
+    "\e[1;5D": backward-word
+    "\e[3;5~": kill-word
+    "\C-H": backward-kill-word
+
+    # complex emacs-y things I don't use?
+    # set meta-flag on
+    # set input-meta on
+    # set convert-meta off
+    # set output-meta on
+
+    # then add this to bash config to use alt-c to copy line
+    # it's a start
+    # I'd like to be able to navigate output of long-running commands without using mouse,
+    # but that probably would mean ditching gnome-terminal which I otherwise like
+    # this bug has been open 23 years: https://gitlab.gnome.org/GNOME/vte/-/issues/588
+
+    # keybinding kills things...
+    # bind -x '"\e\C-c": printf "%s" "$READLINE_LINE" | wl-copy'
+    # doesn't work in VSCode of course
+    # bind -x '"\C-p": printf "%s" "$READLINE_LINE" | wl-copy'
+    # good
+    # bind -x '"\ec": printf "%s" "$READLINE_LINE" | wl-copy'
+  '';
+  # sudo rm /etc/inputrc
+
+  # text = pkgs.lib.mkDefault (pkgs.lib.mkAfter ''
+  #   #  alternate mappings for "page up" and "page down" to search the history
+  #   "\e[5~": history-search-backward
+  #   "\e[6~": history-search-forward
+  # '');
+  # };
   users.users.gthomas.shell = pkgs.bash;
   environment.systemPackages = with pkgs; [
     file
+    imagemagick
     inotify-tools
+    # replace with main after my PR merge? https://github.com/lomirus/live-server/pull/176
+    # maybe not since I'm not actually using it now that I discovered Epiphany watches local files
+    live-server
     jq
+    simple-http-server
     tree
   ];
 }

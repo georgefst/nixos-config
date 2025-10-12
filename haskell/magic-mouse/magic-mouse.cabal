@@ -1,0 +1,51 @@
+cabal-version:      3.0
+name:               magic-mouse
+version:            0.1.0.0
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             George Thomas
+maintainer:         georgefsthomas@gmail.com
+
+executable magic-mouse
+    main-is: Main.hs
+    hs-source-dirs: .
+    default-language: GHC2021
+    default-extensions:
+        BlockArguments
+        DataKinds
+        DeriveAnyClass
+        DerivingStrategies
+        DuplicateRecordFields
+        GADTs
+        LambdaCase
+        ImpredicativeTypes
+        NoFieldSelectors
+        NoMonomorphismRestriction
+        OverloadedLabels
+        OverloadedRecordDot
+        OverloadedStrings
+        PartialTypeSignatures
+        RecordWildCards
+        TypeAbstractions
+        TypeData
+        ViewPatterns
+    build-depends:
+        base >= 4.16,
+        async >= 2.2.4,
+        bytestring >= 0.10.12,
+        containers >= 0.6,
+        directory >= 1.2,
+        exceptions >= 0.10,
+        extra >= 1.7.10,
+        monad-loops >= 0.4.3,
+        mtl >= 2.2.2,
+        optics >= 0.4.2,
+        optics-extra >= 0.4.2,
+        optparse-generic >= 1.4.6,
+        pretty-simple >= 4.1,
+        streamly >= 0.10,
+        text >= 1.2.4,
+        time >= 1.9.3,
+    ghc-options:
+        -Wall
+        -threaded

@@ -1,4 +1,12 @@
 hpkgs: with hpkgs; [
+  # for georgefst.com (not tested yet - also sort before committing)
+  clay
+  neat-interpolation
+  pandoc
+  tagsoup
+  pandoc-types
+  blaze-html
+  blaze-markup
   aeson
   aeson-optics
   ansi-terminal

@@ -1,5 +1,6 @@
 packages:
     haskell/clark
+-- haskell/magic-mouse
 
 -- https://github.com/georgefst/lifx-lan/pull/27
 source-repository-package
