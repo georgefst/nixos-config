@@ -127,7 +127,7 @@
               { system.nixos.tags = [ self.shortRev or self.dirtyShortRev ]; }
               nixos-hardware.nixosModules.apple-t2
             ];
-            specialArgs.magic-mouse = inputs.hs-scripts.packages.${system}.magicMouse;
+            specialArgs.magic-mouse = haskell.packages.${system}."magic-mouse:exe:magic-mouse";
           };
       };
 
