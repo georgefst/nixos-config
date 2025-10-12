@@ -1,5 +1,5 @@
 packages:
-    clark/haskell
+    haskell/clark
 
 -- https://github.com/georgefst/lifx-lan/pull/27
 source-repository-package
