@@ -11,7 +11,6 @@ import Control.Monad
 import Control.Monad.Except (throwError)
 import Control.Monad.Log (MonadLog, logMessage, runLoggingT)
 import Control.Monad.State
-import Data.Bifunctor
 import Data.Bool
 import Data.ByteString qualified as B
 import Data.Either.Extra
@@ -100,11 +99,9 @@ main = do
                                 concatMap
                                     (\(Exists r) -> map (\(Exists l) -> (roomName r, lightName l)) $ enumerateLights r)
                                     enumerateRooms
-                                    <&> \(r, l) ->
-                                        uncurry (\t -> bimap (const t) (t,))
-                                            . fmap (maybeToEither ())
-                                            . ((r, l),)
-                                            $ (ds & firstJust \(d, s, g) -> guard (g.label == r && s.label == l) $> d)
+                                    <&> \rl@(r, l) ->
+                                        maybeToEither rl $
+                                            ds & firstJust \(d, s, g) -> guard (g.label == r && s.label == l) $> (rl, d)
                     maybe (pure $ Map.fromList ds') (throwError @(NonEmpty (Text, Text))) $ nonEmpty notFound
                 let getLight :: forall c. RoomLightPair c -> Lifx.Device
                     getLight (RoomLightPair r l) =
