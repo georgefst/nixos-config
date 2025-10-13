@@ -3,7 +3,10 @@ hpkgs: with hpkgs; [
   aeson-optics
   ansi-terminal
   async
+  blaze-html
+  blaze-markup
   cassava
+  clay
   colour
   diagrams-contrib
   diagrams-core
@@ -30,6 +33,7 @@ hpkgs: with hpkgs; [
   massiv
   megaparsec
   monad-loops
+  neat-interpolation
   network
   nonempty-containers
   openapi3
@@ -37,6 +41,8 @@ hpkgs: with hpkgs; [
   optics-extra
   optparse-applicative
   optparse-generic
+  pandoc
+  pandoc-types
   pretty-simple
   prettyprinter
   prettyprinter-graphviz
@@ -49,6 +55,7 @@ hpkgs: with hpkgs; [
   servant-server
   shake
   streamly
+  tagsoup
   uuid
   vector
   Vis
