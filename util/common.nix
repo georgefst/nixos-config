@@ -45,6 +45,9 @@
   ];
   programs.git.enable = true;
   programs.git.config = {
+    core.editor = "code --wait";
+    pull.ff = "only";
+    submodule.recurse = true;
     user.name = "George Thomas";
     user.email = "georgefsthomas@gmail.com";
   };
