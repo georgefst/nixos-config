@@ -54,6 +54,7 @@
     dhall-json
     file
     inotify-tools
+    live-server
     jq
     simple-http-server
     tree
