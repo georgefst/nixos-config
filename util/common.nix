@@ -31,7 +31,9 @@
     blue=$(tput setaf 4)
     bold=$(tput bold)
     reset=$(tput sgr0)
-    PS1="\[$bold\]\[$blue\]\H\[$reset\]\[$bold\]:\[$green\]\w\[$reset\]\[$bold\]\\$ \[$reset\]"
+    vscode=$([[ "$TERM_PROGRAM" == "vscode" ]] && echo 1 || echo 0)
+    dots=$(printf '%*s' $((SHLVL - 1 - $vscode)) | tr ' ' '.')
+    PS1="\[$bold\]\[$blue\]\H\[$reset\]\[$bold\]:\[$green\]\w\[$reset\]\[$bold\]\$dots\$ \[$reset\]"
   '';
   services.openssh.settings.PasswordAuthentication = false;
   users.users.gthomas.openssh.authorizedKeys.keys = [
