@@ -55,6 +55,7 @@
     file
     inotify-tools
     jq
+    simple-http-server
     tree
   ];
 }
