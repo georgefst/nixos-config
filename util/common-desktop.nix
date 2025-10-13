@@ -179,6 +179,7 @@ in
     popsicle
     signal-desktop
     spotify
+    wl-clipboard
     (vscode-with-extensions.override {
       inherit vscode;
       vscodeExtensions = (import ./vscode-extensions.nix nix-vscode-extensions.vscode-marketplace);
