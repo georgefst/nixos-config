@@ -53,6 +53,7 @@
     dhall
     dhall-json
     file
+    imagemagick
     inotify-tools
     live-server
     jq
