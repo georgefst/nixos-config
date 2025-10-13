@@ -27,6 +27,10 @@
                   compiler-nix-name = "ghc9122";
                   index-state = "2025-09-02T00:00:00Z";
                   evalSystem = "x86_64-linux";
+                  shell.tools = {
+                    cabal = "latest";
+                    haskell-language-server = "latest";
+                  };
                 };
             })
           ];
