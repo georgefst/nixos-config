@@ -179,6 +179,7 @@ in
     popsicle
     signal-desktop
     spotify
+    ydotool
     wl-clipboard
     (vscode-with-extensions.override {
       inherit vscode;
