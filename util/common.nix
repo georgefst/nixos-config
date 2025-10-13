@@ -58,7 +58,6 @@
     set bell-style none
     set completion-ignore-case on
     set completion-prefix-display-length 3
-    set show-all-if-ambiguous on
     set show-all-if-unmodified on
     set colored-stats on
     set visible-stats on
