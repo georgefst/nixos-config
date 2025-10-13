@@ -50,6 +50,8 @@
   };
   users.users.gthomas.shell = pkgs.bash;
   environment.systemPackages = with pkgs; [
+    dhall
+    dhall-json
     file
     inotify-tools
     jq
