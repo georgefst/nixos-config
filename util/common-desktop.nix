@@ -172,6 +172,7 @@ in
 
   # global installs
   environment.systemPackages = with pkgs; [
+    dhall-lsp-server
     eyedropper
     nil
     nixpkgs-fmt

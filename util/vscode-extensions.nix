@@ -3,6 +3,8 @@ exts: with exts; [
   arrterian.nix-env-selector
   asuka.insertnumbers
   brunnerh.insert-unicode
+  dhall.dhall-lang
+  dhall.vscode-dhall-lsp-server
   gruntfuggly.todo-tree
   esbenp.prettier-vscode
   haskell.haskell
