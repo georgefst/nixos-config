@@ -51,6 +51,28 @@
     user.name = "George Thomas";
     user.email = "georgefsthomas@gmail.com";
   };
+  environment.etc.inputrc.text = ''
+    set bell-style none
+    set completion-ignore-case on
+    set completion-prefix-display-length 3
+    set show-all-if-ambiguous on
+    set show-all-if-unmodified on
+    set colored-stats on
+    set visible-stats on
+    set mark-symlinked-directories on
+    "\e[1~": beginning-of-line
+    "\e[4~": end-of-line
+    "\e[5~": beginning-of-history
+    "\e[6~": end-of-history
+    "\e[3~": delete-char
+    "\e[2~": quoted-insert
+    "\e[5C": forward-word
+    "\e[5D": backward-word
+    "\e[1;5C": forward-word
+    "\e[1;5D": backward-word
+    "\e[3;5~": kill-word
+    "\C-H": backward-kill-word
+  '';
   users.users.gthomas.shell = pkgs.bash;
   environment.systemPackages = with pkgs; [
     dhall
