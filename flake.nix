@@ -16,32 +16,32 @@
   outputs = inputs@{ self, nixpkgs, nixpkgs-unstable, nixos-hardware, flake-utils, agenix, ... }:
     let
       haskell = flake-utils.lib.eachDefaultSystem (system:
-            (import inputs.nixpkgs-haskell {
-              inherit system;
-              overlays = [
-                inputs.haskellNix.overlay
-                (final: prev: {
-                  hixProject =
-                    final.haskell-nix.hix.project {
-                      src = ./.;
-                      compiler-nix-name = "ghc9122";
-                      index-state = "2025-09-02T00:00:00Z";
-                      evalSystem = "x86_64-linux";
-                    };
-                })
-              ];
-              inherit (inputs.haskellNix) config;
-            }).hixProject.flake { });
+        (import inputs.nixpkgs-haskell {
+          inherit system;
+          overlays = [
+            inputs.haskellNix.overlay
+            (final: prev: {
+              hixProject =
+                final.haskell-nix.hix.project {
+                  src = ./.;
+                  compiler-nix-name = "ghc9122";
+                  index-state = "2025-09-02T00:00:00Z";
+                  evalSystem = "x86_64-linux";
+                };
+            })
+          ];
+          inherit (inputs.haskellNix) config;
+        }).hixProject.flake { });
 
       evdev-share = system: inputs.evdev-share.packages.${system}.default;
 
-        mandelbrot = system: pkgs: { xMin, xMax, yMin, yMax }: pkgs.runCommand "mandelbrot" { } ''
-          ${pkgs.lib.getExe inputs.hs-scripts.packages.${system}.mandelbrot} \
-            --width 3840 --height 3840 \
-            --xMin ${builtins.toString xMin} --xMax ${builtins.toString xMax} \
-            --yMin ${builtins.toString yMin} --yMax ${builtins.toString yMax} \
-            --out $out
-        '';
+      mandelbrot = system: pkgs: { xMin, xMax, yMin, yMax }: pkgs.runCommand "mandelbrot" { } ''
+        ${pkgs.lib.getExe inputs.hs-scripts.packages.${system}.mandelbrot} \
+          --width 3840 --height 3840 \
+          --xMin ${builtins.toString xMin} --xMax ${builtins.toString xMax} \
+          --yMin ${builtins.toString yMin} --yMax ${builtins.toString yMax} \
+          --out $out
+      '';
 
       nixosConfigurations = {
         clark =
