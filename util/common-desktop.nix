@@ -49,6 +49,7 @@ in
         };
         "org/gnome/desktop/wm/keybindings" = {
           always-on-top = [ "<Super>s" ];
+          begin-resize = [ "<Super>r" ];
           close = [ "<Super>space" ];
           switch-input-source = [ "<Alt><Super>space" ];
           switch-input-source-backward = [ "<Shift><Alt><Super>space" ];
