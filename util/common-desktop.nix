@@ -10,6 +10,7 @@ let
     gnomeExtensions.clipboard-indicator
     gnomeExtensions.hide-cursor
     gnomeExtensions.tiling-shell
+    gnomeExtensions.window-calls
   ];
 in
 {
