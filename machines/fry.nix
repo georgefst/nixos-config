@@ -12,14 +12,4 @@
 
   # gets us to 6.14, which provides necessary support for our network card
   boot.kernelPackages = pkgs.linuxPackages_latest;
-
-  # Gather as desktop app, via Chromium
-  environment.systemPackages = with pkgs; [
-    (makeDesktopItem {
-      name = "gather";
-      desktopName = "Gather";
-      exec = "${lib.getExe chromium} --app=https://app.v2.gather.town/app/obsidian-3812d4d3-1a3e-4e30-b603-b31c7b22e94f";
-      icon = "${../media/gather.png}";
-    })
-  ];
 }

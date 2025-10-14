@@ -191,6 +191,13 @@ in
     fourmolu
     ghciwatch
     haskell-language-server
+    (makeDesktopItem {
+      # Gather as desktop app, via Chromium
+      name = "gather";
+      desktopName = "Gather";
+      exec = "${lib.getExe chromium} --app=https://app.v2.gather.town/app/obsidian-3812d4d3-1a3e-4e30-b603-b31c7b22e94f";
+      icon = "${../media/gather.png}";
+    })
     (pkgs.writeShellScriptBin "nix-shell-vscode" # https://github.com/arrterian/nix-env-selector/issues/95
       ''
         if [[ "$*" == *"--run export"* ]]; then
