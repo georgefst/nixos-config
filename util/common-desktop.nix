@@ -180,7 +180,11 @@ in
     nixpkgs-fmt
     popsicle
     signal-desktop
-    spotify
+    (pkgs.spotify.overrideAttrs (old: {
+      # https://community.spotify.com/t5/Desktop-Linux/Wayland-support/td-p/5231525/page/6
+      nativeBuildInputs = old.nativeBuildInputs ++ [ pkgs.makeWrapper ];
+      postInstall = (old.postInstall or "") + "wrapProgram $out/bin/spotify --add-flags --ozone-platform=wayland";
+    }))
     ydotool
     wl-clipboard
     (vscode-with-extensions.override {
