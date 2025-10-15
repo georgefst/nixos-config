@@ -133,6 +133,13 @@ in
               ]
               (grid [ 0.27 ] [ ])
               (grid [ 0.5 ] [ 0.5 ])
+              ([
+                # bottom left tile covers ugly Spotify Wayland CSD titlebar
+                { height = 0.5; width = 0.5; x = 0; y = 0; }
+                { height = 0.5 + 0.018; width = 0.5; x = 0; y = 0.5 - 0.018; }
+                { height = 0.5; width = 0.5; x = 0.5; y = 0; }
+                { height = 0.5; width = 0.5; x = 0.5; y = 0.5; }
+              ])
               (grid [ 0.33333 0.66667 ] [ 0.33333 0.66667 ])
               (grid [ 0.25 0.50 0.75 ] [ 0.25 0.50 0.75 ])
               (grid [ 0.2 0.4 0.6 0.8 ] [ 0.2 0.4 0.6 0.8 ])
@@ -185,6 +192,7 @@ in
       ghc = haskellPackages.ghcWithPackages (import ./haskell-libs.nix);
       spotify = pkgs.spotify.overrideAttrs (old: {
         # https://community.spotify.com/t5/Desktop-Linux/Wayland-support/td-p/5231525/page/6
+        # when fixed, we can also remove `tilingshell` overlapping layout
         nativeBuildInputs = old.nativeBuildInputs ++ [ pkgs.makeWrapper ];
         postInstall = (old.postInstall or "") + "wrapProgram $out/bin/spotify --add-flags --ozone-platform=wayland";
       });
