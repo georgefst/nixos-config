@@ -22,6 +22,7 @@ import Streamly.Data.Fold qualified as SF
 import Streamly.Data.Stream qualified as S
 import System.Directory.OsPath (listDirectory)
 import System.Exit (exitFailure)
+import System.IO
 import System.OsPath ((</>))
 import System.OsPath qualified as OsPath
 import Prelude hiding (log)
@@ -35,6 +36,7 @@ data AppActiveState = AppActiveState
 
 main :: IO ()
 main = do
+    hSetBuffering stdout LineBuffering
     dev <-
         listDirectory evdevDir'
             >>= traverse (newDevice' . (evdevDir' </>)) . filter (maybe False ("event" `isPrefixOf`) . OsPath.decodeUtf)
