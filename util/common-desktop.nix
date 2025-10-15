@@ -77,6 +77,8 @@ in
               "firefox.desktop"
               "code.desktop"
               "spotify.desktop"
+              "geary.desktop"
+              "org.gnome.Calendar.desktop"
               "org.gnome.Console.desktop"
               "org.gnome.Nautilus.desktop"
               "org.gnome.Settings.desktop"
