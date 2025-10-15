@@ -204,6 +204,7 @@ in
       nil
       nixpkgs-fmt
       popsicle
+      rust-analyzer
       signal-desktop
       spotify
       vscode
