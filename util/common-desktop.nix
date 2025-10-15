@@ -195,12 +195,14 @@ in
     in
     [
       dhall-lsp-server
+      discord
       eyedropper
       fourmolu
       gather
       ghc
       ghciwatch
       haskell-language-server
+      libreoffice
       nil
       nixpkgs-fmt
       popsicle

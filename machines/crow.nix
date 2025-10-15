@@ -17,10 +17,6 @@
   '';
 
   services.openssh.enable = true;
-  environment.systemPackages = with pkgs; [
-    discord
-    libreoffice
-  ];
   systemd.services.magic-mouse = {
     script = pkgs.lib.getExe magic-mouse;
     description = "Magic mouse hack";
