@@ -3,6 +3,7 @@ module Main (main) where
 import Control.Monad
 import Control.Monad.Except
 import Control.Monad.Extra (findM)
+import Control.Monad.Reader
 import Control.Monad.State
 import Data.ByteString (ByteString)
 import Data.List
@@ -20,6 +21,7 @@ import Options.Generic
 import Streamly.Data.Fold qualified as SF
 import Streamly.Data.Stream qualified as S
 import System.Directory.OsPath (listDirectory)
+import System.Environment (getArgs)
 import System.Exit (exitFailure)
 import System.IO
 import System.OsPath ((</>))
@@ -35,6 +37,7 @@ data AppActiveState = AppActiveState
 
 main :: IO ()
 main = do
+    verbose <- ("-v" `elem`) <$> getArgs
     hSetBuffering stdout LineBuffering
     dev <-
         listDirectory evdevDir'
@@ -42,8 +45,7 @@ main = do
             >>= findM (fmap (== "Magic Mouse 2") . deviceName)
             >>= maybe (T.putStrLn "device not found" >> exitFailure) pure
     udev <- U.newDevice "magic-mouse-hack" U.defaultDeviceOpts{U.keys = [BtnLeft, BtnMiddle, BtnRight]}
-    (either ((>> exitFailure) . T.putStrLn) pure =<<) $ runExceptT $ do
-        log "starting"
+    (either ((>> exitFailure) . T.putStrLn) pure =<<) $ flip runReaderT verbose $ runExceptT $ do
         xAxisInfo <- maybe (throwError "no abs position") pure =<< liftIO (deviceAbsAxis dev AbsMtPositionX)
         flip evalStateT Nothing $ flip S.fold (readEventBatches dev) $ SF.drainMapM \evs ->
             case dropWhile (\case AbsoluteEvent AbsMtSlot _ -> True; _ -> False) $ map eventData evs of
@@ -51,7 +53,7 @@ main = do
                     log "down"
                     button <- case firstJust (\case AbsoluteEvent AbsMtPositionX (EventValue x) -> Just x; _ -> Nothing) evs' of
                         Nothing -> do
-                            log "no x position found in batch with down event"
+                            warn "no x position found in batch with down event"
                             -- TODO is this a reasonable thing to do? I haven't really worked out why it happens
                             pure BtnLeft
                         Just x -> do
@@ -81,7 +83,7 @@ main = do
                                     log "up"
                                     unless downFiredEarlyDueToDrag $ down udev button
                                     up udev button
-                        Nothing -> log "up event without down"
+                        Nothing -> warn "up event without down"
                 evs' ->
                     get >>= \case
                         Just AppActiveState{..} ->
@@ -101,7 +103,9 @@ main = do
   where
     down udev button = liftIO $ U.writeBatch udev [KeyEvent button Pressed]
     up udev button = liftIO $ U.writeBatch udev [KeyEvent button Released]
-    log s = liftIO $ T.putStrLn s
+    (log, warn) = (f False, f True)
+      where
+        f always s = ask >>= \verbose -> when (verbose || always) $ liftIO $ T.putStrLn s
 
 -- TODO vendored / preview of upstream functionality
 -- this program became a lot easier to write once we considered events in batches
