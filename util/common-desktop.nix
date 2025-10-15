@@ -79,8 +79,8 @@ in
               "spotify.desktop"
               "geary.desktop"
               "org.gnome.Calendar.desktop"
-              "org.gnome.Console.desktop"
               "org.gnome.Nautilus.desktop"
+              "org.gnome.Console.desktop"
               "org.gnome.Settings.desktop"
               "gather.desktop"
             ];
