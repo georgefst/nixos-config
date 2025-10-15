@@ -1,3 +1,4 @@
+{- HLINT ignore "Redundant <&>" -}
 module Main (main) where
 
 import George.Core
