@@ -174,44 +174,53 @@ in
 
   # global installs
   environment.systemPackages = with pkgs;
-    [
-      dhall-lsp-server
-      eyedropper
-      nil
-      nixpkgs-fmt
-      popsicle
-      signal-desktop
-      (pkgs.spotify.overrideAttrs (old: {
-        # https://community.spotify.com/t5/Desktop-Linux/Wayland-support/td-p/5231525/page/6
-        nativeBuildInputs = old.nativeBuildInputs ++ [ pkgs.makeWrapper ];
-        postInstall = (old.postInstall or "") + "wrapProgram $out/bin/spotify --add-flags --ozone-platform=wayland";
-      }))
-      ydotool
-      wl-clipboard
-      (vscode-with-extensions.override {
-        inherit vscode;
-        vscodeExtensions = (import ./vscode-extensions.nix nix-vscode-extensions.vscode-marketplace);
-      })
-      (haskellPackages.ghcWithPackages (import ./haskell-libs.nix))
-      fourmolu
-      ghciwatch
-      haskell-language-server
-      (makeDesktopItem {
+    let
+      gather = makeDesktopItem {
         # Gather as desktop app, via Chromium
         name = "gather";
         desktopName = "Gather";
         exec = "${lib.getExe chromium} --app=https://app.v2.gather.town/app/obsidian-3812d4d3-1a3e-4e30-b603-b31c7b22e94f";
         icon = "${../media/gather.png}";
-      })
-      (pkgs.writeShellScriptBin "nix-shell-vscode" # https://github.com/arrterian/nix-env-selector/issues/95
-        ''
-          if [[ "$*" == *"--run export"* ]]; then
-            nix-shell "$@" | grep -v '^declare -x TMP=' | grep -v '^declare -x TMPDIR='
-          else
-            exec nix-shell "$@"
-          fi
-        '')
-    ] ++ gnomeExts;
+      };
+      ghc = haskellPackages.ghcWithPackages (import ./haskell-libs.nix);
+      spotify = pkgs.spotify.overrideAttrs (old: {
+        # https://community.spotify.com/t5/Desktop-Linux/Wayland-support/td-p/5231525/page/6
+        nativeBuildInputs = old.nativeBuildInputs ++ [ pkgs.makeWrapper ];
+        postInstall = (old.postInstall or "") + "wrapProgram $out/bin/spotify --add-flags --ozone-platform=wayland";
+      });
+      vscode = vscode-with-extensions.override {
+        vscode = pkgs.vscode;
+        vscodeExtensions = (import ./vscode-extensions.nix nix-vscode-extensions.vscode-marketplace);
+      };
+    in
+    [
+      dhall-lsp-server
+      eyedropper
+      fourmolu
+      gather
+      ghc
+      ghciwatch
+      haskell-language-server
+      nil
+      nixpkgs-fmt
+      popsicle
+      signal-desktop
+      spotify
+      vscode
+      wl-clipboard
+      ydotool
+    ]
+    ++ gnomeExts
+    ++ [
+      # https://github.com/arrterian/nix-env-selector/issues/95
+      (pkgs.writeShellScriptBin "nix-shell-vscode" ''
+        if [[ "$*" == *"--run export"* ]]; then
+          nix-shell "$@" | grep -v '^declare -x TMP=' | grep -v '^declare -x TMPDIR='
+        else
+          exec nix-shell "$@"
+        fi
+      '')
+    ];
   fonts.packages = with pkgs; [
     hasklig
   ];
