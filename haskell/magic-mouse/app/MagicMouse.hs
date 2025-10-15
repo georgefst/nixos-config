@@ -11,7 +11,6 @@ import Data.Maybe
 import Data.Text qualified as T
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import Data.Text.IO qualified as T
-import Data.Time (getCurrentTime)
 import Evdev
 import Evdev.Codes (AbsoluteAxis (..), Key (BtnLeft, BtnMiddle, BtnRight), RelativeAxis (..), SyncEvent (SynReport))
 import Evdev.Uinput qualified as U
@@ -102,9 +101,7 @@ main = do
   where
     down udev button = liftIO $ U.writeBatch udev [KeyEvent button Pressed]
     up udev button = liftIO $ U.writeBatch udev [KeyEvent button Released]
-    log s = liftIO do
-        t <- T.pack . show <$> getCurrentTime
-        T.putStrLn $ t <> T.replicate (36 - T.length t) " " <> s
+    log s = liftIO $ T.putStrLn s
 
 -- TODO vendored / preview of upstream functionality
 -- this program became a lot easier to write once we considered events in batches
