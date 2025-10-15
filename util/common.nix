@@ -79,6 +79,7 @@
   environment.systemPackages = with pkgs; [
     dhall
     dhall-json
+    evtest
     file
     imagemagick
     inotify-tools
