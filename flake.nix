@@ -127,6 +127,7 @@
               ./machines/crow.nix
               agenix.nixosModules.default
               { nixpkgs.overlays = nixpkgs.lib.mkBefore [ inputs.nix-vscode-extensions.overlays.default ]; }
+              ({ pkgs, ... }: { environment.systemPackages = [ (pkgs.callPackage inputs.obelisk { }).command ]; })
               { environment.systemPackages = [ inputs.haskellNix.packages.${system}.hix ]; }
               { system.nixos.tags = [ self.shortRev or self.dirtyShortRev ]; }
               nixos-hardware.nixosModules.apple-t2
