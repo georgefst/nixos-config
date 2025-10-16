@@ -193,6 +193,7 @@ in
     [
       dhall-lsp-server
       discord
+      element-desktop
       eyedropper
       fourmolu
       gather
