@@ -19,6 +19,8 @@
   services.openssh.enable = true;
   systemd.services.magic-mouse = {
     script = pkgs.lib.getExe magic-mouse;
+    serviceConfig = { Restart = "always"; RestartSec = 1; };
+    unitConfig = { StartLimitIntervalSec = 0; };
     description = "Magic mouse hack";
     wantedBy = [ "multi-user.target" ];
   };
