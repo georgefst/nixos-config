@@ -25,6 +25,7 @@
     "https://cache.zw3rk.com"
     "https://cache.soopy.moe"
   ];
+  nix.settings.trusted-users = [ "gthomas" ];
   nixpkgs.config.allowUnfree = true;
   programs.bash.promptInit = ''
     green=$(tput setaf 10)
