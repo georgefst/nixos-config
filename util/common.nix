@@ -1,5 +1,5 @@
 # config we want to share across all machines
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 {
   i18n.defaultLocale = "en_GB.UTF-8";
   time.timeZone = "Europe/London";
@@ -20,7 +20,7 @@
     "loony-tools:pr9m4BkM/5/eSTZlkQyRt57Jz7OMBxNSUiMC4FkcNfk="
     "miso-haskell.cachix.org-1:6N2DooyFlZOHUfJtAx1Q09H0P5XXYzoxxQYiwn6W1e8="
   ];
-  nix.settings.substituters = [
+  nix.settings.substituters = lib.imap0 (i: s: "${s}?priority=${toString i}") [
     "https://cache.nixos.org"
     "https://cache.iog.io"
     "https://cache.zw3rk.com"
