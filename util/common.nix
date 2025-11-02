@@ -25,11 +25,11 @@
     "https://cache.iog.io"
     "https://cache.zw3rk.com"
     "https://cache.soopy.moe"
-    "https://digitallyinduced.cachix.org"
     "https://hackworthltd.cachix.org"
+    "https://miso-haskell.cachix.org"
     "https://haskell-language-server.cachix.org"
     "https://haskell-pretty-simple.cachix.org"
-    "https://miso-haskell.cachix.org"
+    "https://digitallyinduced.cachix.org"
   ];
   nixpkgs.config.allowUnfree = true;
   programs.bash.promptInit = ''
