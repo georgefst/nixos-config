@@ -18,12 +18,14 @@
     "fry.george.fst-1:Po60oDPTbWVr6m7IQMFBe9G1Y6y4GE6Z44KJaKAx8cY="
     "haskell-pretty-simple.cachix.org-1:AWHkzPidwcDzWUIUjKcx/PYgud2OBAa9SNUEoIOsATY="
     "cache.soopy.moe-1:0RZVsQeR+GOh0VQI9rvnHz55nVXkFardDqfm4+afjPo="
+    "digitallyinduced.cachix.org-1:y+wQvrnxQ+PdEsCt91rmvv39qRCYzEgGQaldK26hCKE="
   ];
   nix.settings.substituters = [
     "https://cache.nixos.org"
     "https://cache.iog.io"
     "https://cache.zw3rk.com"
     "https://cache.soopy.moe"
+    "https://digitallyinduced.cachix.org"
   ];
   nix.settings.trusted-users = [ "gthomas" ];
   nixpkgs.config.allowUnfree = true;
