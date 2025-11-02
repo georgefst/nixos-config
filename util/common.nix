@@ -31,7 +31,6 @@
     "https://haskell-pretty-simple.cachix.org"
     "https://miso-haskell.cachix.org"
   ];
-  nix.settings.trusted-users = [ "gthomas" ];
   nixpkgs.config.allowUnfree = true;
   programs.bash.promptInit = ''
     green=$(tput setaf 10)
