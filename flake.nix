@@ -80,6 +80,7 @@
                 {
                   hostName = "fry";
                   stateVersion = "25.05";
+                  laptop = true;
                   wallpaper = mandelbrot system pkgs { xMin = -3; xMax = 1.8; yMin = -2.4; yMax = 2.4; };
                 }
                 args)

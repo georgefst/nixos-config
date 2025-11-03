@@ -1,5 +1,6 @@
 { hostName
 , stateVersion # https://nixos.wiki/wiki/FAQ/When_do_I_update_stateVersion
+, laptop ? false
 , wallpaper
 , syncCamera ? false
 , keyboardLayout ? "gb"
@@ -64,6 +65,7 @@ in
           night-light-temperature = mkUint32 3500;
         };
         "org/gnome/settings-daemon/plugins/power" = {
+          power-button-action = if laptop then "suspend" else "hibernate";
           power-saver-profile-on-low-battery = false;
           idle-dim = false;
           sleep-inactive-battery-type = "nothing";
@@ -178,6 +180,7 @@ in
       );
     }
   ];
+  services.logind.extraConfig = "HandleLidSwitch=ignore";
   # forces electron apps to use Wayland - needed for VSCode, at least, to avoid blurry text
   environment.variables.ELECTRON_OZONE_PLATFORM_HINT = "auto";
 
