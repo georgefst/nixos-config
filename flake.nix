@@ -94,6 +94,7 @@
               ({ pkgs, ... }: { environment.systemPackages = [ (pkgs.callPackage inputs.obelisk { }).command ]; })
               { environment.systemPackages = [ inputs.haskellNix.packages.${system}.hix ]; }
               { system.nixos.tags = [ self.shortRev or self.dirtyShortRev ]; }
+              nixos-hardware.nixosModules.framework-amd-ai-300-series
               {
                 # avoid some broken caches
                 options.nix.settings.substituters = nixpkgs.lib.mkOption {
