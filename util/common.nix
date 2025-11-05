@@ -96,4 +96,12 @@
     simple-http-server
     tree
   ];
+  networking.firewall.allowedUDPPorts = [
+    8000
+    8001
+  ];
+  networking.firewall.allowedTCPPorts = [
+    8000
+    8001
+  ];
 }
