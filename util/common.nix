@@ -80,6 +80,7 @@
     "\e[1;5D": backward-word
     "\e[3;5~": kill-word
     "\C-H": backward-kill-word
+    "\ee": shell-expand-line
   '';
   users.users.gthomas.shell = pkgs.bash;
   environment.systemPackages = with pkgs; [
