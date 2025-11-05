@@ -15,6 +15,7 @@ exts: with exts; [
   ms-vsliveshare.vsliveshare
   nwolverson.ide-purescript
   nwolverson.language-purescript
+  rioj7.select-by
   rust-lang.rust-analyzer
   tamasfe.even-better-toml
 ]
