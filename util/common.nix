@@ -89,6 +89,7 @@
     file
     imagemagick
     inotify-tools
+    lazygit
     live-server
     jq
     simple-http-server
