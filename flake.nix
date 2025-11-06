@@ -13,7 +13,15 @@
     hs-scripts.url = "github:georgefst/hs-scripts/nix";
     self.submodules = true;
   };
-  outputs = inputs@{ self, nixpkgs, nixpkgs-unstable, nixos-hardware, flake-utils, agenix, ... }:
+  outputs =
+    inputs@{ self
+    , nixpkgs
+    , nixpkgs-unstable
+    , nixos-hardware
+    , flake-utils
+    , agenix
+    , ...
+    }:
     let
       haskell = flake-utils.lib.eachDefaultSystem (system:
         (import inputs.nixpkgs-haskell {
