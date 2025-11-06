@@ -86,7 +86,20 @@
                 args)
               )
               ./hardware-configuration/fry.nix
-              ./machines/fry.nix
+              ({ pkgs, ... }: {
+                # from Obsidian setup docs
+                networking.hostId = "69619c1a";
+                boot.initrd.luks.devices.root.device = "/dev/disk/by-uuid/55f8d764-0338-4a46-a037-670137a42b63";
+                boot.initrd.luks.devices.root.allowDiscards = true;
+                users.extraGroups.wheel.members = [ "gthomas" ];
+                services.zfs.autoScrub = {
+                  enable = true;
+                  interval = "monthly";
+                };
+
+                # 6.14 adds necessary support for our network card
+                boot.kernelPackages = pkgs.linuxPackages_6_16;
+              })
               ./obsidian
               ./obsidian/users
               agenix.nixosModules.default
@@ -126,7 +139,32 @@
                 args)
               )
               ./hardware-configuration/crow.nix
-              ./machines/crow.nix
+              ({ pkgs, magic-mouse, ... }: {
+                # from official T2 Linux NixOS guide
+                hardware.firmware = [
+                  (pkgs.stdenvNoCC.mkDerivation (final: {
+                    name = "brcm-firmware";
+                    src = ../apple-brcm;
+                    installPhase = ''
+                      mkdir -p $out/lib/firmware/brcm
+                      cp ${final.src}/* "$out/lib/firmware/brcm"
+                    '';
+                  }))
+                ];
+                networking.networkmanager.settings.main.no-auto-default = "t2_ncm";
+                services.udev.extraRules = ''
+                  SUBSYSTEM=="net", ACTION=="add", ATTR{address}=="ac:de:48:00:11:22", NAME="t2_ncm"
+                '';
+
+                services.openssh.enable = true;
+                systemd.services.magic-mouse = {
+                  script = pkgs.lib.getExe magic-mouse;
+                  serviceConfig = { Restart = "always"; RestartSec = 1; };
+                  unitConfig = { StartLimitIntervalSec = 0; };
+                  description = "Magic mouse hack";
+                  wantedBy = [ "multi-user.target" ];
+                };
+              })
               agenix.nixosModules.default
               { nixpkgs.overlays = nixpkgs.lib.mkBefore [ inputs.nix-vscode-extensions.overlays.default ]; }
               ({ pkgs, ... }: { environment.systemPackages = [ (pkgs.callPackage inputs.obelisk { }).command ]; })
