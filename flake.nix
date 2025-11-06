@@ -139,7 +139,7 @@
                 args)
               )
               ./hardware-configuration/crow.nix
-              ({ pkgs, magic-mouse, ... }: {
+              ({ pkgs, ... }: {
                 # from official T2 Linux NixOS guide
                 hardware.firmware = [
                   (pkgs.stdenvNoCC.mkDerivation (final: {
@@ -158,7 +158,7 @@
 
                 services.openssh.enable = true;
                 systemd.services.magic-mouse = {
-                  script = pkgs.lib.getExe magic-mouse;
+                  script = pkgs.lib.getExe haskell.packages.${system}."magic-mouse:exe:magic-mouse";
                   serviceConfig = { Restart = "always"; RestartSec = 1; };
                   unitConfig = { StartLimitIntervalSec = 0; };
                   description = "Magic mouse hack";
@@ -172,7 +172,6 @@
               { system.nixos.tags = [ self.shortRev or self.dirtyShortRev ]; }
               nixos-hardware.nixosModules.apple-t2
             ];
-            specialArgs.magic-mouse = haskell.packages.${system}."magic-mouse:exe:magic-mouse";
           };
       };
 
