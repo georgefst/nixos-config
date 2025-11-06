@@ -178,7 +178,7 @@ in
             ];
         in
         { "org/gnome/settings-daemon/plugins/media-keys".custom-keybindings = map (b: "/${b.name}/") bindings; }
-        // lib.listToAttrs bindings
+          // lib.listToAttrs bindings
       );
     }
   ];
