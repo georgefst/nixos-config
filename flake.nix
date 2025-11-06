@@ -96,7 +96,6 @@
                   enable = true;
                   interval = "monthly";
                 };
-
                 # 6.14 adds necessary support for our network card
                 boot.kernelPackages = pkgs.linuxPackages_6_16;
               })
@@ -155,7 +154,7 @@
                 services.udev.extraRules = ''
                   SUBSYSTEM=="net", ACTION=="add", ATTR{address}=="ac:de:48:00:11:22", NAME="t2_ncm"
                 '';
-
+                # misc
                 services.openssh.enable = true;
                 systemd.services.magic-mouse = {
                   script = pkgs.lib.getExe haskell.packages.${system}."magic-mouse:exe:magic-mouse";
