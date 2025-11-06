@@ -40,7 +40,7 @@
       evdev-share = system: inputs.evdev-share.packages.${system}.default;
 
       mandelbrot = system: pkgs: { xMin, xMax, yMin, yMax }: pkgs.runCommand "mandelbrot" { } ''
-        ${pkgs.lib.getExe inputs.hs-scripts.packages.${system}.mandelbrot} \
+        ${nixpkgs.lib.getExe inputs.hs-scripts.packages.${system}.mandelbrot} \
           --width 3840 --height 3840 \
           --xMin ${builtins.toString xMin} --xMax ${builtins.toString xMax} \
           --yMin ${builtins.toString yMin} --yMax ${builtins.toString yMax} \
@@ -157,7 +157,7 @@
                 # misc
                 services.openssh.enable = true;
                 systemd.services.magic-mouse = {
-                  script = pkgs.lib.getExe haskell.packages.${system}."magic-mouse:exe:magic-mouse";
+                  script = nixpkgs.lib.getExe haskell.packages.${system}."magic-mouse:exe:magic-mouse";
                   serviceConfig = { Restart = "always"; RestartSec = 1; };
                   unitConfig = { StartLimitIntervalSec = 0; };
                   description = "Magic mouse hack";
