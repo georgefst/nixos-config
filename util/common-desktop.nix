@@ -219,6 +219,7 @@ in
       fourmolu
       gather
       ghc
+      ghcid
       ghciwatch
       haskell-language-server
       libreoffice
