@@ -1,6 +1,7 @@
 {
   inputs = {
     nixpkgs.url = "nixpkgs/nixos-25.05";
+    nixpkgs-linux_6_16.url = "github:NixOS/nixpkgs/5a79545d3b917e23c1524763462fa6f9d084c5de";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     nixos-hardware.url = "github:NixOS/nixos-hardware";
     flake-utils.url = "github:numtide/flake-utils";
@@ -79,6 +80,7 @@
         fry =
           let
             system = "x86_64-linux";
+            pkgs-linux_6_16 = import inputs.nixpkgs-linux_6_16 { inherit system; };
           in
           nixpkgs.lib.nixosSystem {
             inherit system;
@@ -104,8 +106,8 @@
                   enable = true;
                   interval = "monthly";
                 };
-                # 6.14 adds necessary support for our network card
-                boot.kernelPackages = pkgs.linuxPackages_6_16;
+                # 6.14 adds necessary support for our network card, but 6.12 is now the only maintained kernel with ZFS
+                boot.kernelPackages = pkgs-linux_6_16.linuxPackages_6_16;
               })
               ./obsidian
               ./obsidian/users
