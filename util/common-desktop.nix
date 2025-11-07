@@ -184,8 +184,8 @@ in
   ];
   services.logind =
     if pkgs.lib.hasAttrByPath [ "services" "logind" "settings" ] options
-    then { settings.Login = { HandleLidSwitch = "ignore"; }; }
-    else { extraConfig = "HandleLidSwitch=ignore"; };
+    then { settings.Login = { HandleLidSwitch = "lock"; }; }
+    else { extraConfig = "HandleLidSwitch=lock"; };
   # forces electron apps to use Wayland - needed for VSCode, at least, to avoid blurry text
   environment.variables.ELECTRON_OZONE_PLATFORM_HINT = "auto";
 
