@@ -153,7 +153,7 @@
                 hardware.firmware = [
                   (pkgs.stdenvNoCC.mkDerivation (final: {
                     name = "brcm-firmware";
-                    src = ../apple-brcm;
+                    src = ./apple-brcm;
                     installPhase = ''
                       mkdir -p $out/lib/firmware/brcm
                       cp ${final.src}/* "$out/lib/firmware/brcm"
