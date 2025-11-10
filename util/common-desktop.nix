@@ -69,6 +69,7 @@ in
         "org/gnome/settings-daemon/plugins/power" = {
           power-button-action = if laptop then "suspend" else "hibernate";
           power-saver-profile-on-low-battery = false;
+          ambient-enabled = false;
           idle-dim = false;
           sleep-inactive-battery-type = "nothing";
           sleep-inactive-ac-type = "nothing";
