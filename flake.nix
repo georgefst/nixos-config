@@ -9,6 +9,7 @@
     haskellNix.url = "github:input-output-hk/haskell.nix";
     nixpkgs-haskell.follows = "haskellNix/nixpkgs-unstable";
     evdev-share.url = "github:georgefst/evdev-share";
+    net-evdev.url = "github:georgefst/net-evdev";
     nix-vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
     obelisk = { url = "github:obsidiansystems/obelisk/develop"; flake = false; };
     hs-scripts.url = "github:georgefst/hs-scripts/nix";
@@ -47,6 +48,7 @@
         }).hixProject.flake { });
 
       evdev-share = system: inputs.evdev-share.packages.${system}.default;
+      net-evdev = system: nixpkgs.lib.getExe inputs.net-evdev.packages.${system}."net-evdev:exe:net-evdev";
 
       mandelbrot = system: pkgs: { xMin, xMax, yMin, yMax }: pkgs.runCommand "mandelbrot" { } ''
         ${nixpkgs.lib.getExe inputs.hs-scripts.packages.${system}.mandelbrot} \
@@ -92,6 +94,9 @@
                   stateVersion = "25.05";
                   laptop = true;
                   wallpaper = mandelbrot system pkgs { xMin = -3; xMax = 1.8; yMin = -2.4; yMax = 2.4; };
+                }
+                {
+                  net-evdev = net-evdev system;
                 }
                 args)
               )
@@ -144,6 +149,9 @@
                   wallpaper = mandelbrot system pkgs { xMin = -1; xMax = -0.5; yMin = 0; yMax = 0.5; };
                   syncCamera = true;
                   keyboardLayout = "gb+mac";
+                }
+                {
+                  net-evdev = net-evdev system;
                 }
                 args)
               )

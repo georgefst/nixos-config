@@ -5,6 +5,7 @@
 , syncCamera ? false
 , keyboardLayout ? "gb"
 }:
+{ net-evdev }:
 { pkgs, options, ... }:
 let
   gnomeExts = with pkgs; [
@@ -305,4 +306,18 @@ in
   system.activationScripts.syncthing-root-link = ''
     if [[ ! -e /sync ]]; then ln -s /home/gthomas/sync/main /sync ; fi
   '';
+
+  # custom services
+  systemd.services.net-evdev = {
+    script = ''
+      ${net-evdev} \
+        --port 56701 \
+        --ip 192.168.178.51 \
+        --switch-key KeyRightalt \
+        --active-cmd '${pkgs.lib.getExe pkgs.brightnessctl} --save set 50%-' \
+        --idle-cmd '${pkgs.lib.getExe pkgs.brightnessctl} --restore' \
+    '';
+    description = "keyboard forwarding for Pi";
+    wantedBy = [ "multi-user.target" ];
+  };
 }
