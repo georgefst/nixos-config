@@ -32,6 +32,7 @@
     "https://digitallyinduced.cachix.org"
   ];
   nixpkgs.config.allowUnfree = true;
+  environment.variables.NIXPKGS_ALLOW_UNFREE = "1";
   programs.bash.promptInit = ''
     green=$(tput setaf 10)
     blue=$(tput setaf 4)
