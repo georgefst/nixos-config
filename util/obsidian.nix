@@ -1,5 +1,9 @@
 # stuff from Obsidian setup docs
 { pkgs, ... }: {
+  imports = [
+    ../obsidian
+    ../obsidian/users
+  ];
   networking.hostId = "69619c1a";
   boot.initrd.luks.devices.root.device = "/dev/disk/by-uuid/55f8d764-0338-4a46-a037-670137a42b63";
   boot.initrd.luks.devices.root.allowDiscards = true;
@@ -8,8 +12,4 @@
     enable = true;
     interval = "monthly";
   };
-  imports = [
-    ../obsidian
-    ../obsidian/users
-  ];
 }
