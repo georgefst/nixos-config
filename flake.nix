@@ -70,8 +70,8 @@
           nixpkgs.lib.nixosSystem {
             inherit system;
             modules = [
-              ./util/common.nix
-              ./util/common-users.nix
+              ./modules/common.nix
+              ./modules/common-users.nix
               "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
               ./machines/clark.nix
               agenix.nixosModules.default
@@ -92,8 +92,8 @@
           nixpkgs.lib.nixosSystem {
             inherit system;
             modules = hardwareModules ++ [
-              ./util/common.nix
-              (import ./util/common-desktop.nix
+              ./modules/common.nix
+              (import ./modules/common-desktop.nix
                 {
                   hostName = "fry";
                   stateVersion = "25.05";
@@ -104,7 +104,7 @@
                   net-evdev = net-evdev system;
                 }
               )
-              ./util/obsidian.nix
+              ./modules/obsidian.nix
               {
                 # 6.14 adds necessary support for our network card, but 6.12 is now the only maintained kernel with ZFS
                 boot.kernelPackages = (import inputs.nixpkgs-linux_6_16 { inherit system; }).linuxPackages_6_16;
@@ -139,9 +139,9 @@
           nixpkgs-unstable.lib.nixosSystem {
             inherit system;
             modules = hardwareModules ++ [
-              ./util/common.nix
-              ./util/common-users.nix
-              (import ./util/common-desktop.nix
+              ./modules/common.nix
+              ./modules/common-users.nix
+              (import ./modules/common-desktop.nix
                 {
                   hostName = "crow";
                   stateVersion = "25.11";
@@ -153,7 +153,7 @@
                   net-evdev = net-evdev system;
                 }
               )
-              ./util/apple-t2.nix
+              ./modules/apple-t2.nix
               {
                 services.openssh.enable = true;
                 systemd.services.magic-mouse = {
