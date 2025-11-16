@@ -70,8 +70,8 @@
           nixpkgs.lib.nixosSystem {
             inherit system;
             modules = [
-              ./modules/common.nix
-              ./modules/common-users.nix
+              ./modules/universal.nix
+              ./modules/users.nix
               "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
               ./machines/clark.nix
               agenix.nixosModules.default
@@ -92,8 +92,8 @@
           nixpkgs.lib.nixosSystem {
             inherit system;
             modules = hardwareModules ++ [
-              ./modules/common.nix
-              (import ./modules/common-desktop.nix
+              ./modules/universal.nix
+              (import ./modules/desktop.nix
                 {
                   hostName = "fry";
                   stateVersion = "25.05";
@@ -139,9 +139,9 @@
           nixpkgs-unstable.lib.nixosSystem {
             inherit system;
             modules = hardwareModules ++ [
-              ./modules/common.nix
-              ./modules/common-users.nix
-              (import ./modules/common-desktop.nix
+              ./modules/universal.nix
+              ./modules/users.nix
+              (import ./modules/desktop.nix
                 {
                   hostName = "crow";
                   stateVersion = "25.11";
