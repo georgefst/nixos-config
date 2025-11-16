@@ -105,8 +105,6 @@
                 # 6.14 adds necessary support for our network card, but 6.12 is now the only maintained kernel with ZFS
                 boot.kernelPackages = (import inputs.nixpkgs-linux_6_16 { inherit system; }).linuxPackages_6_16;
               }
-              ./obsidian
-              ./obsidian/users
               agenix.nixosModules.default
               { nixpkgs.overlays = nixpkgs.lib.mkBefore [ inputs.nix-vscode-extensions.overlays.default ]; }
               ({ pkgs, ... }: { environment.systemPackages = [ (pkgs.callPackage inputs.obelisk { }).command ]; })

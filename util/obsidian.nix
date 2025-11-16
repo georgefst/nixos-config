@@ -8,4 +8,8 @@
     enable = true;
     interval = "monthly";
   };
+  imports = [
+    ../obsidian
+    ../obsidian/users
+  ];
 }
