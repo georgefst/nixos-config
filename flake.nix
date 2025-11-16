@@ -62,7 +62,7 @@
           --out $out
       '';
 
-      nixosConfigurations = {
+      configs.sd = {
         clark =
           let
             system = "aarch64-linux";
@@ -83,13 +83,15 @@
               };
             };
           };
-        fry =
+      };
+      configs.desktop = {
+        fry = hardwareModules:
           let
             system = "x86_64-linux";
           in
           nixpkgs.lib.nixosSystem {
             inherit system;
-            modules = [
+            modules = hardwareModules ++ [
               ./util/common.nix
               (import ./util/common-desktop.nix
                 {
@@ -102,7 +104,6 @@
                   net-evdev = net-evdev system;
                 }
               )
-              ./hardware-configuration/fry.nix
               ./util/obsidian.nix
               {
                 # 6.14 adds necessary support for our network card, but 6.12 is now the only maintained kernel with ZFS
@@ -125,19 +126,19 @@
                 options.nix.settings.substituters = nixpkgs.lib.mkOption {
                   apply = nixpkgs.lib.filter (s: !(
                     s == "s3://obsidian-open-source" ||
-                    nixpkgs.lib.hasPrefix "http://obsidian.webhop.org" s
+                      nixpkgs.lib.hasPrefix "http://obsidian.webhop.org" s
                   ));
                 };
               }
             ];
           };
-        crow =
+        crow = hardwareModules:
           let
             system = "x86_64-linux";
           in
           nixpkgs-unstable.lib.nixosSystem {
             inherit system;
-            modules = [
+            modules = hardwareModules ++ [
               ./util/common.nix
               ./util/common-users.nix
               (import ./util/common-desktop.nix
@@ -152,7 +153,6 @@
                   net-evdev = net-evdev system;
                 }
               )
-              ./hardware-configuration/crow.nix
               ./util/apple-t2.nix
               {
                 services.openssh.enable = true;
@@ -180,10 +180,25 @@
           };
       };
 
+      nixosConfigurations = configs.sd // builtins.mapAttrs
+        (name: system: system [ ./hardware-configuration/${name}.nix ])
+        configs.desktop;
+
     in
     {
       inherit nixosConfigurations;
-      images = builtins.mapAttrs (_: system: system.config.system.build.sdImage) nixosConfigurations;
+      images = builtins.mapAttrs (_: system: system.config.system.build.sdImage) configs.sd // builtins.mapAttrs
+        (name: system: (system [
+          "${nixpkgs}/nixos/modules/installer/cd-dvd/installation-cd-graphical-gnome.nix"
+          ({ pkgs, ... }: {
+            environment.systemPackages = [
+              (pkgs.writeShellScriptBin "install-system" ''
+                sudo nixos-install --system ${nixosConfigurations.${name}.config.system.build.toplevel} "$@"
+              '')
+            ];
+          })
+        ]).config.system.build.isoImage)
+        configs.desktop;
       configs = builtins.mapAttrs (_: system: system.config.system.build.toplevel) nixosConfigurations;
       vms = builtins.mapAttrs (_: system: system.config.system.build.vm) nixosConfigurations;
       inherit haskell;
