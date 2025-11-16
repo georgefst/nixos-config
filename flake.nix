@@ -106,10 +106,16 @@
                 boot.kernelPackages = (import inputs.nixpkgs-linux_6_16 { inherit system; }).linuxPackages_6_16;
               }
               agenix.nixosModules.default
-              { nixpkgs.overlays = nixpkgs.lib.mkBefore [ inputs.nix-vscode-extensions.overlays.default ]; }
-              ({ pkgs, ... }: { environment.systemPackages = [ (pkgs.callPackage inputs.obelisk { }).command ]; })
-              { environment.systemPackages = [ inputs.haskellNix.packages.${system}.hix ]; }
-              { system.nixos.tags = [ self.shortRev or self.dirtyShortRev ]; }
+              ({ pkgs, ... }: {
+                nixpkgs.overlays = nixpkgs.lib.mkBefore [
+                  inputs.nix-vscode-extensions.overlays.default
+                ];
+                environment.systemPackages = [
+                  (pkgs.callPackage inputs.obelisk { }).command
+                  inputs.haskellNix.packages.${system}.hix
+                ];
+                system.nixos.tags = [ self.shortRev or self.dirtyShortRev ];
+              })
               nixos-hardware.nixosModules.framework-amd-ai-300-series
             ];
           };
@@ -148,10 +154,16 @@
                 };
               }
               agenix.nixosModules.default
-              { nixpkgs.overlays = nixpkgs.lib.mkBefore [ inputs.nix-vscode-extensions.overlays.default ]; }
-              ({ pkgs, ... }: { environment.systemPackages = [ (pkgs.callPackage inputs.obelisk { }).command ]; })
-              { environment.systemPackages = [ inputs.haskellNix.packages.${system}.hix ]; }
-              { system.nixos.tags = [ self.shortRev or self.dirtyShortRev ]; }
+              ({ pkgs, ... }: {
+                nixpkgs.overlays = nixpkgs.lib.mkBefore [
+                  inputs.nix-vscode-extensions.overlays.default
+                ];
+                environment.systemPackages = [
+                  (pkgs.callPackage inputs.obelisk { }).command
+                  inputs.haskellNix.packages.${system}.hix
+                ];
+                system.nixos.tags = [ self.shortRev or self.dirtyShortRev ];
+              })
               nixos-hardware.nixosModules.apple-t2
             ];
           };
