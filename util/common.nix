@@ -26,7 +26,7 @@
     "https://cache.zw3rk.com"
     "https://cache.soopy.moe"
     "https://hackworthltd.cachix.org"
-    "https://miso-haskell.cachix.org"
+    "https://haskell-miso-cachix.cachix.org"
     "https://haskell-language-server.cachix.org"
     "https://haskell-pretty-simple.cachix.org"
     "https://digitallyinduced.cachix.org"
