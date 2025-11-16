@@ -12,4 +12,11 @@
     ../obsidian
     ../obsidian/users
   ];
+  options.nix.settings.substituters = pkgs.lib.mkOption {
+    # avoid some broken caches
+    apply = pkgs.lib.filter (s: !(
+      s == "s3://obsidian-open-source" ||
+      pkgs.lib.hasPrefix "http://obsidian.webhop.org" s
+    ));
+  };
 }
