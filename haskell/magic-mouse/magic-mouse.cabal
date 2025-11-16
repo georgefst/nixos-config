@@ -7,7 +7,7 @@ maintainer:         georgefsthomas@gmail.com
 
 executable magic-mouse
     main-is: MagicMouse.hs
-    hs-source-dirs: app
+    hs-source-dirs: .
     default-language: GHC2024
     default-extensions:
         BlockArguments
