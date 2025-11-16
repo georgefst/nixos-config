@@ -25,6 +25,10 @@
     , ...
     }:
     let
+      evalSystem = "x86_64-linux";
+      buildSystem = evalSystem;
+      buildPkgs = import inputs.nixpkgs { system = buildSystem; };
+
       haskell = flake-utils.lib.eachDefaultSystem (system:
         (import inputs.nixpkgs-haskell {
           inherit system;
@@ -36,7 +40,7 @@
                   src = ./.;
                   compiler-nix-name = "ghc9122";
                   index-state = "2025-09-02T00:00:00Z";
-                  evalSystem = "x86_64-linux";
+                  inherit evalSystem;
                   shell.tools = {
                     cabal = "latest";
                     haskell-language-server = "latest";
@@ -50,8 +54,8 @@
       evdev-share = system: inputs.evdev-share.packages.${system}.default;
       net-evdev = system: nixpkgs.lib.getExe inputs.net-evdev.packages.${system}."net-evdev:exe:net-evdev";
 
-      mandelbrot = system: pkgs: { xMin, xMax, yMin, yMax }: pkgs.runCommand "mandelbrot" { } ''
-        ${nixpkgs.lib.getExe inputs.hs-scripts.packages.${system}.mandelbrot} \
+      mandelbrot = { xMin, xMax, yMin, yMax }: buildPkgs.runCommand "mandelbrot" { } ''
+        ${nixpkgs.lib.getExe inputs.hs-scripts.packages.${buildSystem}.mandelbrot} \
           --width 3840 --height 3840 \
           --xMin ${builtins.toString xMin} --xMax ${builtins.toString xMax} \
           --yMin ${builtins.toString yMin} --yMax ${builtins.toString yMax} \
@@ -87,17 +91,16 @@
             inherit system;
             modules = [
               ./util/common.nix
-              (args@{ pkgs, ... }: (import ./util/common-desktop.nix
+              (import ./util/common-desktop.nix
                 {
                   hostName = "fry";
                   stateVersion = "25.05";
                   laptop = true;
-                  wallpaper = mandelbrot system pkgs { xMin = -3; xMax = 1.8; yMin = -2.4; yMax = 2.4; };
+                  wallpaper = mandelbrot { xMin = -3; xMax = 1.8; yMin = -2.4; yMax = 2.4; };
                 }
                 {
                   net-evdev = net-evdev system;
                 }
-                args)
               )
               ./hardware-configuration/fry.nix
               ./util/obsidian.nix
@@ -137,18 +140,17 @@
             modules = [
               ./util/common.nix
               ./util/common-users.nix
-              (args@{ pkgs, ... }: (import ./util/common-desktop.nix
+              (import ./util/common-desktop.nix
                 {
                   hostName = "crow";
                   stateVersion = "25.11";
-                  wallpaper = mandelbrot system pkgs { xMin = -1; xMax = -0.5; yMin = 0; yMax = 0.5; };
+                  wallpaper = mandelbrot { xMin = -1; xMax = -0.5; yMin = 0; yMax = 0.5; };
                   syncCamera = true;
                   keyboardLayout = "gb+mac";
                 }
                 {
                   net-evdev = net-evdev system;
                 }
-                args)
               )
               ./hardware-configuration/crow.nix
               ./util/apple-t2.nix
