@@ -27,7 +27,7 @@
     let
       evalSystem = "x86_64-linux";
       buildSystem = evalSystem;
-      buildPkgs = import inputs.nixpkgs { system = buildSystem; };
+      buildPkgs = import nixpkgs { system = buildSystem; };
 
       haskell = flake-utils.lib.eachDefaultSystem (system:
         (import inputs.nixpkgs-haskell {
