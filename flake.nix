@@ -155,23 +155,8 @@
                 args)
               )
               ./hardware-configuration/crow.nix
-              ({ pkgs, ... }: {
-                # from official T2 Linux NixOS guide
-                hardware.firmware = [
-                  (pkgs.stdenvNoCC.mkDerivation (final: {
-                    name = "brcm-firmware";
-                    src = ./apple-brcm;
-                    installPhase = ''
-                      mkdir -p $out/lib/firmware/brcm
-                      cp ${final.src}/* "$out/lib/firmware/brcm"
-                    '';
-                  }))
-                ];
-                networking.networkmanager.settings.main.no-auto-default = "t2_ncm";
-                services.udev.extraRules = ''
-                  SUBSYSTEM=="net", ACTION=="add", ATTR{address}=="ac:de:48:00:11:22", NAME="t2_ncm"
-                '';
-                # misc
+              ./util/apple-t2.nix
+              {
                 services.openssh.enable = true;
                 systemd.services.magic-mouse = {
                   script = nixpkgs.lib.getExe haskell.packages.${system}."magic-mouse:exe:magic-mouse";
@@ -180,7 +165,7 @@
                   description = "Magic mouse hack";
                   wantedBy = [ "multi-user.target" ];
                 };
-              })
+              }
               agenix.nixosModules.default
               { nixpkgs.overlays = nixpkgs.lib.mkBefore [ inputs.nix-vscode-extensions.overlays.default ]; }
               ({ pkgs, ... }: { environment.systemPackages = [ (pkgs.callPackage inputs.obelisk { }).command ]; })
