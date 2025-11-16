@@ -170,10 +170,11 @@
       };
 
     in
-    haskell // {
+    {
       inherit nixosConfigurations;
       images = builtins.mapAttrs (_: system: system.config.system.build.sdImage) nixosConfigurations;
       configs = builtins.mapAttrs (_: system: system.config.system.build.toplevel) nixosConfigurations;
       vms = builtins.mapAttrs (_: system: system.config.system.build.vm) nixosConfigurations;
+      inherit haskell;
     };
 }
