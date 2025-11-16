@@ -117,6 +117,15 @@
                 system.nixos.tags = [ self.shortRev or self.dirtyShortRev ];
               })
               nixos-hardware.nixosModules.framework-amd-ai-300-series
+              {
+                # avoid some broken caches
+                options.nix.settings.substituters = nixpkgs.lib.mkOption {
+                  apply = nixpkgs.lib.filter (s: !(
+                    s == "s3://obsidian-open-source" ||
+                    nixpkgs.lib.hasPrefix "http://obsidian.webhop.org" s
+                  ));
+                };
+              }
             ];
           };
         crow =
