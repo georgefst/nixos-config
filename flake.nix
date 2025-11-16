@@ -82,7 +82,6 @@
         fry =
           let
             system = "x86_64-linux";
-            pkgs-linux_6_16 = import inputs.nixpkgs-linux_6_16 { inherit system; };
           in
           nixpkgs.lib.nixosSystem {
             inherit system;
@@ -112,7 +111,7 @@
                   interval = "monthly";
                 };
                 # 6.14 adds necessary support for our network card, but 6.12 is now the only maintained kernel with ZFS
-                boot.kernelPackages = pkgs-linux_6_16.linuxPackages_6_16;
+                boot.kernelPackages = (import inputs.nixpkgs-linux_6_16 { inherit system; }).linuxPackages_6_16;
               })
               ./obsidian
               ./obsidian/users
