@@ -14,15 +14,7 @@
     hs-scripts.url = "github:georgefst/hs-scripts/nix";
     self.submodules = true;
   };
-  outputs =
-    inputs@
-    { self
-    , nixpkgs
-    , nixos-hardware
-    , flake-utils
-    , agenix
-    , ...
-    }:
+  outputs = inputs@{ self, nixos-hardware, flake-utils, ... }:
     let
       evalSystem = "x86_64-linux";
       buildSystem = evalSystem;
@@ -85,7 +77,7 @@
           ./modules/users.nix
           "${inputs.nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
           ./machines/clark.nix
-          agenix.nixosModules.default
+          inputs.agenix.nixosModules.default
         ];
       };
       configs.desktop.fry = hardwareModules: lib.nixosSystem rec {
@@ -105,7 +97,7 @@
             # 6.14 adds necessary support for our network card, but 6.12 is now the only maintained kernel with ZFS
             boot.kernelPackages = (import inputs.nixpkgs-linux_6_16 { inherit system; }).linuxPackages_6_16;
           }
-          agenix.nixosModules.default
+          inputs.agenix.nixosModules.default
           nixos-hardware.nixosModules.framework-amd-ai-300-series
           {
             # avoid some broken caches
@@ -143,7 +135,7 @@
               wantedBy = [ "multi-user.target" ];
             };
           })
-          agenix.nixosModules.default
+          inputs.agenix.nixosModules.default
           nixos-hardware.nixosModules.apple-t2
         ];
       };
