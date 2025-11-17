@@ -1,6 +1,8 @@
 # config we want to share across all machines
+{ flake }:
 { pkgs, lib, ... }:
 {
+  system.nixos.tags = [ flake.shortRev or flake.dirtyShortRev ];
   i18n.defaultLocale = "en_GB.UTF-8";
   time.timeZone = "Europe/London";
   nix.settings.experimental-features = [ "nix-command" "flakes" ];

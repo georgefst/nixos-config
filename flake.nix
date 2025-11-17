@@ -83,7 +83,7 @@
             inherit system;
             pkgs = nixpkgs system;
             modules = [
-              ./modules/universal.nix
+              (import ./modules/universal.nix { flake = self; })
               ./modules/users.nix
               "${inputs.nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
               ./machines/clark.nix
@@ -105,7 +105,7 @@
             inherit system;
             pkgs = nixpkgs system;
             modules = hardwareModules ++ [
-              ./modules/universal.nix
+              (import ./modules/universal.nix { flake = self; })
               (import ./modules/desktop.nix
                 {
                   hostName = "fry";
@@ -120,9 +120,6 @@
                 boot.kernelPackages = (import inputs.nixpkgs-linux_6_16 { inherit system; }).linuxPackages_6_16;
               }
               agenix.nixosModules.default
-              ({ pkgs, ... }: {
-                system.nixos.tags = [ self.shortRev or self.dirtyShortRev ];
-              })
               nixos-hardware.nixosModules.framework-amd-ai-300-series
               {
                 # avoid some broken caches
@@ -143,7 +140,7 @@
             inherit system;
             pkgs = nixpkgs system;
             modules = hardwareModules ++ [
-              ./modules/universal.nix
+              (import ./modules/universal.nix { flake = self; })
               ./modules/users.nix
               (import ./modules/desktop.nix
                 {
@@ -166,9 +163,6 @@
                 };
               }
               agenix.nixosModules.default
-              ({ pkgs, ... }: {
-                system.nixos.tags = [ self.shortRev or self.dirtyShortRev ];
-              })
               nixos-hardware.nixosModules.apple-t2
             ];
           };
