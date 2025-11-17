@@ -28,21 +28,21 @@
 
       lib = inputs.nixpkgs.lib;
       nixpkgs = (flake-utils.lib.eachDefaultSystem (system: {
-       packages = import inputs.nixpkgs {
-        inherit system;
-        config = {
-          allowUnfree = true;
+        packages = import inputs.nixpkgs {
+          inherit system;
+          config = {
+            allowUnfree = true;
+          };
+          overlays = [
+            inputs.nix-vscode-extensions.overlays.default
+            (final: prev: {
+              evdev-share = inputs.evdev-share.packages.${system}.default;
+              hix = inputs.haskellNix.packages.${system}.hix;
+              net-evdev = inputs.net-evdev.packages.${system}."net-evdev:exe:net-evdev";
+              obelisk = (final.callPackage inputs.obelisk { }).command;
+            })
+          ];
         };
-        overlays = [
-          inputs.nix-vscode-extensions.overlays.default
-          (final: prev: {
-            evdev-share = inputs.evdev-share.packages.${system}.default;
-            hix = inputs.haskellNix.packages.${system}.hix;
-            net-evdev = inputs.net-evdev.packages.${system}."net-evdev:exe:net-evdev";
-            obelisk = (final.callPackage inputs.obelisk { }).command;
-          })
-        ];
-      };
       })).packages;
       buildPkgs = nixpkgs.${buildSystem};
 
