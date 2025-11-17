@@ -36,8 +36,10 @@
           overlays = [
             inputs.nix-vscode-extensions.overlays.default
             (final: prev: {
+              clark = haskell.packages.${system}."clark:exe:clark";
               evdev-share = inputs.evdev-share.packages.${system}.default;
               hix = inputs.haskellNix.packages.${system}.hix;
+              magic-mouse = haskell.packages.${system}."magic-mouse:exe:magic-mouse";
               mandelbrot = inputs.hs-scripts.packages.${system}.mandelbrot;
               net-evdev = inputs.net-evdev.packages.${system}."net-evdev:exe:net-evdev";
               obelisk = (final.callPackage inputs.obelisk { }).command;
@@ -92,11 +94,6 @@
               ./machines/clark.nix
               agenix.nixosModules.default
             ];
-            specialArgs = {
-              extraPkgs = {
-                clark = haskell.packages.${system}."clark:exe:clark";
-              };
-            };
           };
       };
       configs.desktop = {
@@ -155,16 +152,16 @@
                 }
               )
               ./modules/apple-t2.nix
-              {
+              ({ pkgs, ... }: {
                 services.openssh.enable = true;
                 systemd.services.magic-mouse = {
-                  script = lib.getExe haskell.packages.${system}."magic-mouse:exe:magic-mouse";
+                  script = lib.getExe pkgs.magic-mouse;
                   serviceConfig = { Restart = "always"; RestartSec = 1; };
                   unitConfig = { StartLimitIntervalSec = 0; };
                   description = "Magic mouse hack";
                   wantedBy = [ "multi-user.target" ];
                 };
-              }
+              })
               agenix.nixosModules.default
               nixos-hardware.nixosModules.apple-t2
             ];
