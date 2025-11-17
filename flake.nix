@@ -38,6 +38,7 @@
             (final: prev: {
               evdev-share = inputs.evdev-share.packages.${system}.default;
               hix = inputs.haskellNix.packages.${system}.hix;
+              mandelbrot = inputs.hs-scripts.packages.${system}.mandelbrot;
               net-evdev = inputs.net-evdev.packages.${system}."net-evdev:exe:net-evdev";
               obelisk = (final.callPackage inputs.obelisk { }).command;
             })
@@ -69,7 +70,7 @@
         }).hixProject.flake { });
 
       mandelbrot = { xMin, xMax, yMin, yMax }: buildPkgs.runCommand "mandelbrot" { } ''
-        ${lib.getExe inputs.hs-scripts.packages.${buildSystem}.mandelbrot} \
+        ${lib.getExe buildPkgs.mandelbrot} \
           --width 3840 --height 3840 \
           --xMin ${builtins.toString xMin} --xMax ${builtins.toString xMax} \
           --yMin ${builtins.toString yMin} --yMax ${builtins.toString yMax} \
