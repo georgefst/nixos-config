@@ -36,10 +36,10 @@
           overlays = [
             inputs.nix-vscode-extensions.overlays.default
             (final: prev: {
-              clark = haskell.packages.${system}."clark:exe:clark";
+              clark = haskell.packages."clark:exe:clark";
               evdev-share = inputs.evdev-share.packages.${system}.default;
               hix = inputs.haskellNix.packages.${system}.hix;
-              magic-mouse = haskell.packages.${system}."magic-mouse:exe:magic-mouse";
+              magic-mouse = haskell.packages."magic-mouse:exe:magic-mouse";
               mandelbrot = inputs.hs-scripts.packages.${system}.mandelbrot;
               net-evdev = inputs.net-evdev.packages.${system}."net-evdev:exe:net-evdev";
               obelisk = (final.callPackage inputs.obelisk { }).command;
@@ -49,7 +49,7 @@
       })).packages;
       buildPkgs = nixpkgs.${buildSystem};
 
-      haskell = flake-utils.lib.eachDefaultSystem (system:
+      haskell = system:
         (import inputs.nixpkgs-haskell {
           inherit system;
           overlays = [
@@ -69,7 +69,7 @@
             })
           ];
           inherit (inputs.haskellNix) config;
-        }).hixProject.flake { });
+        }).hixProject.flake { };
 
       mandelbrot = { xMin, xMax, yMin, yMax }: buildPkgs.runCommand "mandelbrot" { } ''
         ${lib.getExe buildPkgs.mandelbrot} \
