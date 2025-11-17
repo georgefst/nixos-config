@@ -47,7 +47,7 @@
                   };
               })
             ];
-            inherit (inputs.haskellNix) config;
+            config = inputs.haskellNix.config;
           }).hixProject.flake { };
         packages = import inputs.nixpkgs {
           inherit system;
