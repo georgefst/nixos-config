@@ -27,7 +27,8 @@
       buildSystem = evalSystem;
 
       lib = inputs.nixpkgs.lib;
-      nixpkgs = system: import inputs.nixpkgs {
+      nixpkgs = (flake-utils.lib.eachDefaultSystem (system: {
+       packages = import inputs.nixpkgs {
         inherit system;
         config = {
           allowUnfree = true;
@@ -42,7 +43,8 @@
           })
         ];
       };
-      buildPkgs = nixpkgs buildSystem;
+      })).packages;
+      buildPkgs = nixpkgs.${buildSystem};
 
       haskell = flake-utils.lib.eachDefaultSystem (system:
         (import inputs.nixpkgs-haskell {
@@ -81,7 +83,7 @@
           in
           lib.nixosSystem {
             inherit system;
-            pkgs = nixpkgs system;
+            pkgs = nixpkgs.${system};
             modules = [
               (import ./modules/universal.nix { flake = self; })
               ./modules/users.nix
@@ -103,7 +105,7 @@
           in
           lib.nixosSystem {
             inherit system;
-            pkgs = nixpkgs system;
+            pkgs = nixpkgs.${system};
             modules = hardwareModules ++ [
               (import ./modules/universal.nix { flake = self; })
               (import ./modules/desktop.nix
@@ -138,7 +140,7 @@
           in
           inputs.nixpkgs.lib.nixosSystem {
             inherit system;
-            pkgs = nixpkgs system;
+            pkgs = nixpkgs.${system};
             modules = hardwareModules ++ [
               (import ./modules/universal.nix { flake = self; })
               ./modules/users.nix
