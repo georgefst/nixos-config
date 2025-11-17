@@ -80,11 +80,8 @@
       '';
 
       configs.sd.clark =
-        let
+        lib.nixosSystem rec {
           system = "aarch64-linux";
-        in
-        lib.nixosSystem {
-          inherit system;
           pkgs = nixpkgs.${system};
           modules = [
             (import ./modules/universal.nix { flake = self; })
@@ -95,11 +92,8 @@
           ];
         };
       configs.desktop.fry = hardwareModules:
-        let
+        lib.nixosSystem rec {
           system = "x86_64-linux";
-        in
-        lib.nixosSystem {
-          inherit system;
           pkgs = nixpkgs.${system};
           modules = hardwareModules ++ [
             (import ./modules/universal.nix { flake = self; })
@@ -130,11 +124,8 @@
           ];
         };
       configs.desktop.crow = hardwareModules:
-        let
+        inputs.nixpkgs.lib.nixosSystem rec {
           system = "x86_64-linux";
-        in
-        inputs.nixpkgs.lib.nixosSystem {
-          inherit system;
           pkgs = nixpkgs.${system};
           modules = hardwareModules ++ [
             (import ./modules/universal.nix { flake = self; })
