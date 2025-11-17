@@ -27,7 +27,28 @@
       buildSystem = evalSystem;
 
       lib = inputs.nixpkgs.lib;
-      nixpkgs = (flake-utils.lib.eachDefaultSystem (system: {
+      nixpkgs = (flake-utils.lib.eachDefaultSystem (system: rec {
+        haskell =
+          (import inputs.nixpkgs-haskell {
+            inherit system;
+            overlays = [
+              inputs.haskellNix.overlay
+              (final: prev: {
+                hixProject =
+                  final.haskell-nix.hix.project {
+                    src = ./.;
+                    compiler-nix-name = "ghc9122";
+                    index-state = "2025-09-02T00:00:00Z";
+                    inherit evalSystem;
+                    shell.tools = {
+                      cabal = "latest";
+                      haskell-language-server = "latest";
+                    };
+                  };
+              })
+            ];
+            inherit (inputs.haskellNix) config;
+          }).hixProject.flake { };
         packages = import inputs.nixpkgs {
           inherit system;
           config = {
@@ -48,28 +69,6 @@
         };
       })).packages;
       buildPkgs = nixpkgs.${buildSystem};
-
-      haskell = system:
-        (import inputs.nixpkgs-haskell {
-          inherit system;
-          overlays = [
-            inputs.haskellNix.overlay
-            (final: prev: {
-              hixProject =
-                final.haskell-nix.hix.project {
-                  src = ./.;
-                  compiler-nix-name = "ghc9122";
-                  index-state = "2025-09-02T00:00:00Z";
-                  inherit evalSystem;
-                  shell.tools = {
-                    cabal = "latest";
-                    haskell-language-server = "latest";
-                  };
-                };
-            })
-          ];
-          inherit (inputs.haskellNix) config;
-        }).hixProject.flake { };
 
       mandelbrot = { xMin, xMax, yMin, yMax }: buildPkgs.runCommand "mandelbrot" { } ''
         ${lib.getExe buildPkgs.mandelbrot} \
