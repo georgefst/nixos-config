@@ -39,8 +39,7 @@
     blue=$(tput setaf 4)
     bold=$(tput bold)
     reset=$(tput sgr0)
-    vscode=$([[ "$TERM_PROGRAM" == "vscode" ]] && echo 1 || echo 0)
-    dots=$(printf '%*s' $((SHLVL - 1 - $vscode)) | tr ' ' '.')
+    dots=$(printf '%*s' $((SHLVL - 1)) | tr ' ' '.')
     PS1="\[$bold\]\[$blue\]\H\[$reset\]\[$bold\]:\[$green\]\w\[$reset\]\[$bold\]\$dots\$ \[$reset\]"
   '';
   programs.bash.interactiveShellInit = ''
