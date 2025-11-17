@@ -31,7 +31,6 @@
     "https://haskell-pretty-simple.cachix.org"
     "https://digitallyinduced.cachix.org"
   ];
-  nixpkgs.config.allowUnfree = true;
   environment.variables.NIXPKGS_ALLOW_UNFREE = "1";
   programs.bash.promptInit = ''
     green=$(tput setaf 10)

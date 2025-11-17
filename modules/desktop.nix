@@ -5,7 +5,6 @@
 , syncCamera ? false
 , keyboardLayout ? "gb"
 }:
-{ net-evdev }:
 { pkgs, options, ... }:
 let
   gnomeExts = with pkgs; [
@@ -224,9 +223,11 @@ in
       ghcid
       ghciwatch
       haskell-language-server
+      hix
       libreoffice
       nil
       nixpkgs-fmt
+      obelisk
       popsicle
       rust-analyzer
       signal-desktop
@@ -310,7 +311,7 @@ in
   # custom services
   systemd.services.net-evdev = {
     script = ''
-      ${net-evdev} \
+      ${pkgs.lib.getExe pkgs.net-evdev} \
         --port 56701 \
         --ip 192.168.178.51 \
         --switch-key KeyRightalt \
