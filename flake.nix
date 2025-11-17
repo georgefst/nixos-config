@@ -1,8 +1,7 @@
 {
   inputs = {
-    nixpkgs.url = "nixpkgs/nixos-25.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/ae814fd3904b621d8ab97418f1d0f2eb0d3716f4";
     nixpkgs-linux_6_16.url = "github:NixOS/nixpkgs/5a79545d3b917e23c1524763462fa6f9d084c5de";
-    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     nixos-hardware.url = "github:NixOS/nixos-hardware";
     flake-utils.url = "github:numtide/flake-utils";
     agenix.url = "github:ryantm/agenix";
@@ -18,7 +17,6 @@
   outputs =
     inputs@{ self
     , nixpkgs
-    , nixpkgs-unstable
     , nixos-hardware
     , flake-utils
     , agenix
@@ -138,7 +136,7 @@
           let
             system = "x86_64-linux";
           in
-          nixpkgs-unstable.lib.nixosSystem {
+          nixpkgs.lib.nixosSystem {
             inherit system;
             modules = hardwareModules ++ [
               ./modules/universal.nix
