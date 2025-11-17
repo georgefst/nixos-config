@@ -79,81 +79,78 @@
           --out $out
       '';
 
-      configs.sd.clark =
-        lib.nixosSystem rec {
-          system = "aarch64-linux";
-          pkgs = nixpkgs.${system};
-          modules = [
-            (import ./modules/universal.nix { flake = self; })
-            ./modules/users.nix
-            "${inputs.nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
-            ./machines/clark.nix
-            agenix.nixosModules.default
-          ];
-        };
-      configs.desktop.fry = hardwareModules:
-        lib.nixosSystem rec {
-          system = "x86_64-linux";
-          pkgs = nixpkgs.${system};
-          modules = hardwareModules ++ [
-            (import ./modules/universal.nix { flake = self; })
-            (import ./modules/desktop.nix
-              {
-                hostName = "fry";
-                stateVersion = "25.05";
-                laptop = true;
-                wallpaper = mandelbrot { xMin = -3; xMax = 1.8; yMin = -2.4; yMax = 2.4; };
-              }
-            )
-            ./modules/obsidian.nix
+      configs.sd.clark = lib.nixosSystem rec {
+        system = "aarch64-linux";
+        pkgs = nixpkgs.${system};
+        modules = [
+          (import ./modules/universal.nix { flake = self; })
+          ./modules/users.nix
+          "${inputs.nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
+          ./machines/clark.nix
+          agenix.nixosModules.default
+        ];
+      };
+      configs.desktop.fry = hardwareModules: lib.nixosSystem rec {
+        system = "x86_64-linux";
+        pkgs = nixpkgs.${system};
+        modules = hardwareModules ++ [
+          (import ./modules/universal.nix { flake = self; })
+          (import ./modules/desktop.nix
             {
-              # 6.14 adds necessary support for our network card, but 6.12 is now the only maintained kernel with ZFS
-              boot.kernelPackages = (import inputs.nixpkgs-linux_6_16 { inherit system; }).linuxPackages_6_16;
+              hostName = "fry";
+              stateVersion = "25.05";
+              laptop = true;
+              wallpaper = mandelbrot { xMin = -3; xMax = 1.8; yMin = -2.4; yMax = 2.4; };
             }
-            agenix.nixosModules.default
-            nixos-hardware.nixosModules.framework-amd-ai-300-series
+          )
+          ./modules/obsidian.nix
+          {
+            # 6.14 adds necessary support for our network card, but 6.12 is now the only maintained kernel with ZFS
+            boot.kernelPackages = (import inputs.nixpkgs-linux_6_16 { inherit system; }).linuxPackages_6_16;
+          }
+          agenix.nixosModules.default
+          nixos-hardware.nixosModules.framework-amd-ai-300-series
+          {
+            # avoid some broken caches
+            options.nix.settings.substituters = lib.mkOption {
+              apply = lib.filter (s: !(
+                s == "s3://obsidian-open-source" ||
+                  lib.hasPrefix "http://obsidian.webhop.org" s
+              ));
+            };
+          }
+        ];
+      };
+      configs.desktop.crow = hardwareModules: inputs.nixpkgs.lib.nixosSystem rec {
+        system = "x86_64-linux";
+        pkgs = nixpkgs.${system};
+        modules = hardwareModules ++ [
+          (import ./modules/universal.nix { flake = self; })
+          ./modules/users.nix
+          (import ./modules/desktop.nix
             {
-              # avoid some broken caches
-              options.nix.settings.substituters = lib.mkOption {
-                apply = lib.filter (s: !(
-                  s == "s3://obsidian-open-source" ||
-                    lib.hasPrefix "http://obsidian.webhop.org" s
-                ));
-              };
+              hostName = "crow";
+              stateVersion = "25.11";
+              wallpaper = mandelbrot { xMin = -1; xMax = -0.5; yMin = 0; yMax = 0.5; };
+              syncCamera = true;
+              keyboardLayout = "gb+mac";
             }
-          ];
-        };
-      configs.desktop.crow = hardwareModules:
-        inputs.nixpkgs.lib.nixosSystem rec {
-          system = "x86_64-linux";
-          pkgs = nixpkgs.${system};
-          modules = hardwareModules ++ [
-            (import ./modules/universal.nix { flake = self; })
-            ./modules/users.nix
-            (import ./modules/desktop.nix
-              {
-                hostName = "crow";
-                stateVersion = "25.11";
-                wallpaper = mandelbrot { xMin = -1; xMax = -0.5; yMin = 0; yMax = 0.5; };
-                syncCamera = true;
-                keyboardLayout = "gb+mac";
-              }
-            )
-            ./modules/apple-t2.nix
-            ({ pkgs, ... }: {
-              services.openssh.enable = true;
-              systemd.services.magic-mouse = {
-                script = lib.getExe pkgs.magic-mouse;
-                serviceConfig = { Restart = "always"; RestartSec = 1; };
-                unitConfig = { StartLimitIntervalSec = 0; };
-                description = "Magic mouse hack";
-                wantedBy = [ "multi-user.target" ];
-              };
-            })
-            agenix.nixosModules.default
-            nixos-hardware.nixosModules.apple-t2
-          ];
-        };
+          )
+          ./modules/apple-t2.nix
+          ({ pkgs, ... }: {
+            services.openssh.enable = true;
+            systemd.services.magic-mouse = {
+              script = lib.getExe pkgs.magic-mouse;
+              serviceConfig = { Restart = "always"; RestartSec = 1; };
+              unitConfig = { StartLimitIntervalSec = 0; };
+              description = "Magic mouse hack";
+              wantedBy = [ "multi-user.target" ];
+            };
+          })
+          agenix.nixosModules.default
+          nixos-hardware.nixosModules.apple-t2
+        ];
+      };
 
       nixosConfigurations = configs.sd // builtins.mapAttrs
         (name: system: system [ ./hardware-configuration/${name}.nix ])
