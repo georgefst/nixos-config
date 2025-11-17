@@ -20,7 +20,7 @@
       buildSystem = evalSystem;
 
       lib = inputs.nixpkgs.lib;
-      nixpkgs = (flake-utils.lib.eachDefaultSystem (system: rec {
+      packages = (flake-utils.lib.eachDefaultSystem (system: rec {
         haskell = (import inputs.nixpkgs-haskell {
           inherit system;
           overlays = [
@@ -61,8 +61,8 @@
         };
       })).packages;
 
-      mandelbrot = { xMin, xMax, yMin, yMax }: nixpkgs.${buildSystem}.runCommand "mandelbrot" { } ''
-        ${lib.getExe nixpkgs.${buildSystem}.mandelbrot} \
+      mandelbrot = { xMin, xMax, yMin, yMax }: packages.${buildSystem}.runCommand "mandelbrot" { } ''
+        ${lib.getExe packages.${buildSystem}.mandelbrot} \
           --width 3840 --height 3840 \
           --xMin ${builtins.toString xMin} --xMax ${builtins.toString xMax} \
           --yMin ${builtins.toString yMin} --yMax ${builtins.toString yMax} \
@@ -71,7 +71,7 @@
 
       configs.sd.clark = lib.nixosSystem rec {
         system = "aarch64-linux";
-        pkgs = nixpkgs.${system};
+        pkgs = packages.${system};
         modules = [
           (import ./modules/universal.nix { flake = self; })
           ./modules/users.nix
@@ -82,7 +82,7 @@
       };
       configs.desktop.fry = hardwareModules: lib.nixosSystem rec {
         system = "x86_64-linux";
-        pkgs = nixpkgs.${system};
+        pkgs = packages.${system};
         modules = hardwareModules ++ [
           (import ./modules/universal.nix { flake = self; })
           (import ./modules/desktop.nix {
@@ -112,7 +112,7 @@
       };
       configs.desktop.crow = hardwareModules: inputs.nixpkgs.lib.nixosSystem rec {
         system = "x86_64-linux";
-        pkgs = nixpkgs.${system};
+        pkgs = packages.${system};
         modules = hardwareModules ++ [
           (import ./modules/universal.nix { flake = self; })
           ./modules/users.nix
@@ -161,6 +161,6 @@
         configs.desktop;
       configs = builtins.mapAttrs (_: system: system.config.system.build.toplevel) nixosConfigurations;
       vms = builtins.mapAttrs (_: system: system.config.system.build.vm) nixosConfigurations;
-      inherit nixpkgs;
+      inherit packages;
     };
 }
