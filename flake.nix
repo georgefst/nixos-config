@@ -5,8 +5,8 @@
     nixos-hardware.url = "github:NixOS/nixos-hardware";
     flake-utils.url = "github:numtide/flake-utils";
     agenix.url = "github:ryantm/agenix";
-    haskellNix.url = "github:input-output-hk/haskell.nix";
-    nixpkgs-haskell.follows = "haskellNix/nixpkgs-unstable";
+    haskell-nix.url = "github:input-output-hk/haskell.nix";
+    nixpkgs-haskell.follows = "haskell-nix/nixpkgs-unstable";
     evdev-share.url = "github:georgefst/evdev-share";
     net-evdev.url = "github:georgefst/net-evdev";
     nix-vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
@@ -24,7 +24,7 @@
         haskell = (import inputs.nixpkgs-haskell {
           inherit system;
           overlays = [
-            inputs.haskellNix.overlay
+            inputs.haskell-nix.overlay
             (final: prev: {
               hixProject =
                 final.haskell-nix.hix.project {
@@ -39,7 +39,7 @@
                 };
             })
           ];
-          config = inputs.haskellNix.config;
+          config = inputs.haskell-nix.config;
         }).hixProject.flake { };
         packages = import inputs.nixpkgs {
           inherit system;
@@ -51,7 +51,7 @@
             (final: prev: {
               clark = haskell.packages."clark:exe:clark";
               evdev-share = inputs.evdev-share.packages.${system}.default;
-              hix = inputs.haskellNix.packages.${system}.hix;
+              hix = inputs.haskell-nix.packages.${system}.hix;
               magic-mouse = haskell.packages."magic-mouse:exe:magic-mouse";
               mandelbrot = inputs.hs-scripts.packages.${system}.mandelbrot;
               net-evdev = inputs.net-evdev.packages.${system}."net-evdev:exe:net-evdev";
