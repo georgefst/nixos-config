@@ -79,8 +79,7 @@
           --out $out
       '';
 
-      configs.sd = {
-        clark =
+      configs.sd.clark =
           let
             system = "aarch64-linux";
           in
@@ -94,10 +93,8 @@
               ./machines/clark.nix
               agenix.nixosModules.default
             ];
-          };
       };
-      configs.desktop = {
-        fry = hardwareModules:
+      configs.desktop.fry = hardwareModules:
           let
             system = "x86_64-linux";
           in
@@ -132,7 +129,7 @@
               }
             ];
           };
-        crow = hardwareModules:
+      configs.desktop.crow = hardwareModules:
           let
             system = "x86_64-linux";
           in
@@ -165,7 +162,6 @@
               agenix.nixosModules.default
               nixos-hardware.nixosModules.apple-t2
             ];
-          };
       };
 
       nixosConfigurations = configs.sd // builtins.mapAttrs
