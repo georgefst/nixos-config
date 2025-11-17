@@ -28,27 +28,26 @@
 
       lib = inputs.nixpkgs.lib;
       nixpkgs = (flake-utils.lib.eachDefaultSystem (system: rec {
-        haskell =
-          (import inputs.nixpkgs-haskell {
-            inherit system;
-            overlays = [
-              inputs.haskellNix.overlay
-              (final: prev: {
-                hixProject =
-                  final.haskell-nix.hix.project {
-                    src = ./.;
-                    compiler-nix-name = "ghc9122";
-                    index-state = "2025-09-02T00:00:00Z";
-                    inherit evalSystem;
-                    shell.tools = {
-                      cabal = "latest";
-                      haskell-language-server = "latest";
-                    };
+        haskell = (import inputs.nixpkgs-haskell {
+          inherit system;
+          overlays = [
+            inputs.haskellNix.overlay
+            (final: prev: {
+              hixProject =
+                final.haskell-nix.hix.project {
+                  src = ./.;
+                  compiler-nix-name = "ghc9122";
+                  index-state = "2025-09-02T00:00:00Z";
+                  inherit evalSystem;
+                  shell.tools = {
+                    cabal = "latest";
+                    haskell-language-server = "latest";
                   };
-              })
-            ];
-            config = inputs.haskellNix.config;
-          }).hixProject.flake { };
+                };
+            })
+          ];
+          config = inputs.haskellNix.config;
+        }).hixProject.flake { };
         packages = import inputs.nixpkgs {
           inherit system;
           config = {
