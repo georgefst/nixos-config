@@ -17,5 +17,6 @@ exts: with exts; [
   nwolverson.language-purescript
   rioj7.select-by
   rust-lang.rust-analyzer
+  saoudrizwan.claude-dev
   tamasfe.even-better-toml
 ]
