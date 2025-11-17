@@ -13,7 +13,6 @@ let
     gnomeExtensions.tiling-shell
     gnomeExtensions.window-calls
   ];
-  xserverGnomeFix = pkgs.lib.hasAttrByPath [ "services" "desktopManager" "gnome" ] options;
 in
 {
   networking.hostName = hostName;
@@ -24,13 +23,8 @@ in
   boot.loader.efi.canTouchEfiVariables = true;
 
   # desktop
-  services.xserver = if xserverGnomeFix then { } else {
-    enable = true;
-    displayManager.gdm.enable = true;
-    desktopManager.gnome.enable = true;
-  };
-  services.displayManager = if xserverGnomeFix then { gdm.enable = true; } else { };
-  services.desktopManager = if xserverGnomeFix then { gnome.enable = true; } else { };
+  services.displayManager.gdm.enable = true;
+  services.desktopManager.gnome.enable = true;
   programs.dconf.profiles.user.databases = [
     {
       lockAll = true;
