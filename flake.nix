@@ -15,7 +15,8 @@
     self.submodules = true;
   };
   outputs =
-    inputs@{ self
+    inputs@
+    { self
     , nixpkgs
     , nixos-hardware
     , flake-utils
