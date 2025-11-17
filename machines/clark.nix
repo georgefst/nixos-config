@@ -183,7 +183,7 @@ in
         evdev-share-server -p ${builtins.toString evdev-share-port} -n evdev-share
       '';
       description = "evdev share server";
-      path = [ extraPkgs.evdev-share ];
+      path = [ pkgs.evdev-share ];
       wantedBy = startup;
     };
     http-watch = service-with-crash-notification {

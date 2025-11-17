@@ -23,11 +23,26 @@
     , ...
     }:
     let
-      lib = nixpkgs.lib;
-
       evalSystem = "x86_64-linux";
       buildSystem = evalSystem;
-      buildPkgs = import nixpkgs { system = buildSystem; };
+
+      lib = inputs.nixpkgs.lib;
+      nixpkgs = system: import inputs.nixpkgs {
+        inherit system;
+        config = {
+          allowUnfree = true;
+        };
+        overlays = [
+          inputs.nix-vscode-extensions.overlays.default
+          (final: prev: {
+            evdev-share = inputs.evdev-share.packages.${system}.default;
+            hix = inputs.haskellNix.packages.${system}.hix;
+            net-evdev = inputs.net-evdev.packages.${system}."net-evdev:exe:net-evdev";
+            obelisk = (final.callPackage inputs.obelisk { }).command;
+          })
+        ];
+      };
+      buildPkgs = nixpkgs buildSystem;
 
       haskell = flake-utils.lib.eachDefaultSystem (system:
         (import inputs.nixpkgs-haskell {
@@ -51,9 +66,6 @@
           inherit (inputs.haskellNix) config;
         }).hixProject.flake { });
 
-      evdev-share = system: inputs.evdev-share.packages.${system}.default;
-      net-evdev = system: lib.getExe inputs.net-evdev.packages.${system}."net-evdev:exe:net-evdev";
-
       mandelbrot = { xMin, xMax, yMin, yMax }: buildPkgs.runCommand "mandelbrot" { } ''
         ${lib.getExe inputs.hs-scripts.packages.${buildSystem}.mandelbrot} \
           --width 3840 --height 3840 \
@@ -69,17 +81,17 @@
           in
           lib.nixosSystem {
             inherit system;
+            pkgs = nixpkgs system;
             modules = [
               ./modules/universal.nix
               ./modules/users.nix
-              "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
+              "${inputs.nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
               ./machines/clark.nix
               agenix.nixosModules.default
             ];
             specialArgs = {
               extraPkgs = {
                 clark = haskell.packages.${system}."clark:exe:clark";
-                evdev-share = evdev-share system;
               };
             };
           };
@@ -91,6 +103,7 @@
           in
           lib.nixosSystem {
             inherit system;
+            pkgs = nixpkgs system;
             modules = hardwareModules ++ [
               ./modules/universal.nix
               (import ./modules/desktop.nix
@@ -100,9 +113,6 @@
                   laptop = true;
                   wallpaper = mandelbrot { xMin = -3; xMax = 1.8; yMin = -2.4; yMax = 2.4; };
                 }
-                {
-                  net-evdev = net-evdev system;
-                }
               )
               ./modules/obsidian.nix
               {
@@ -111,13 +121,6 @@
               }
               agenix.nixosModules.default
               ({ pkgs, ... }: {
-                nixpkgs.overlays = lib.mkBefore [
-                  inputs.nix-vscode-extensions.overlays.default
-                ];
-                environment.systemPackages = [
-                  (pkgs.callPackage inputs.obelisk { }).command
-                  inputs.haskellNix.packages.${system}.hix
-                ];
                 system.nixos.tags = [ self.shortRev or self.dirtyShortRev ];
               })
               nixos-hardware.nixosModules.framework-amd-ai-300-series
@@ -136,8 +139,9 @@
           let
             system = "x86_64-linux";
           in
-          nixpkgs.lib.nixosSystem {
+          inputs.nixpkgs.lib.nixosSystem {
             inherit system;
+            pkgs = nixpkgs system;
             modules = hardwareModules ++ [
               ./modules/universal.nix
               ./modules/users.nix
@@ -148,9 +152,6 @@
                   wallpaper = mandelbrot { xMin = -1; xMax = -0.5; yMin = 0; yMax = 0.5; };
                   syncCamera = true;
                   keyboardLayout = "gb+mac";
-                }
-                {
-                  net-evdev = net-evdev system;
                 }
               )
               ./modules/apple-t2.nix
@@ -166,13 +167,6 @@
               }
               agenix.nixosModules.default
               ({ pkgs, ... }: {
-                nixpkgs.overlays = lib.mkBefore [
-                  inputs.nix-vscode-extensions.overlays.default
-                ];
-                environment.systemPackages = [
-                  (pkgs.callPackage inputs.obelisk { }).command
-                  inputs.haskellNix.packages.${system}.hix
-                ];
                 system.nixos.tags = [ self.shortRev or self.dirtyShortRev ];
               })
               nixos-hardware.nixosModules.apple-t2
@@ -189,7 +183,7 @@
       inherit nixosConfigurations;
       images = builtins.mapAttrs (_: system: system.config.system.build.sdImage) configs.sd // builtins.mapAttrs
         (name: system: (system [
-          "${nixpkgs}/nixos/modules/installer/cd-dvd/installation-cd-graphical-gnome.nix"
+          "${inputs.nixpkgs}/nixos/modules/installer/cd-dvd/installation-cd-graphical-gnome.nix"
           ({ pkgs, ... }: {
             environment.systemPackages = [
               (pkgs.writeShellScriptBin "install-system" ''
