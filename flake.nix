@@ -68,10 +68,9 @@
           ];
         };
       })).packages;
-      buildPkgs = nixpkgs.${buildSystem};
 
-      mandelbrot = { xMin, xMax, yMin, yMax }: buildPkgs.runCommand "mandelbrot" { } ''
-        ${lib.getExe buildPkgs.mandelbrot} \
+      mandelbrot = { xMin, xMax, yMin, yMax }: nixpkgs.${buildSystem}.runCommand "mandelbrot" { } ''
+        ${lib.getExe nixpkgs.${buildSystem}.mandelbrot} \
           --width 3840 --height 3840 \
           --xMin ${builtins.toString xMin} --xMax ${builtins.toString xMax} \
           --yMin ${builtins.toString yMin} --yMax ${builtins.toString yMax} \
