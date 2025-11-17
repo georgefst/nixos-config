@@ -95,13 +95,12 @@
         pkgs = nixpkgs.${system};
         modules = hardwareModules ++ [
           (import ./modules/universal.nix { flake = self; })
-          (import ./modules/desktop.nix
-            {
-              hostName = "fry";
-              stateVersion = "25.05";
-              laptop = true;
-              wallpaper = mandelbrot { xMin = -3; xMax = 1.8; yMin = -2.4; yMax = 2.4; };
-            }
+          (import ./modules/desktop.nix {
+            hostName = "fry";
+            stateVersion = "25.05";
+            laptop = true;
+            wallpaper = mandelbrot { xMin = -3; xMax = 1.8; yMin = -2.4; yMax = 2.4; };
+          }
           )
           ./modules/obsidian.nix
           {
@@ -127,14 +126,13 @@
         modules = hardwareModules ++ [
           (import ./modules/universal.nix { flake = self; })
           ./modules/users.nix
-          (import ./modules/desktop.nix
-            {
-              hostName = "crow";
-              stateVersion = "25.11";
-              wallpaper = mandelbrot { xMin = -1; xMax = -0.5; yMin = 0; yMax = 0.5; };
-              syncCamera = true;
-              keyboardLayout = "gb+mac";
-            }
+          (import ./modules/desktop.nix {
+            hostName = "crow";
+            stateVersion = "25.11";
+            wallpaper = mandelbrot { xMin = -1; xMax = -0.5; yMin = 0; yMax = 0.5; };
+            syncCamera = true;
+            keyboardLayout = "gb+mac";
+          }
           )
           ./modules/apple-t2.nix
           ({ pkgs, ... }: {
