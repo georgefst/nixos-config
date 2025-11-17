@@ -1,4 +1,4 @@
-{ pkgs, config, extraPkgs, ... }:
+{ pkgs, config, ... }:
 with builtins;
 let
   # some of the places I'm using this are running as root
@@ -130,7 +130,7 @@ in
           --power-off-pipe ${power-off-pipe} \
       '';
       description = "main Haskell script";
-      path = [ extraPkgs.clark pkgs.libgpiod pkgs.mosquitto pkgs.openssh ];
+      path = [ pkgs.clark pkgs.libgpiod pkgs.mosquitto pkgs.openssh ];
       wantedBy = startup;
     };
     ip-notify = service-with-crash-notification {
