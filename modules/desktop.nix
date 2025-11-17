@@ -7,11 +7,11 @@
 }:
 { pkgs, options, ... }:
 let
-  gnomeExts = with pkgs; [
-    gnomeExtensions.clipboard-indicator
-    gnomeExtensions.hide-cursor
-    gnomeExtensions.tiling-shell
-    gnomeExtensions.window-calls
+  gnomeExts = with pkgs.gnomeExtensions; [
+    clipboard-indicator
+    hide-cursor
+    tiling-shell
+    window-calls
   ];
 in
 {
