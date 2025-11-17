@@ -172,6 +172,5 @@
       configs = builtins.mapAttrs (_: system: system.config.system.build.toplevel) nixosConfigurations;
       vms = builtins.mapAttrs (_: system: system.config.system.build.vm) nixosConfigurations;
       inherit nixpkgs;
-      inherit haskell;
     };
 }
