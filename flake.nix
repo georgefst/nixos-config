@@ -25,6 +25,8 @@
     , ...
     }:
     let
+      lib = nixpkgs.lib;
+
       evalSystem = "x86_64-linux";
       buildSystem = evalSystem;
       buildPkgs = import nixpkgs { system = buildSystem; };
@@ -52,10 +54,10 @@
         }).hixProject.flake { });
 
       evdev-share = system: inputs.evdev-share.packages.${system}.default;
-      net-evdev = system: nixpkgs.lib.getExe inputs.net-evdev.packages.${system}."net-evdev:exe:net-evdev";
+      net-evdev = system: lib.getExe inputs.net-evdev.packages.${system}."net-evdev:exe:net-evdev";
 
       mandelbrot = { xMin, xMax, yMin, yMax }: buildPkgs.runCommand "mandelbrot" { } ''
-        ${nixpkgs.lib.getExe inputs.hs-scripts.packages.${buildSystem}.mandelbrot} \
+        ${lib.getExe inputs.hs-scripts.packages.${buildSystem}.mandelbrot} \
           --width 3840 --height 3840 \
           --xMin ${builtins.toString xMin} --xMax ${builtins.toString xMax} \
           --yMin ${builtins.toString yMin} --yMax ${builtins.toString yMax} \
@@ -67,7 +69,7 @@
           let
             system = "aarch64-linux";
           in
-          nixpkgs.lib.nixosSystem {
+          lib.nixosSystem {
             inherit system;
             modules = [
               ./modules/universal.nix
@@ -89,7 +91,7 @@
           let
             system = "x86_64-linux";
           in
-          nixpkgs.lib.nixosSystem {
+          lib.nixosSystem {
             inherit system;
             modules = hardwareModules ++ [
               ./modules/universal.nix
@@ -111,7 +113,7 @@
               }
               agenix.nixosModules.default
               ({ pkgs, ... }: {
-                nixpkgs.overlays = nixpkgs.lib.mkBefore [
+                nixpkgs.overlays = lib.mkBefore [
                   inputs.nix-vscode-extensions.overlays.default
                 ];
                 environment.systemPackages = [
@@ -123,10 +125,10 @@
               nixos-hardware.nixosModules.framework-amd-ai-300-series
               {
                 # avoid some broken caches
-                options.nix.settings.substituters = nixpkgs.lib.mkOption {
-                  apply = nixpkgs.lib.filter (s: !(
+                options.nix.settings.substituters = lib.mkOption {
+                  apply = lib.filter (s: !(
                     s == "s3://obsidian-open-source" ||
-                      nixpkgs.lib.hasPrefix "http://obsidian.webhop.org" s
+                      lib.hasPrefix "http://obsidian.webhop.org" s
                   ));
                 };
               }
@@ -157,7 +159,7 @@
               {
                 services.openssh.enable = true;
                 systemd.services.magic-mouse = {
-                  script = nixpkgs.lib.getExe haskell.packages.${system}."magic-mouse:exe:magic-mouse";
+                  script = lib.getExe haskell.packages.${system}."magic-mouse:exe:magic-mouse";
                   serviceConfig = { Restart = "always"; RestartSec = 1; };
                   unitConfig = { StartLimitIntervalSec = 0; };
                   description = "Magic mouse hack";
@@ -166,7 +168,7 @@
               }
               agenix.nixosModules.default
               ({ pkgs, ... }: {
-                nixpkgs.overlays = nixpkgs.lib.mkBefore [
+                nixpkgs.overlays = lib.mkBefore [
                   inputs.nix-vscode-extensions.overlays.default
                 ];
                 environment.systemPackages = [
