@@ -69,9 +69,8 @@
           --out $out
       '';
 
-      configs.sd.clark = lib.nixosSystem rec {
-        system = "aarch64-linux";
-        pkgs = packages.${system};
+      configs.sd.clark = lib.nixosSystem {
+        pkgs = packages.aarch64-linux;
         modules = [
           (import ./modules/universal.nix { flake = self; })
           ./modules/users.nix
@@ -80,9 +79,8 @@
           inputs.agenix.nixosModules.default
         ];
       };
-      configs.desktop.fry = hardwareModules: lib.nixosSystem rec {
-        system = "x86_64-linux";
-        pkgs = packages.${system};
+      configs.desktop.fry = hardwareModules: lib.nixosSystem {
+        pkgs = packages.x86_64-linux;
         modules = hardwareModules ++ [
           (import ./modules/universal.nix { flake = self; })
           (import ./modules/desktop.nix {
@@ -95,7 +93,7 @@
           ./modules/obsidian.nix
           {
             # 6.14 adds necessary support for our network card, but 6.12 is now the only maintained kernel with ZFS
-            boot.kernelPackages = (import inputs.nixpkgs-linux_6_16 { inherit system; }).linuxPackages_6_16;
+            boot.kernelPackages = (import inputs.nixpkgs-linux_6_16 { system = "x86_64-linux"; }).linuxPackages_6_16;
           }
           inputs.agenix.nixosModules.default
           nixos-hardware.nixosModules.framework-amd-ai-300-series
@@ -110,9 +108,8 @@
           }
         ];
       };
-      configs.desktop.crow = hardwareModules: inputs.nixpkgs.lib.nixosSystem rec {
-        system = "x86_64-linux";
-        pkgs = packages.${system};
+      configs.desktop.crow = hardwareModules: inputs.nixpkgs.lib.nixosSystem {
+        pkgs = packages.x86_64-linux;
         modules = hardwareModules ++ [
           (import ./modules/universal.nix { flake = self; })
           ./modules/users.nix
