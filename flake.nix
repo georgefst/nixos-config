@@ -159,10 +159,11 @@
     {
       inherit devShells;
       inherit nixosConfigurations;
+      inherit packages;
+
       images = builtins.mapAttrs (_: system: system.config.system.build.sdImage) configs.sd //
         builtins.mapAttrs (_: system: system.installer) configs.desktop;
       configs = builtins.mapAttrs (_: system: system.config.system.build.toplevel) nixosConfigurations;
       vms = builtins.mapAttrs (_: system: system.config.system.build.vm) nixosConfigurations;
-      inherit packages;
     };
 }
