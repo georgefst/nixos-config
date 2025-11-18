@@ -20,7 +20,7 @@
       buildSystem = evalSystem;
 
       lib = inputs.nixpkgs.lib;
-      packages = (flake-utils.lib.eachDefaultSystem (system: rec {
+      inherit (flake-utils.lib.eachDefaultSystem (system: rec {
         haskell = (import inputs.nixpkgs-haskell {
           inherit system;
           overlays = [
@@ -41,6 +41,7 @@
           ];
           config = inputs.haskell-nix.config;
         }).hixProject.flake { };
+        devShells = haskell.devShells;
         packages = import inputs.nixpkgs {
           inherit system;
           config = {
@@ -59,7 +60,7 @@
             })
           ];
         };
-      })).packages;
+      })) packages devShells;
 
       mkDesktopAndInstaller = name: mkSystem: rec {
         system = mkSystem name [ ./hardware-configuration/${name}.nix ];
@@ -156,6 +157,7 @@
 
     in
     {
+      inherit devShells;
       inherit nixosConfigurations;
       images = builtins.mapAttrs (_: system: system.config.system.build.sdImage) configs.sd //
         builtins.mapAttrs (_: system: system.installer) configs.desktop;
