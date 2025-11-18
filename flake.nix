@@ -122,7 +122,7 @@
           }
         ];
       });
-      configs.desktop.crow = mkDesktopAndInstaller "crow" (hostName: hardwareModules: inputs.nixpkgs.lib.nixosSystem {
+      configs.desktop.crow = mkDesktopAndInstaller "crow" (hostName: hardwareModules: lib.nixosSystem {
         pkgs = packages.x86_64-linux;
         modules = hardwareModules ++ [
           (import ./modules/universal.nix { flake = self; })
