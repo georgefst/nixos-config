@@ -62,8 +62,8 @@
       })).packages;
 
       mkDesktopAndInstaller = name: mkSystem: rec {
-        system = mkSystem [ ./hardware-configuration/${name}.nix ];
-        installer = (mkSystem [
+        system = mkSystem name [ ./hardware-configuration/${name}.nix ];
+        installer = (mkSystem name [
           "${inputs.nixpkgs}/nixos/modules/installer/cd-dvd/installation-cd-graphical-gnome.nix"
           ({ pkgs, ... }: {
             environment.systemPackages = [
@@ -93,7 +93,7 @@
           inputs.agenix.nixosModules.default
         ];
       };
-      configs.desktop.fry = let hostName = "fry"; in mkDesktopAndInstaller hostName (hardwareModules: lib.nixosSystem {
+      configs.desktop.fry = mkDesktopAndInstaller "fry" (hostName: hardwareModules: lib.nixosSystem {
         pkgs = packages.x86_64-linux;
         modules = hardwareModules ++ [
           (import ./modules/universal.nix { flake = self; })
@@ -122,7 +122,7 @@
           }
         ];
       });
-      configs.desktop.crow = let hostName = "crow"; in mkDesktopAndInstaller hostName (hardwareModules: inputs.nixpkgs.lib.nixosSystem {
+      configs.desktop.crow = mkDesktopAndInstaller "crow" (hostName: hardwareModules: inputs.nixpkgs.lib.nixosSystem {
         pkgs = packages.x86_64-linux;
         modules = hardwareModules ++ [
           (import ./modules/universal.nix { flake = self; })
