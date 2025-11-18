@@ -61,6 +61,20 @@
         };
       })).packages;
 
+      mkDesktopAndInstaller = name: mkSystem: rec {
+        system = mkSystem [ ./hardware-configuration/${name}.nix ];
+        installer = (mkSystem [
+          "${inputs.nixpkgs}/nixos/modules/installer/cd-dvd/installation-cd-graphical-gnome.nix"
+          ({ pkgs, ... }: {
+            environment.systemPackages = [
+              (pkgs.writeShellScriptBin "install-system" ''
+                sudo nixos-install --system ${system.config.system.build.toplevel} "$@"
+              '')
+            ];
+          })
+        ]).config.system.build.isoImage;
+      };
+
       mandelbrot = { xMin, xMax, yMin, yMax }: packages.${buildSystem}.runCommand "mandelbrot" { } ''
         ${lib.getExe packages.${buildSystem}.mandelbrot} \
           --width 3840 --height 3840 \
@@ -79,12 +93,12 @@
           inputs.agenix.nixosModules.default
         ];
       };
-      configs.desktop.fry = hardwareModules: lib.nixosSystem {
+      configs.desktop.fry = let hostName = "fry"; in mkDesktopAndInstaller hostName (hardwareModules: lib.nixosSystem {
         pkgs = packages.x86_64-linux;
         modules = hardwareModules ++ [
           (import ./modules/universal.nix { flake = self; })
           (import ./modules/desktop.nix {
-            hostName = "fry";
+            inherit hostName;
             stateVersion = "25.05";
             laptop = true;
             wallpaper = mandelbrot { xMin = -3; xMax = 1.8; yMin = -2.4; yMax = 2.4; };
@@ -107,14 +121,14 @@
             };
           }
         ];
-      };
-      configs.desktop.crow = hardwareModules: inputs.nixpkgs.lib.nixosSystem {
+      });
+      configs.desktop.crow = let hostName = "crow"; in mkDesktopAndInstaller hostName (hardwareModules: inputs.nixpkgs.lib.nixosSystem {
         pkgs = packages.x86_64-linux;
         modules = hardwareModules ++ [
           (import ./modules/universal.nix { flake = self; })
           ./modules/users.nix
           (import ./modules/desktop.nix {
-            hostName = "crow";
+            inherit hostName;
             stateVersion = "25.11";
             wallpaper = mandelbrot { xMin = -1; xMax = -0.5; yMin = 0; yMax = 0.5; };
             syncCamera = true;
@@ -135,27 +149,16 @@
           inputs.agenix.nixosModules.default
           nixos-hardware.nixosModules.apple-t2
         ];
-      };
+      });
 
-      nixosConfigurations = configs.sd // builtins.mapAttrs
-        (name: system: system [ ./hardware-configuration/${name}.nix ])
-        configs.desktop;
+      nixosConfigurations = configs.sd
+        // builtins.mapAttrs (_: system: system.system) configs.desktop;
 
     in
     {
       inherit nixosConfigurations;
-      images = builtins.mapAttrs (_: system: system.config.system.build.sdImage) configs.sd // builtins.mapAttrs
-        (name: system: (system [
-          "${inputs.nixpkgs}/nixos/modules/installer/cd-dvd/installation-cd-graphical-gnome.nix"
-          ({ pkgs, ... }: {
-            environment.systemPackages = [
-              (pkgs.writeShellScriptBin "install-system" ''
-                sudo nixos-install --system ${nixosConfigurations.${name}.config.system.build.toplevel} "$@"
-              '')
-            ];
-          })
-        ]).config.system.build.isoImage)
-        configs.desktop;
+      images = builtins.mapAttrs (_: system: system.config.system.build.sdImage) configs.sd //
+        builtins.mapAttrs (_: system: system.installer) configs.desktop;
       configs = builtins.mapAttrs (_: system: system.config.system.build.toplevel) nixosConfigurations;
       vms = builtins.mapAttrs (_: system: system.config.system.build.vm) nixosConfigurations;
       inherit packages;
