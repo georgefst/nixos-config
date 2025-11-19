@@ -177,7 +177,7 @@ in
       );
     }
   ];
-  services.logind = { settings.Login = { HandleLidSwitch = "lock"; }; };
+  services.logind.settings.Login.HandleLidSwitch = "lock";
   # forces electron apps to use Wayland - needed for VSCode, at least, to avoid blurry text
   environment.variables.ELECTRON_OZONE_PLATFORM_HINT = "auto";
 
