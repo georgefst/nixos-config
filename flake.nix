@@ -69,13 +69,13 @@
         system = mkSystem name [ ./hardware-configuration/${name}.nix ];
         installer = mkSystem name [
           "${inputs.nixpkgs}/nixos/modules/installer/cd-dvd/installation-cd-graphical-gnome.nix"
-          ({ pkgs, ... }: {
+          {
             environment.systemPackages = [
-              (pkgs.writeShellScriptBin "install-system" ''
+              (packages.${buildSystem}.writeShellScriptBin "install-system" ''
                 sudo nixos-install --system ${system.config.system.build.toplevel} "$@"
               '')
             ];
-          })
+          }
         ];
       };
 
