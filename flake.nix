@@ -20,8 +20,7 @@
       buildSystem = evalSystem;
 
       lib = inputs.nixpkgs.lib;
-      inherit (flake-utils.lib.eachDefaultSystem (system: rec {
-        haskell = (import inputs.nixpkgs-haskell {
+      inherit (flake-utils.lib.eachDefaultSystem (system: let haskell = (import inputs.nixpkgs-haskell {
           inherit system;
           overlays = [
             inputs.haskell-nix.overlay
@@ -40,7 +39,7 @@
             })
           ];
           config = inputs.haskell-nix.config;
-        }).hixProject.flake { };
+        }).hixProject.flake { }; in {
         inherit (haskell) devShells;
         packages = import inputs.nixpkgs {
           inherit system;
