@@ -153,7 +153,7 @@
       });
 
       nixosConfigurations = configs.sd
-        // builtins.mapAttrs (_: system: system.system) configs.desktop;
+        // builtins.mapAttrs (_: { system, ... }: system) configs.desktop;
 
     in
     {
@@ -162,7 +162,7 @@
       inherit packages;
 
       images = builtins.mapAttrs (_: system: system.config.system.build.sdImage) configs.sd //
-        builtins.mapAttrs (_: system: system.installer) configs.desktop;
+        builtins.mapAttrs (_: { installer, ... }: installer) configs.desktop;
       configs = builtins.mapAttrs (_: system: system.config.system.build.toplevel) nixosConfigurations;
       vms = builtins.mapAttrs (_: system: system.config.system.build.vm) nixosConfigurations;
     };
