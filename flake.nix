@@ -105,12 +105,12 @@
             wallpaper = mandelbrot { xMin = -3; xMax = 1.8; yMin = -2.4; yMax = 2.4; };
           })
           ./modules/obsidian.nix
+          nixos-hardware.nixosModules.framework-amd-ai-300-series
+          inputs.agenix.nixosModules.default
           {
             # 6.14 adds necessary support for our network card, but 6.12 is now the only maintained kernel with ZFS
             boot.kernelPackages = (import inputs.nixpkgs-linux_6_16 { system = "x86_64-linux"; }).linuxPackages_6_16;
           }
-          inputs.agenix.nixosModules.default
-          nixos-hardware.nixosModules.framework-amd-ai-300-series
           {
             # avoid some broken caches
             options.nix.settings.substituters = lib.mkOption {
@@ -135,6 +135,8 @@
             keyboardLayout = "gb+mac";
           })
           ./modules/apple-t2.nix
+          nixos-hardware.nixosModules.apple-t2
+          inputs.agenix.nixosModules.default
           ({ pkgs, ... }: {
             services.openssh.enable = true;
             systemd.services.magic-mouse = {
@@ -145,8 +147,6 @@
               wantedBy = [ "multi-user.target" ];
             };
           })
-          inputs.agenix.nixosModules.default
-          nixos-hardware.nixosModules.apple-t2
         ];
       });
 
