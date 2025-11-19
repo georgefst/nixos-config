@@ -45,7 +45,7 @@ in
           idle-delay = mkUint32 0;
         };
         "org/gnome/desktop/wm/keybindings" = {
-          always-on-top = [ "<Super>s" ];
+          always-on-top = [ "<Super>a" ];
           begin-resize = [ "<Super>r" ];
           close = [ "<Super>space" ];
           switch-input-source = [ "<Alt><Super>space" ];
