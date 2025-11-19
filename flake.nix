@@ -103,8 +103,7 @@
             stateVersion = "25.05";
             laptop = true;
             wallpaper = mandelbrot { xMin = -3; xMax = 1.8; yMin = -2.4; yMax = 2.4; };
-          }
-          )
+          })
           ./modules/obsidian.nix
           {
             # 6.14 adds necessary support for our network card, but 6.12 is now the only maintained kernel with ZFS
@@ -134,8 +133,7 @@
             wallpaper = mandelbrot { xMin = -1; xMax = -0.5; yMin = 0; yMax = 0.5; };
             syncCamera = true;
             keyboardLayout = "gb+mac";
-          }
-          )
+          })
           ./modules/apple-t2.nix
           ({ pkgs, ... }: {
             services.openssh.enable = true;
