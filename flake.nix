@@ -67,7 +67,7 @@
 
       mkDesktopAndInstaller = name: mkSystem: rec {
         system = mkSystem name [ ./hardware-configuration/${name}.nix ];
-        installer = (mkSystem name [
+        installer = mkSystem name [
           "${inputs.nixpkgs}/nixos/modules/installer/cd-dvd/installation-cd-graphical-gnome.nix"
           ({ pkgs, ... }: {
             environment.systemPackages = [
@@ -76,7 +76,7 @@
               '')
             ];
           })
-        ]).config.system.build.isoImage;
+        ];
       };
 
       mandelbrot = { xMin, xMax, yMin, yMax }: packages.${buildSystem}.runCommand "mandelbrot" { } ''
@@ -163,7 +163,7 @@
       inherit packages;
 
       images = builtins.mapAttrs (_: system: system.config.system.build.sdImage) configs.sd //
-        builtins.mapAttrs (_: { installer, ... }: installer) configs.desktop;
+        builtins.mapAttrs (_: { installer, ... }: installer.config.system.build.isoImage) configs.desktop;
       configs = builtins.mapAttrs (_: system: system.config.system.build.toplevel) nixosConfigurations;
       vms = builtins.mapAttrs (_: system: system.config.system.build.vm) nixosConfigurations;
     };
