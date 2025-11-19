@@ -20,46 +20,50 @@
       buildSystem = evalSystem;
 
       lib = inputs.nixpkgs.lib;
-      inherit (flake-utils.lib.eachDefaultSystem (system: let haskell = (import inputs.nixpkgs-haskell {
-          inherit system;
-          overlays = [
-            inputs.haskell-nix.overlay
-            (final: prev: {
-              hixProject =
-                final.haskell-nix.hix.project {
-                  src = ./.;
-                  compiler-nix-name = "ghc9122";
-                  index-state = "2025-09-02T00:00:00Z";
-                  inherit evalSystem;
-                  shell.tools = {
-                    cabal = "latest";
-                    haskell-language-server = "latest";
+      inherit (flake-utils.lib.eachDefaultSystem (system:
+        let
+          haskell = (import inputs.nixpkgs-haskell {
+            inherit system;
+            overlays = [
+              inputs.haskell-nix.overlay
+              (final: prev: {
+                hixProject =
+                  final.haskell-nix.hix.project {
+                    src = ./.;
+                    compiler-nix-name = "ghc9122";
+                    index-state = "2025-09-02T00:00:00Z";
+                    inherit evalSystem;
+                    shell.tools = {
+                      cabal = "latest";
+                      haskell-language-server = "latest";
+                    };
                   };
-                };
-            })
-          ];
-          config = inputs.haskell-nix.config;
-        }).hixProject.flake { }; in {
-        inherit (haskell) devShells;
-        packages = import inputs.nixpkgs {
-          inherit system;
-          config = {
-            allowUnfree = true;
+              })
+            ];
+            config = inputs.haskell-nix.config;
+          }).hixProject.flake { };
+        in
+        {
+          inherit (haskell) devShells;
+          packages = import inputs.nixpkgs {
+            inherit system;
+            config = {
+              allowUnfree = true;
+            };
+            overlays = [
+              inputs.nix-vscode-extensions.overlays.default
+              (final: prev: {
+                clark = haskell.packages."clark:exe:clark";
+                evdev-share = inputs.evdev-share.packages.${system}.default;
+                hix = inputs.haskell-nix.packages.${system}.hix;
+                magic-mouse = haskell.packages."magic-mouse:exe:magic-mouse";
+                mandelbrot = inputs.hs-scripts.packages.${system}.mandelbrot;
+                net-evdev = inputs.net-evdev.packages.${system}."net-evdev:exe:net-evdev";
+                obelisk = (final.callPackage inputs.obelisk { }).command;
+              })
+            ];
           };
-          overlays = [
-            inputs.nix-vscode-extensions.overlays.default
-            (final: prev: {
-              clark = haskell.packages."clark:exe:clark";
-              evdev-share = inputs.evdev-share.packages.${system}.default;
-              hix = inputs.haskell-nix.packages.${system}.hix;
-              magic-mouse = haskell.packages."magic-mouse:exe:magic-mouse";
-              mandelbrot = inputs.hs-scripts.packages.${system}.mandelbrot;
-              net-evdev = inputs.net-evdev.packages.${system}."net-evdev:exe:net-evdev";
-              obelisk = (final.callPackage inputs.obelisk { }).command;
-            })
-          ];
-        };
-      })) packages devShells;
+        })) packages devShells;
 
       mkDesktopAndInstaller = name: mkSystem: rec {
         system = mkSystem name [ ./hardware-configuration/${name}.nix ];
