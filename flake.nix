@@ -41,7 +41,7 @@
           ];
           config = inputs.haskell-nix.config;
         }).hixProject.flake { };
-        devShells = haskell.devShells;
+        inherit (haskell) devShells;
         packages = import inputs.nixpkgs {
           inherit system;
           config = {
