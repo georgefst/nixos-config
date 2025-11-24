@@ -111,7 +111,9 @@
           nixos-hardware.nixosModules.framework-amd-ai-300-series
           inputs.agenix.nixosModules.default
           {
-            # 6.14 adds necessary support for our network card, but 6.12 is now the only maintained kernel with ZFS
+            # 6.14 adds necessary support for our network card
+            # currently 6.17 is the only maintained later version with ZFS
+            # we can remove this line once we're on a Nixpkgs with 6.18, as that will be an LTS
             boot.kernelPackages = packages.x86_64-linux.linuxPackages_6_17;
           }
           {
