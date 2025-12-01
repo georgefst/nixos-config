@@ -58,7 +58,7 @@
                 magic-mouse = haskell.packages."magic-mouse:exe:magic-mouse";
                 mandelbrot = inputs.hs-scripts.packages.${system}.mandelbrot;
                 net-evdev = inputs.net-evdev.packages.${system}."net-evdev:exe:net-evdev";
-                obelisk = (final.callPackage inputs.obelisk { }).command;
+                obelisk = (final.callPackage inputs.obelisk { inherit system; }).command;
               })
             ];
           };
