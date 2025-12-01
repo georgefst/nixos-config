@@ -128,11 +128,19 @@ in
                 { x = 0; y = 0.68; width = 0.4; height = 0.32; }
                 { x = 0.4; y = 0.68; width = 0.6; height = 0.32; }
               ]
-              [
-                { x = 0; y = 0; width = 0.853; height = 1; }
-                { x = 0.853; y = 0; width = 0.147; height = 0.158; }
-                { x = 0.853; y = 0.158; width = 0.147; height = 0.842; }
-              ]
+              (
+                let
+                  wMain = 0.853;
+                  wRight = 1 - wMain;
+                  hTopRight = 0.158;
+                  hBottomRight = 1 - hBottomRight;
+                in
+                [
+                  { x = 0; y = 0; width = wMain; height = 1; }
+                  { x = wMain; y = 0; width = wRight; height = hTopRight; }
+                  { x = wMain; y = hTopRight; width = wRight; height = hBottomRight; }
+                ]
+              )
               (grid [ 0.27 ] [ ])
               (grid [ 0.5 ] [ 0.5 ])
               ([
