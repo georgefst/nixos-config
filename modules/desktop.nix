@@ -133,7 +133,7 @@ in
                   wMain = 0.758;
                   wRight = 1 - wMain;
                   hTopRight = 1 - hBottomRight;
-                  hBottomRight = 0.158;
+                  hBottomRight = wRight;
                   hiddenTitlebarHeight = 0.012;
                 in
                 [
