@@ -147,7 +147,7 @@ in
               ([
                 # bottom left tile covers ugly Spotify Wayland CSD titlebar
                 { height = 0.5; width = 0.5; x = 0; y = 0; }
-                { height = 0.5 + 0.02; width = 0.5; x = 0; y = 0.5 - 0.02; }
+                { height = 0.5 + 0.014; width = 0.5; x = 0; y = 0.5 - 0.014; }
                 { height = 0.5; width = 0.5; x = 0.5; y = 0; }
                 { height = 0.5; width = 0.5; x = 0.5; y = 0.5; }
               ])
