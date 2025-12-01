@@ -1,7 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/ae814fd3904b621d8ab97418f1d0f2eb0d3716f4";
-    nixpkgs-linux_6_16.url = "github:NixOS/nixpkgs/5a79545d3b917e23c1524763462fa6f9d084c5de";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
     nixos-hardware.url = "github:NixOS/nixos-hardware";
     flake-utils.url = "github:numtide/flake-utils";
     agenix.url = "github:ryantm/agenix";
@@ -111,8 +110,10 @@
           nixos-hardware.nixosModules.framework-amd-ai-300-series
           inputs.agenix.nixosModules.default
           {
-            # 6.14 adds necessary support for our network card, but 6.12 is now the only maintained kernel with ZFS
-            boot.kernelPackages = (import inputs.nixpkgs-linux_6_16 { system = "x86_64-linux"; }).linuxPackages_6_16;
+            # 6.14 adds necessary support for our network card
+            # currently 6.17 is the only maintained later version with ZFS
+            # we can remove this line once we're on a Nixpkgs with 6.18, as that will be an LTS
+            boot.kernelPackages = packages.x86_64-linux.linuxPackages_6_17;
           }
           {
             # avoid some broken caches

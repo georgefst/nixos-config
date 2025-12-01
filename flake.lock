@@ -1362,22 +1362,6 @@
         "type": "github"
       }
     },
-    "nixpkgs-linux_6_16": {
-      "locked": {
-        "lastModified": 1761382295,
-        "narHash": "sha256-qlw8K4g93Op5k7XBsxlHaU1BHybYJGkuf2N8q++dqHA=",
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "5a79545d3b917e23c1524763462fa6f9d084c5de",
-        "type": "github"
-      },
-      "original": {
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "5a79545d3b917e23c1524763462fa6f9d084c5de",
-        "type": "github"
-      }
-    },
     "nixpkgs-unstable": {
       "locked": {
         "lastModified": 1759070547,
@@ -1460,17 +1444,17 @@
     },
     "nixpkgs_5": {
       "locked": {
-        "lastModified": 1762363567,
-        "narHash": "sha256-YRqMDEtSMbitIMj+JLpheSz0pwEr0Rmy5mC7myl17xs=",
+        "lastModified": 1764522689,
+        "narHash": "sha256-SqUuBFjhl/kpDiVaKLQBoD8TLD+/cTUzzgVFoaHrkqY=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "ae814fd3904b621d8ab97418f1d0f2eb0d3716f4",
+        "rev": "8bb5646e0bed5dbd3ab08c7a7cc15b75ab4e1d0f",
         "type": "github"
       },
       "original": {
         "owner": "NixOS",
+        "ref": "nixos-25.11",
         "repo": "nixpkgs",
-        "rev": "ae814fd3904b621d8ab97418f1d0f2eb0d3716f4",
         "type": "github"
       }
     },
@@ -1540,7 +1524,6 @@
           "haskell-nix",
           "nixpkgs-unstable"
         ],
-        "nixpkgs-linux_6_16": "nixpkgs-linux_6_16",
         "obelisk": "obelisk"
       }
     },
