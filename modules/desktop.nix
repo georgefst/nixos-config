@@ -130,7 +130,7 @@ in
               ]
               (
                 let
-                  wMain = 0.853;
+                  wMain = 0.758;
                   wRight = 1 - wMain;
                   hTopRight = 0.158;
                   hBottomRight = 1 - hBottomRight;
