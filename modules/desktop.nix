@@ -134,11 +134,12 @@ in
                   wRight = 1 - wMain;
                   hTopRight = 1 - hBottomRight;
                   hBottomRight = 0.158;
+                  hiddenTitlebarHeight = 0.012;
                 in
                 [
                   { x = 0; y = 0; width = wMain; height = 1; }
                   { x = wMain; y = 0; width = wRight; height = hTopRight; }
-                  { x = wMain; y = hTopRight; width = wRight; height = hBottomRight; }
+                  { x = wMain; y = hTopRight - hiddenTitlebarHeight; width = wRight; height = hBottomRight + hiddenTitlebarHeight; }
                 ]
               )
               (grid [ 0.27 ] [ ])
