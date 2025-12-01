@@ -91,6 +91,7 @@ in
           toggle-menu = [ "<Super>c" ];
         };
         "org/gnome/shell/extensions/tilingshell" = {
+          cycle-layouts = [ "<Super>apostrophe" ];
           focus-window-down = [ "<Super>Down" ];
           focus-window-left = [ "<Super>Left" ];
           focus-window-right = [ "<Super>Right" ];
