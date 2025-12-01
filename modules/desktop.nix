@@ -132,8 +132,8 @@ in
                 let
                   wMain = 0.758;
                   wRight = 1 - wMain;
-                  hTopRight = 0.158;
-                  hBottomRight = 1 - hBottomRight;
+                  hTopRight = 1 - hBottomRight;
+                  hBottomRight = 0.158;
                 in
                 [
                   { x = 0; y = 0; width = wMain; height = 1; }
