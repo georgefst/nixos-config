@@ -3,14 +3,36 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
     nixos-hardware.url = "github:NixOS/nixos-hardware";
     flake-utils.url = "github:numtide/flake-utils";
-    agenix.url = "github:ryantm/agenix";
+    agenix = {
+      url = "github:ryantm/agenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.systems.follows = "flake-utils/systems";
+    };
     haskell-nix.url = "github:input-output-hk/haskell.nix";
     nixpkgs-haskell.follows = "haskell-nix/nixpkgs-unstable";
-    evdev-share.url = "github:georgefst/evdev-share";
-    net-evdev.url = "github:georgefst/net-evdev";
-    nix-vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
+    evdev-share = {
+      url = "github:georgefst/evdev-share";
+      inputs.cargo2nix.inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-compat.follows = "haskell-nix/flake-compat";
+        flake-utils.follows = "flake-utils";
+      };
+    };
+    net-evdev = {
+      url = "github:georgefst/net-evdev";
+      inputs.flake-utils.follows = "flake-utils";
+      inputs.haskellNix.follows = "haskell-nix";
+    };
+    nix-vscode-extensions = {
+      url = "github:nix-community/nix-vscode-extensions";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     obelisk = { url = "github:obsidiansystems/obelisk/develop"; flake = false; };
-    hs-scripts.url = "github:georgefst/hs-scripts/nix";
+    hs-scripts = {
+      url = "github:georgefst/hs-scripts/nix";
+      inputs.flake-utils.follows = "flake-utils";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     self.submodules = true;
   };
   outputs = inputs@{ self, nixos-hardware, flake-utils, ... }:
