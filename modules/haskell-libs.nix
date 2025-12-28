@@ -32,6 +32,7 @@ hpkgs: with hpkgs; [
   lucid2
   massiv
   megaparsec
+  monad-bayes
   monad-loops
   neat-interpolation
   network
