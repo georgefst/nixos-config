@@ -98,6 +98,7 @@
     p7zip
     simple-http-server
     tree
+    wasmtime
   ];
   networking.firewall.allowedUDPPorts = [
     8000
