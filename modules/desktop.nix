@@ -224,6 +224,7 @@ in
       ghcid
       ghciwatch
       haskell-language-server
+      helvum
       hix
       libreoffice
       nil
