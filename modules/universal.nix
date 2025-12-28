@@ -95,6 +95,7 @@
     lazygit
     live-server
     jq
+    p7zip
     simple-http-server
     tree
   ];
