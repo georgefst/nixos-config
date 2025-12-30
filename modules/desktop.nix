@@ -94,6 +94,10 @@ in
         "org/gnome/shell/extensions/clipboard-indicator" = {
           toggle-menu = [ "<Super>c" ];
         };
+        "org/gnome/shell/extensions/just-perfection" = {
+          animation = mkUint32 4;
+          double-super-to-appgrid = false;
+        };
         "org/gnome/shell/extensions/tilingshell" = {
           cycle-layouts = [ "<Super>apostrophe" ];
           focus-window-down = [ "<Super>Down" ];
