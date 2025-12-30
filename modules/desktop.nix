@@ -29,6 +29,9 @@ in
     {
       lockAll = true;
       settings = with pkgs.lib.gvariant; {
+        "desktop/ibus/panel/emoji" = {
+          hotkey = [ "<Super>numbersign" ];
+        };
         "org/gnome/desktop/background" = {
           picture-uri-dark = "file:///${wallpaper}";
         };
