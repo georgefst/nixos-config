@@ -10,6 +10,7 @@ let
   gnomeExts = with pkgs.gnomeExtensions; [
     clipboard-indicator
     hide-cursor
+    just-perfection
     tiling-shell
     window-calls
   ];
@@ -182,6 +183,14 @@ in
                 name = "brightness-small-step-up";
                 binding = "<Shift>MonBrightnessUp";
                 command = "${lib.getExe brightnessctl} set --exponent=2 +2%";
+              }
+              {
+                name = "toggle-panel";
+                binding = "<Super>semicolon";
+                command = "${pkgs.writeShellScript "toggle-panel" ''
+                  S=/org/gnome/shell/extensions/just-perfection/panel
+                  if [[ $(dconf read $S) == true ]] ; then dconf write $S false ; else dconf write $S true ; fi
+                ''}";
               }
             ];
         in
