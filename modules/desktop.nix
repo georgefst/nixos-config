@@ -246,6 +246,7 @@ in
       nil
       nixpkgs-fmt
       obelisk
+      opencode
       popsicle
       rust-analyzer
       signal-desktop
