@@ -44,6 +44,9 @@
       lib = inputs.nixpkgs.lib;
       inherit (flake-utils.lib.eachDefaultSystem (system:
         let
+          nixpkgs-config = {
+            allowUnfree = true;
+          };
           haskell = (import inputs.nixpkgs-haskell {
             inherit system;
             overlays = [
@@ -69,16 +72,14 @@
           inherit (haskell) devShells;
           packages = import inputs.nixpkgs {
             inherit system;
-            config = {
-              allowUnfree = true;
-            };
+            config = nixpkgs-config;
             overlays = [
               inputs.nix-vscode-extensions.overlays.default
               (
                 let
                   pkgs-unstable = import inputs.nixpkgs-unstable {
                     inherit system;
-                    config.allowUnfree = true;
+                    config = nixpkgs-config;
                   };
                 in
                 (final: prev: {
