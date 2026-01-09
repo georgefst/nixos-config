@@ -1,6 +1,7 @@
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     nixos-hardware.url = "github:NixOS/nixos-hardware";
     flake-utils.url = "github:numtide/flake-utils";
     agenix = {
@@ -73,6 +74,17 @@
             };
             overlays = [
               inputs.nix-vscode-extensions.overlays.default
+              (
+                let
+                  pkgs-unstable = import inputs.nixpkgs-unstable {
+                    inherit system;
+                    config.allowUnfree = true;
+                  };
+                in
+                (final: prev: {
+                  opencode = pkgs-unstable.opencode;
+                })
+              )
               (final: prev: {
                 clark = haskell.packages."clark:exe:clark";
                 evdev-share = inputs.evdev-share.packages.${system}.default;

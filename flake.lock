@@ -814,6 +814,22 @@
         "type": "github"
       }
     },
+    "nixpkgs-unstable_2": {
+      "locked": {
+        "lastModified": 1767767207,
+        "narHash": "sha256-Mj3d3PfwltLmukFal5i3fFt27L6NiKXdBezC1EBuZs4=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "5912c1772a44e31bf1c63c0390b90501e5026886",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
     "obelisk": {
       "flake": false,
       "locked": {
@@ -863,6 +879,7 @@
           "haskell-nix",
           "nixpkgs-unstable"
         ],
+        "nixpkgs-unstable": "nixpkgs-unstable_2",
         "obelisk": "obelisk"
       }
     },
