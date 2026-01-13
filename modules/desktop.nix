@@ -11,7 +11,31 @@ let
     clipboard-indicator
     hide-cursor
     just-perfection
-    tiling-shell
+    # https://github.com/domferr/tilingshell/pull/474
+    (pkgs.buildNpmPackage {
+      pname = "gnome-shell-extension-tiling-shell";
+      version = "17.2-patched-13-01-2026";
+      src = pkgs.fetchFromGitHub {
+        owner = "georgefst";
+        repo = "tilingshell";
+        rev = "main";
+        sha256 = "WhbLV8WCz+NKWCiG4rtXoRIscf8PvpP6OFzyIOsm9Dk=";
+      };
+      nativeBuildInputs = [ pkgs.glib ];
+      npmDepsHash = "sha256-ctNiJ+Esf0TOuqbJBz53rQLqSkwn875woDrEl8rJo3A=";
+      dontNpmInstall = true;
+      npmFlags = [ "--legacy-peer-deps" ];
+      installPhase = ''
+        runHook preInstall
+        mkdir -p $out/share/gnome-shell/extensions/tilingshell@ferrarodomenico.com
+        cp -r dist/* $out/share/gnome-shell/extensions/tilingshell@ferrarodomenico.com/
+        runHook postInstall
+      '';
+      passthru = {
+        extensionUuid = "tilingshell@ferrarodomenico.com";
+        extensionPortalSlug = "tiling-shell";
+      };
+    })
     window-calls
   ];
 in
