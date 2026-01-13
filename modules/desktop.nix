@@ -11,16 +11,28 @@ let
     clipboard-indicator
     hide-cursor
     just-perfection
-    # https://github.com/domferr/tilingshell/pull/474
+    # we can go back to just `tiling-shell` once there's no longer anything interesting in `patches` field
     (pkgs.buildNpmPackage {
       pname = "gnome-shell-extension-tiling-shell";
       version = "17.2-patched-13-01-2026";
       src = pkgs.fetchFromGitHub {
-        owner = "georgefst";
+        owner = "domferr";
         repo = "tilingshell";
-        rev = "main";
-        sha256 = "WhbLV8WCz+NKWCiG4rtXoRIscf8PvpP6OFzyIOsm9Dk=";
+        rev = "17.2";
+        sha256 = "I5kAzf7945loYtqT3o59WZp+t2zw323KaP2wp1GpLKM=";
       };
+      patches = [
+        # adds package-lock.json - needed for Nix
+        (pkgs.fetchpatch {
+          url = "https://github.com/georgefst/tilingshell/commit/4c85456.patch";
+          sha256 = "KycUCcHWqpt+qfJfsPlumqi9L3i4uBxgpceXTgEIzqQ=";
+        })
+        # https://github.com/domferr/tilingshell/pull/474
+        (pkgs.fetchpatch {
+          url = "https://github.com/georgefst/tilingshell/commit/8448a59.patch";
+          sha256 = "PEpwI7+Y8CwVv1Fxhkr5A9tR751gqSk4kE3KMe/et7g=";
+        })
+      ];
       nativeBuildInputs = [ pkgs.glib ];
       npmDepsHash = "sha256-ctNiJ+Esf0TOuqbJBz53rQLqSkwn875woDrEl8rJo3A=";
       dontNpmInstall = true;
