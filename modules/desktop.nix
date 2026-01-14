@@ -116,18 +116,17 @@ in
         "org/gnome/shell" = {
           disabled-extensions = mkEmptyArray type.string;
           enabled-extensions = map (e: e.extensionUuid) gnomeExts;
-          favorite-apps =
-            [
-              "firefox.desktop"
-              "code.desktop"
-              "spotify.desktop"
-              "org.gnome.Geary.desktop"
-              "org.gnome.Calendar.desktop"
-              "org.gnome.Nautilus.desktop"
-              "org.gnome.Console.desktop"
-              "org.gnome.Settings.desktop"
-              "gather.desktop"
-            ];
+          favorite-apps = [
+            "firefox.desktop"
+            "code.desktop"
+            "spotify.desktop"
+            "org.gnome.Geary.desktop"
+            "org.gnome.Calendar.desktop"
+            "org.gnome.Nautilus.desktop"
+            "org.gnome.Console.desktop"
+            "org.gnome.Settings.desktop"
+            "gather.desktop"
+          ];
         };
         "org/gnome/shell/app-switcher" = {
           current-workspace-only = true;
