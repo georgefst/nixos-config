@@ -100,6 +100,11 @@ in
           night-light-enabled = true;
           night-light-temperature = mkUint32 3500;
         };
+        "org/gnome/settings-daemon/plugins/media-keys" = {
+          logout = [ "<Control><Super>l" ];
+          reboot = [ "<Control><Super>r" ];
+          shutdown = [ "<Control><Super>o" ];
+        };
         "org/gnome/settings-daemon/plugins/power" = {
           power-button-action = if laptop then "suspend" else "hibernate";
           power-saver-profile-on-low-battery = false;
