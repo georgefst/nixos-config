@@ -186,7 +186,12 @@ in
                   { x = mainWidth; y = 0.00; width = 1 - mainWidth; height = 0.25; }
                   { x = mainWidth; y = 0.25; width = 1 - mainWidth; height = 0.25; }
                   { x = mainWidth; y = 0.50; width = 1 - mainWidth; height = 0.25; }
-                  { x = mainWidth; y = 0.75 - hiddenTitlebarHeight; width = 1 - mainWidth; height = 0.25 + hiddenTitlebarHeight; }
+                  {
+                    x = mainWidth;
+                    y = 0.75 - hiddenTitlebarHeight;
+                    width = 1 - mainWidth;
+                    height = 0.25 + hiddenTitlebarHeight;
+                  }
                 ]
               )
               (grid [ 0.27 ] [ ])
