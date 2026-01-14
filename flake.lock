@@ -623,6 +623,35 @@
         "type": "github"
       }
     },
+    "lifx-manager": {
+      "inputs": {
+        "flake-utils": [
+          "flake-utils"
+        ],
+        "haskellNix": [
+          "haskell-nix"
+        ],
+        "nixpkgs": [
+          "lifx-manager",
+          "haskellNix",
+          "nixpkgs-unstable"
+        ]
+      },
+      "locked": {
+        "lastModified": 1764608144,
+        "narHash": "sha256-uYFvF30jM41eLg26+8tZxCDanholD0GGjBNaobFEqZM=",
+        "owner": "georgefst",
+        "repo": "lifx-manager",
+        "rev": "7db8976258fccc9d306479af14de190733b0884c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "georgefst",
+        "ref": "nix",
+        "repo": "lifx-manager",
+        "type": "github"
+      }
+    },
     "net-evdev": {
       "inputs": {
         "flake-utils": [
@@ -871,6 +900,7 @@
         "flake-utils": "flake-utils",
         "haskell-nix": "haskell-nix",
         "hs-scripts": "hs-scripts",
+        "lifx-manager": "lifx-manager",
         "net-evdev": "net-evdev",
         "nix-vscode-extensions": "nix-vscode-extensions",
         "nixos-hardware": "nixos-hardware",

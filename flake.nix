@@ -34,6 +34,11 @@
       inputs.flake-utils.follows = "flake-utils";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    lifx-manager = {
+      url = "github:georgefst/lifx-manager/nix"; # https://github.com/georgefst/lifx-manager/pull/17
+      inputs.flake-utils.follows = "flake-utils";
+      inputs.haskellNix.follows = "haskell-nix";
+    };
     self.submodules = true;
   };
   outputs = inputs@{ self, nixos-hardware, flake-utils, ... }:
@@ -92,6 +97,7 @@
                 hix = inputs.haskell-nix.packages.${system}.hix;
                 magic-mouse = haskell.packages."magic-mouse:exe:magic-mouse";
                 mandelbrot = inputs.hs-scripts.packages.${system}.mandelbrot;
+                lifx-manager = inputs.lifx-manager.packages.${system}."lifx-manager:exe:lifx-manager";
                 net-evdev = inputs.net-evdev.packages.${system}."net-evdev:exe:net-evdev";
                 obelisk = (final.callPackage inputs.obelisk { inherit system; }).command;
               })

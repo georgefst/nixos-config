@@ -254,6 +254,16 @@ in
   # global installs
   environment.systemPackages = with pkgs;
     let
+      # we take lights as arguments for now because discovery isn't working on NixOS
+      # there's also a memory leak in the app, so we always close after using in practice,
+      # and therefore it's actually best that we don't have to wait around for discovery when relaunching anyway!
+      lifx-manager = ip: makeDesktopItem {
+        name = "lifx-manager-${ip}";
+        desktopName = "LIFX (${ip})";
+        exec = "${lib.getExe pkgs.lifx-manager} --devices 1 --ip ${ip}";
+        icon = "${../assets/lifx.png}";
+        startupWMClass = "LIFX";
+      };
       gather = makeDesktopItem {
         # Gather as desktop app, via Chromium
         name = "gather";
@@ -288,6 +298,9 @@ in
       helvum
       hix
       libreoffice
+      (lifx-manager "192.168.178.29")
+      (lifx-manager "192.168.178.30")
+      (lifx-manager "192.168.178.37")
       nil
       nixpkgs-fmt
       obelisk
