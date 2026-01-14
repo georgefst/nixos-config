@@ -178,16 +178,15 @@ in
               ]
               (
                 let
-                  wMain = 0.758;
-                  wRight = 1 - wMain;
+                  mainWidth = 0.758;
                   hiddenTitlebarHeight = 0.012;
                 in
                 [
-                  { x = 0; y = 0; width = wMain; height = 1; }
-                  { x = wMain; y = 0.00; width = wRight; height = 0.25; }
-                  { x = wMain; y = 0.25; width = wRight; height = 0.25; }
-                  { x = wMain; y = 0.50; width = wRight; height = 0.25; }
-                  { x = wMain; y = 0.75 - hiddenTitlebarHeight; width = wRight; height = 0.25 + hiddenTitlebarHeight; }
+                  { x = 0; y = 0; width = mainWidth; height = 1; }
+                  { x = mainWidth; y = 0.00; width = 1 - mainWidth; height = 0.25; }
+                  { x = mainWidth; y = 0.25; width = 1 - mainWidth; height = 0.25; }
+                  { x = mainWidth; y = 0.50; width = 1 - mainWidth; height = 0.25; }
+                  { x = mainWidth; y = 0.75 - hiddenTitlebarHeight; width = 1 - mainWidth; height = 0.25 + hiddenTitlebarHeight; }
                 ]
               )
               (grid [ 0.27 ] [ ])
