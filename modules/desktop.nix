@@ -180,14 +180,14 @@ in
                 let
                   wMain = 0.758;
                   wRight = 1 - wMain;
-                  hTopRight = 1 - hBottomRight;
-                  hBottomRight = wRight;
                   hiddenTitlebarHeight = 0.012;
                 in
                 [
                   { x = 0; y = 0; width = wMain; height = 1; }
-                  { x = wMain; y = 0; width = wRight; height = hTopRight; }
-                  { x = wMain; y = hTopRight - hiddenTitlebarHeight; width = wRight; height = hBottomRight + hiddenTitlebarHeight; }
+                  { x = wMain; y = 0.00; width = wRight; height = 0.25; }
+                  { x = wMain; y = 0.25; width = wRight; height = 0.25; }
+                  { x = wMain; y = 0.50; width = wRight; height = 0.25; }
+                  { x = wMain; y = 0.75 - hiddenTitlebarHeight; width = wRight; height = 0.25 + hiddenTitlebarHeight; }
                 ]
               )
               (grid [ 0.27 ] [ ])
