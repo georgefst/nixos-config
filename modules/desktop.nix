@@ -218,7 +218,7 @@ in
       } // (with pkgs;
         let
           incrementBrightness = dir: name: binding: {
-            name = "brightness-small-step" + name;
+            name = "brightness-small-step-" + name;
             inherit binding;
             command = "${lib.getExe brightnessctl} set --exponent=2.5 2%${dir}";
           };
