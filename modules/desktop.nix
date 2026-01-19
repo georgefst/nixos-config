@@ -230,6 +230,9 @@ in
             [
               (incrementBrightness "-" "down" "<Shift>MonBrightnessDown")
               (incrementBrightness "+" "up" "<Shift>MonBrightnessUp")
+              # the bindings below are a temporary workaround, for the above not firing consistently in GNOME 49
+              (incrementBrightness "-" "down-alt" "<Shift><Super>7")
+              (incrementBrightness "+" "up-alt" "<Shift><Super>8")
               {
                 name = "toggle-panel";
                 binding = "<Super>semicolon";
