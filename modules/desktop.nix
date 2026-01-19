@@ -224,12 +224,12 @@ in
             })
             [
               {
-                name = "brightness-small-step-down";
+                name = "brightness-small-step-";
                 binding = "<Shift>MonBrightnessDown";
                 command = "${lib.getExe brightnessctl} set --exponent=2 2%-";
               }
               {
-                name = "brightness-small-step-up";
+                name = "brightness-small-step+";
                 binding = "<Shift>MonBrightnessUp";
                 command = "${lib.getExe brightnessctl} set --exponent=2 2%+";
               }
