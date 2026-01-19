@@ -133,7 +133,7 @@
           (import ./modules/universal.nix { flake = self; })
           ./modules/users.nix
           "${inputs.nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
-          ./machines/clark.nix
+          ./modules/clark.nix
           inputs.agenix.nixosModules.default
         ];
       };
