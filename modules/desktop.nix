@@ -217,8 +217,8 @@ in
         };
       } // (with pkgs;
         let
-          incrementBrightness = dir: binding: {
-            name = "brightness-small-step" + dir;
+          incrementBrightness = dir: name: binding: {
+            name = "brightness-small-step" + name;
             inherit binding;
             command = "${lib.getExe brightnessctl} set --exponent=2.5 2%${dir}";
           };
@@ -228,8 +228,8 @@ in
               inherit value;
             })
             [
-              (incrementBrightness "-" "<Shift>MonBrightnessDown")
-              (incrementBrightness "+" "<Shift>MonBrightnessUp")
+              (incrementBrightness "-" "down" "<Shift>MonBrightnessDown")
+              (incrementBrightness "+" "up" "<Shift>MonBrightnessUp")
               {
                 name = "toggle-panel";
                 binding = "<Super>semicolon";
