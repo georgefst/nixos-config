@@ -230,7 +230,7 @@ in
               {
                 name = "brightness-small-step-up";
                 binding = "<Shift>MonBrightnessUp";
-                command = "${lib.getExe brightnessctl} set --exponent=2 +2%";
+                command = "${lib.getExe brightnessctl} set --exponent=2 2%+";
               }
               {
                 name = "toggle-panel";
