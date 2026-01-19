@@ -220,7 +220,7 @@ in
           incrementBrightness = dir: binding: {
             name = "brightness-small-step" + dir;
             inherit binding;
-            command = "${lib.getExe brightnessctl} set --exponent=2 2%${dir}";
+            command = "${lib.getExe brightnessctl} set --exponent=2.5 2%${dir}";
           };
           bindings = lib.imap0
             (i: value: {
