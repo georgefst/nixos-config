@@ -14,12 +14,12 @@ let
     # we can go back to just `tiling-shell` once there's no longer anything interesting in `patches` field
     (pkgs.buildNpmPackage {
       pname = "gnome-shell-extension-tiling-shell";
-      version = "17.2-patched-13-01-2026";
+      version = "17.3-pre-patched-18-01-2026";
       src = pkgs.fetchFromGitHub {
         owner = "domferr";
         repo = "tilingshell";
-        rev = "17.2";
-        sha256 = "I5kAzf7945loYtqT3o59WZp+t2zw323KaP2wp1GpLKM=";
+        rev = "8f0f19be5c15d83ce2737ca7908676185f86a9f3";
+        sha256 = "oNHgC6BaF9uAclXGoBwFNztVf4oRDAlABNviWezCgk8=";
       };
       patches = [
         # adds package-lock.json - needed for Nix
