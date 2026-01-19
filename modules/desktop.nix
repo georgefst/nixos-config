@@ -217,22 +217,19 @@ in
         };
       } // (with pkgs;
         let
+          incrementBrightness = dir: binding: {
+            name = "brightness-small-step" + dir;
+            inherit binding;
+            command = "${lib.getExe brightnessctl} set --exponent=2 2%${dir}";
+          };
           bindings = lib.imap0
             (i: value: {
               name = "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom${toString i}";
               inherit value;
             })
             [
-              {
-                name = "brightness-small-step-";
-                binding = "<Shift>MonBrightnessDown";
-                command = "${lib.getExe brightnessctl} set --exponent=2 2%-";
-              }
-              {
-                name = "brightness-small-step+";
-                binding = "<Shift>MonBrightnessUp";
-                command = "${lib.getExe brightnessctl} set --exponent=2 2%+";
-              }
+              (incrementBrightness "-" "<Shift>MonBrightnessDown")
+              (incrementBrightness "+" "<Shift>MonBrightnessUp")
               {
                 name = "toggle-panel";
                 binding = "<Super>semicolon";
