@@ -88,7 +88,10 @@
                   };
                 in
                 (final: prev: {
+                  # packages where we want frequent updates
                   opencode = pkgs-unstable.opencode;
+                  spotify = pkgs-unstable.spotify;
+                  vscode = pkgs-unstable.vscode;
                 })
               )
               (final: prev: {
