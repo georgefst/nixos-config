@@ -140,6 +140,7 @@ in
         };
         "org/gnome/shell/extensions/tilingshell" = {
           cycle-layouts = [ "<Super>apostrophe" ];
+          cycle-layouts-backward = [ "<Shift><Super>apostrophe" ];
           focus-window-down = [ "<Super>Down" ];
           focus-window-left = [ "<Super>Left" ];
           focus-window-right = [ "<Super>Right" ];
