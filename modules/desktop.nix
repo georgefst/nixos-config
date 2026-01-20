@@ -125,11 +125,19 @@ in
           outer-gaps = mkUint32 0;
           layouts-json = let inherit (pkgs) lib; in builtins.toJSON (
             let
+              adjacentPairs = l: lib.zipListsWith (start: end: { inherit start end; }) l (lib.tail l);
+              cumulativeSum = list: builtins.genList (i: lib.foldl' builtins.add 0 (lib.take i list)) (builtins.length list + 1);
+              boundaries = splits: adjacentPairs ([ 0 ] ++ splits ++ [ 1 ]);
+              rows = rowDefs: lib.flatten (lib.zipListsWith
+                (pos: map (x: { x = x.start; y = pos.start; width = x.end - x.start; height = pos.end - pos.start; }))
+                (adjacentPairs (lib.init (cumulativeSum (map (row: row.height or 0) rowDefs)) ++ [ 1 ]))
+                (map (row: boundaries row.splits) rowDefs));
+              cols = colDefs: lib.flatten (lib.zipListsWith
+                (pos: map (y: { y = y.start; x = pos.start; height = y.end - y.start; width = pos.end - pos.start; }))
+                (adjacentPairs (lib.init (cumulativeSum (map (col: col.width or 0) colDefs)) ++ [ 1 ]))
+                (map (col: boundaries col.splits) colDefs));
               grid = xSplits: ySplits:
-                let adjacentPairs = l: lib.zipListsWith (start: end: { inherit start end; }) l (lib.tail l); in
-                lib.mapCartesianProduct
-                  ({ x, y }: { x = x.start; y = y.start; width = x.end - x.start; height = y.end - y.start; })
-                  (builtins.mapAttrs (_: l: adjacentPairs ([ 0 ] ++ l ++ [ 1 ])) { x = xSplits; y = ySplits; });
+                rows (map (y: { height = y.end - y.start; splits = xSplits; }) (boundaries ySplits));
             in
             lib.imap
               (i: tiles: {
@@ -137,11 +145,10 @@ in
                 tiles = map (tile: tile // { groups = [ ]; }) tiles;
               }) [
               (grid [ 0.5 ] [ ])
-              [
-                { x = 0; y = 0; width = 1; height = 0.68; }
-                { x = 0; y = 0.68; width = 0.4; height = 0.32; }
-                { x = 0.4; y = 0.68; width = 0.6; height = 0.32; }
-              ]
+              (rows [
+                { height = 0.68; splits = [ ]; }
+                { height = 0.32; splits = [ 0.4 ]; }
+              ])
               (
                 let
                   mainWidth = 0.758;
