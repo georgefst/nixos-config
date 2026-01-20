@@ -81,12 +81,7 @@
             overlays = [
               inputs.nix-vscode-extensions.overlays.default
               (
-                let
-                  pkgs-unstable = import inputs.nixpkgs-unstable {
-                    inherit system;
-                    config = nixpkgs-config;
-                  };
-                in
+                let pkgs-unstable = import inputs.nixpkgs-unstable { inherit system; config = nixpkgs-config; }; in
                 (final: prev: {
                   # packages where we want frequent updates
                   opencode = pkgs-unstable.opencode;
