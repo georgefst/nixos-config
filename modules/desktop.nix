@@ -11,43 +11,7 @@ let
     clipboard-indicator
     hide-cursor
     just-perfection
-    # we can go back to just `tiling-shell` once there's no longer anything interesting in `patches` field
-    (pkgs.buildNpmPackage {
-      pname = "gnome-shell-extension-tiling-shell";
-      version = "17.3-pre-patched-18-01-2026";
-      src = pkgs.fetchFromGitHub {
-        owner = "domferr";
-        repo = "tilingshell";
-        rev = "8f0f19be5c15d83ce2737ca7908676185f86a9f3";
-        sha256 = "oNHgC6BaF9uAclXGoBwFNztVf4oRDAlABNviWezCgk8=";
-      };
-      patches = [
-        # adds package-lock.json - needed for Nix
-        (pkgs.fetchpatch {
-          url = "https://github.com/georgefst/tilingshell/commit/4c85456.patch";
-          sha256 = "KycUCcHWqpt+qfJfsPlumqi9L3i4uBxgpceXTgEIzqQ=";
-        })
-        # https://github.com/domferr/tilingshell/pull/474
-        (pkgs.fetchpatch {
-          url = "https://github.com/georgefst/tilingshell/commit/8448a59.patch";
-          sha256 = "PEpwI7+Y8CwVv1Fxhkr5A9tR751gqSk4kE3KMe/et7g=";
-        })
-      ];
-      nativeBuildInputs = [ pkgs.glib ];
-      npmDepsHash = "sha256-ctNiJ+Esf0TOuqbJBz53rQLqSkwn875woDrEl8rJo3A=";
-      dontNpmInstall = true;
-      npmFlags = [ "--legacy-peer-deps" ];
-      installPhase = ''
-        runHook preInstall
-        mkdir -p $out/share/gnome-shell/extensions/tilingshell@ferrarodomenico.com
-        cp -r dist/* $out/share/gnome-shell/extensions/tilingshell@ferrarodomenico.com/
-        runHook postInstall
-      '';
-      passthru = {
-        extensionUuid = "tilingshell@ferrarodomenico.com";
-        extensionPortalSlug = "tiling-shell";
-      };
-    })
+    tiling-shell
     window-calls
   ];
 in
@@ -273,12 +237,6 @@ in
         startupWMClass = "chrome-app.v2.gather.town__app_obsidian-3812d4d3-1a3e-4e30-b603-b31c7b22e94f-Default";
       };
       ghc = haskellPackages.ghcWithPackages (import ./haskell-libs.nix);
-      spotify = pkgs.spotify.overrideAttrs (old: {
-        # https://community.spotify.com/t5/Desktop-Linux/Wayland-support/td-p/5231525/page/6
-        # when fixed, we can also remove `tilingshell` overlapping layout
-        nativeBuildInputs = old.nativeBuildInputs ++ [ pkgs.makeWrapper ];
-        postInstall = (old.postInstall or "") + "wrapProgram $out/bin/spotify --add-flags --ozone-platform=wayland";
-      });
       vscode = vscode-with-extensions.override {
         vscode = pkgs.vscode;
         vscodeExtensions = import ./vscode-extensions.nix nix-vscode-extensions.vscode-marketplace;

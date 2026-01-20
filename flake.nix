@@ -101,6 +101,54 @@
                 net-evdev = inputs.net-evdev.packages.${system}."net-evdev:exe:net-evdev";
                 obelisk = (final.callPackage inputs.obelisk { inherit system; }).command;
               })
+              # fixes to upstream
+              (final: prev: {
+                gnomeExtensions = prev.gnomeExtensions // {
+                  # we can remove this once there's no longer anything interesting in `patches` field
+                  tiling-shell = final.buildNpmPackage {
+                    pname = "gnome-shell-extension-tiling-shell";
+                    version = "17.3-pre-patched-18-01-2026";
+                    src = final.fetchFromGitHub {
+                      owner = "domferr";
+                      repo = "tilingshell";
+                      rev = "8f0f19be5c15d83ce2737ca7908676185f86a9f3";
+                      sha256 = "oNHgC6BaF9uAclXGoBwFNztVf4oRDAlABNviWezCgk8=";
+                    };
+                    patches = [
+                      # adds package-lock.json - needed for Nix
+                      (final.fetchpatch {
+                        url = "https://github.com/georgefst/tilingshell/commit/4c85456.patch";
+                        sha256 = "KycUCcHWqpt+qfJfsPlumqi9L3i4uBxgpceXTgEIzqQ=";
+                      })
+                      # https://github.com/domferr/tilingshell/pull/474
+                      (final.fetchpatch {
+                        url = "https://github.com/georgefst/tilingshell/commit/8448a59.patch";
+                        sha256 = "PEpwI7+Y8CwVv1Fxhkr5A9tR751gqSk4kE3KMe/et7g=";
+                      })
+                    ];
+                    nativeBuildInputs = [ final.glib ];
+                    npmDepsHash = "sha256-ctNiJ+Esf0TOuqbJBz53rQLqSkwn875woDrEl8rJo3A=";
+                    dontNpmInstall = true;
+                    npmFlags = [ "--legacy-peer-deps" ];
+                    installPhase = ''
+                      runHook preInstall
+                      mkdir -p $out/share/gnome-shell/extensions/tilingshell@ferrarodomenico.com
+                      cp -r dist/* $out/share/gnome-shell/extensions/tilingshell@ferrarodomenico.com/
+                      runHook postInstall
+                    '';
+                    passthru = {
+                      extensionUuid = "tilingshell@ferrarodomenico.com";
+                      extensionPortalSlug = "tiling-shell";
+                    };
+                  };
+                };
+                # https://community.spotify.com/t5/Desktop-Linux/Wayland-support/td-p/5231525/page/6
+                # when fixed, we can also remove `tilingshell` overlapping layout
+                spotify = prev.spotify.overrideAttrs (old: {
+                  nativeBuildInputs = old.nativeBuildInputs ++ [ final.makeWrapper ];
+                  postInstall = (old.postInstall or "") + "wrapProgram $out/bin/spotify --add-flags --ozone-platform=wayland";
+                });
+              })
             ];
           };
         })) packages devShells;
