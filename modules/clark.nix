@@ -178,14 +178,6 @@ in
       path = [ pkgs.curl pkgs.gh pkgs.git pkgs.openssh ];
       wantedBy = startup;
     };
-    evdev-share = service-with-crash-notification {
-      script = ''
-        evdev-share-server -p ${builtins.toString evdev-share-port} -n evdev-share
-      '';
-      description = "evdev share server";
-      path = [ pkgs.evdev-share ];
-      wantedBy = startup;
-    };
     http-watch = service-with-crash-notification {
       script = ''
         config=/syncthing/config/http-watch.dhall
