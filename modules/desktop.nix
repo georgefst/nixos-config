@@ -281,7 +281,7 @@ in
       });
       vscode = vscode-with-extensions.override {
         vscode = pkgs.vscode;
-        vscodeExtensions = (import ./vscode-extensions.nix nix-vscode-extensions.vscode-marketplace);
+        vscodeExtensions = import ./vscode-extensions.nix nix-vscode-extensions.vscode-marketplace;
       };
     in
     [
