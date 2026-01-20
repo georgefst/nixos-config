@@ -79,16 +79,18 @@
             inherit system;
             config = nixpkgs-config;
             overlays = [
+              # third-party overlays
               inputs.nix-vscode-extensions.overlays.default
+              # packages pulled from Nixpkgs unstable, since we want frequent updates
               (
                 let pkgs-unstable = import inputs.nixpkgs-unstable { inherit system; config = nixpkgs-config; }; in
                 (final: prev: {
-                  # packages where we want frequent updates
                   opencode = pkgs-unstable.opencode;
                   spotify = pkgs-unstable.spotify;
                   vscode = pkgs-unstable.vscode;
                 })
               )
+              # packages from non-Nixpkgs flake inputs
               (final: prev: {
                 clark = haskell.packages."clark:exe:clark";
                 evdev-share = inputs.evdev-share.packages.${system}.default;
