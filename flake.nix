@@ -176,11 +176,10 @@
       '';
 
       configs.sd.clark = lib.nixosSystem {
-        pkgs = packages.aarch64-linux;
+        pkgs = packages.x86_64-linux;
         modules = [
           (import ./modules/universal.nix { flake = self; })
           ./modules/users.nix
-          "${inputs.nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
           ./modules/clark.nix
           inputs.agenix.nixosModules.default
         ];
