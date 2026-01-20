@@ -161,6 +161,7 @@ in
                 ]
               )
               (grid [ 0.27 ] [ ])
+              (grid [ ] [ ])
               (grid [ 0.5 ] [ 0.5 ])
               [
                 # bottom left tile covers ugly Spotify Wayland CSD titlebar
