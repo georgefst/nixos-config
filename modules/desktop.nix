@@ -101,6 +101,7 @@ in
         "org/gnome/shell/extensions/just-perfection" = {
           animation = mkUint32 4;
           double-super-to-appgrid = false;
+          panel-in-overview = true;
         };
         "org/gnome/shell/extensions/tilingshell" = {
           cycle-layouts = [ "<Super>apostrophe" ];
