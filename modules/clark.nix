@@ -297,32 +297,32 @@ in
   ] ++ extra-ports;
 
   # syncthing
-  services.syncthing = {
-    enable = true;
-    openDefaultPorts = true;
-    user = "gthomas";
-    group = "users";
-    dataDir = home;
-    settings.devices = {
-      # Billy will introduce us to all others, so there's no need to list them here
-      billy = {
-        id = "3WIFNUH-VIST5DA-RROQ732-DDCKOQK-PWVERCB-7RNNG5R-JGRZX3M-WMAUQQP";
-        introducer = true;
-      };
-    };
-    settings.folders = {
-      default = {
-        path = syncthing-main-dir;
-        label = "Default";
-        devices = [ "billy" ];
-      };
-      fp5_bu8k-photos = {
-        path = syncthing-camera-dir;
-        label = "Android Camera";
-        devices = [ "billy" ];
-      };
-    };
-  };
+  # services.syncthing = {
+  #   enable = true;
+  #   openDefaultPorts = true;
+  #   user = "gthomas";
+  #   group = "users";
+  #   dataDir = home;
+  #   settings.devices = {
+  #     # Billy will introduce us to all others, so there's no need to list them here
+  #     billy = {
+  #       id = "3WIFNUH-VIST5DA-RROQ732-DDCKOQK-PWVERCB-7RNNG5R-JGRZX3M-WMAUQQP";
+  #       introducer = true;
+  #     };
+  #   };
+  #   settings.folders = {
+  #     default = {
+  #       path = syncthing-main-dir;
+  #       label = "Default";
+  #       devices = [ "billy" ];
+  #     };
+  #     fp5_bu8k-photos = {
+  #       path = syncthing-camera-dir;
+  #       label = "Android Camera";
+  #       devices = [ "billy" ];
+  #     };
+  #   };
+  # };
   system.activationScripts = {
     # these pipes are used from multiple services, so we set them up as early as possible
     make-pipes = ''
