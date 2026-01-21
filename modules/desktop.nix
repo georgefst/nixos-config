@@ -157,6 +157,7 @@ in
                 { height = 0.68; splits = [ ]; }
                 { splits = [ 0.4 ]; }
               ])
+              # bottom right tile covers ugly Chromium Wayland CSD titlebar
               (
                 let
                   mainWidth = 0.758;
