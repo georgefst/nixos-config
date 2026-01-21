@@ -158,15 +158,10 @@ in
                 { splits = [ 0.4 ]; }
               ])
               # bottom right tile covers ugly Chromium Wayland CSD titlebar
-              (
-                let
-                  mainWidth = 0.758;
-                  hiddenTitlebarHeight = 0.012;
-                in
-                mapWhen (t: t.x == mainWidth && t.y == 0.75) (extendTileUp hiddenTitlebarHeight) (cols [
-                  { width = mainWidth; splits = [ ]; }
-                  { splits = [ 0.25 0.5 0.75 ]; }
-                ])
+              (mapWhen (t: t.y == 0.75) (extendTileUp 0.012) (cols [
+                { width = 0.758; splits = [ ]; }
+                { splits = [ 0.25 0.5 0.75 ]; }
+              ])
               )
               (grid [ 0.27 ] [ ])
               (grid [ ] [ ])
