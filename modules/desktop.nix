@@ -146,6 +146,8 @@ in
               grid = xSplits: ySplits:
                 rows (map (y: { height = y.end - y.start; splits = xSplits; }) (boundaries ySplits));
               uniformGrid = n: let splits = builtins.genList (i: (i + 1.0) / n) (n - 1); in grid splits splits;
+              # for a tile which is used to show an app with an ugly Wayland CSD titlebar,
+              # this can be used to ensure that bar is covered by the tile above
               extendTileUp = d: tile: tile // { y = tile.y - d; height = tile.height + d; };
             in
             lib.imap
@@ -158,7 +160,6 @@ in
                 { height = 0.68; }
                 { splits = [ 0.4 ]; }
               ])
-              # bottom right tile has ugly Chromium Wayland CSD titlebar, so is covered by the tile above
               (mapWhen (t: t.y == 0.75) (extendTileUp 0.012) (cols [
                 { width = 0.758; }
                 { splits = [ 0.25 0.5 0.75 ]; }
@@ -167,7 +168,6 @@ in
               (grid [ 0.27 ] [ ])
               (uniformGrid 1)
               (uniformGrid 2)
-              # bottom left tile has ugly Spotify Wayland CSD titlebar, so is covered by the tile above
               (mapWhen (t: t.x == 0 && t.y == 0.5) (extendTileUp 0.014) (uniformGrid 2))
               (uniformGrid 3)
               (uniformGrid 4)
