@@ -158,7 +158,7 @@ in
                 { height = 0.68; }
                 { splits = [ 0.4 ]; }
               ])
-              # bottom right tile covers ugly Chromium Wayland CSD titlebar
+              # bottom right tile has ugly Chromium Wayland CSD titlebar, so is covered by the tile above
               (mapWhen (t: t.y == 0.75) (extendTileUp 0.012) (cols [
                 { width = 0.758; }
                 { splits = [ 0.25 0.5 0.75 ]; }
@@ -167,7 +167,7 @@ in
               (grid [ 0.27 ] [ ])
               (uniformGrid 1)
               (uniformGrid 2)
-              # bottom left tile covers ugly Spotify Wayland CSD titlebar
+              # bottom left tile has ugly Spotify Wayland CSD titlebar, so is covered by the tile above
               (mapWhen (t: t.x == 0 && t.y == 0.5) (extendTileUp 0.014) (uniformGrid 2))
               (uniformGrid 3)
               (uniformGrid 4)
