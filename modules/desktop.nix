@@ -138,11 +138,11 @@ in
               rows = rowDefs: lib.flatten (lib.zipListsWith
                 (pos: map (x: { x = x.start; y = pos.start; width = x.end - x.start; height = pos.end - pos.start; }))
                 (adjacentPairs (lib.init (scanl builtins.add 0 (map (row: row.height) rowDefs)) ++ [ 1 ]))
-                (map (row: boundaries row.splits) rowDefs));
+                (map (row: boundaries (row.splits or [ ])) rowDefs));
               cols = colDefs: lib.flatten (lib.zipListsWith
                 (pos: map (y: { y = y.start; x = pos.start; height = y.end - y.start; width = pos.end - pos.start; }))
                 (adjacentPairs (lib.init (scanl builtins.add 0 (map (col: col.width) colDefs)) ++ [ 1 ]))
-                (map (col: boundaries col.splits) colDefs));
+                (map (col: boundaries (col.splits or [ ])) colDefs));
               grid = xSplits: ySplits:
                 rows (map (y: { height = y.end - y.start; splits = xSplits; }) (boundaries ySplits));
               extendTileUp = d: tile: tile // { y = tile.y - d; height = tile.height + d; };
@@ -154,12 +154,12 @@ in
               }) [
               (grid [ 0.5 ] [ ])
               (rows [
-                { height = 0.68; splits = [ ]; }
+                { height = 0.68; }
                 { splits = [ 0.4 ]; }
               ])
               # bottom right tile covers ugly Chromium Wayland CSD titlebar
               (mapWhen (t: t.y == 0.75) (extendTileUp 0.012) (cols [
-                { width = 0.758; splits = [ ]; }
+                { width = 0.758; }
                 { splits = [ 0.25 0.5 0.75 ]; }
               ])
               )
