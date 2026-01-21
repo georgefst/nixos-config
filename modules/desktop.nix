@@ -145,6 +145,7 @@ in
                 (map (col: boundaries (col.splits or [ ])) colDefs));
               grid = xSplits: ySplits:
                 rows (map (y: { height = y.end - y.start; splits = xSplits; }) (boundaries ySplits));
+              uniformGrid = n: let splits = builtins.genList (i: (i + 1.0) / n) (n - 1); in grid splits splits;
               extendTileUp = d: tile: tile // { y = tile.y - d; height = tile.height + d; };
             in
             lib.imap
@@ -164,13 +165,13 @@ in
               ])
               )
               (grid [ 0.27 ] [ ])
-              (grid [ ] [ ])
-              (grid [ 0.5 ] [ 0.5 ])
+              (uniformGrid 1)
+              (uniformGrid 2)
               # bottom left tile covers ugly Spotify Wayland CSD titlebar
-              (mapWhen (t: t.x == 0 && t.y == 0.5) (extendTileUp 0.014) (grid [ 0.5 ] [ 0.5 ]))
-              (grid [ 0.33333 0.66667 ] [ 0.33333 0.66667 ])
-              (grid [ 0.25 0.50 0.75 ] [ 0.25 0.50 0.75 ])
-              (grid [ 0.2 0.4 0.6 0.8 ] [ 0.2 0.4 0.6 0.8 ])
+              (mapWhen (t: t.x == 0 && t.y == 0.5) (extendTileUp 0.014) (uniformGrid 2))
+              (uniformGrid 3)
+              (uniformGrid 4)
+              (uniformGrid 5)
             ]
           );
         };
