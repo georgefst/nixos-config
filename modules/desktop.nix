@@ -125,6 +125,7 @@ in
           outer-gaps = mkUint32 0;
           layouts-json = let inherit (pkgs) lib; in builtins.toJSON (
             let
+              mapWhen = p: f: map (x: if p x then f x else x);
               adjacentPairs = l: lib.zipListsWith (start: end: { inherit start end; }) l (lib.tail l);
               cumulativeSum = list: builtins.genList (i: lib.foldl' builtins.add 0 (lib.take i list)) (builtins.length list + 1);
               boundaries = splits: adjacentPairs ([ 0 ] ++ splits ++ [ 1 ]);
@@ -138,6 +139,7 @@ in
                 (map (col: boundaries col.splits) colDefs));
               grid = xSplits: ySplits:
                 rows (map (y: { height = y.end - y.start; splits = xSplits; }) (boundaries ySplits));
+              extendTileUp = d: tile: tile // { y = tile.y - d; height = tile.height + d; };
             in
             lib.imap
               (i: tiles: {
@@ -154,29 +156,16 @@ in
                   mainWidth = 0.758;
                   hiddenTitlebarHeight = 0.012;
                 in
-                [
-                  { x = 0; y = 0; width = mainWidth; height = 1; }
-                  { x = mainWidth; y = 0.00; width = 1 - mainWidth; height = 0.25; }
-                  { x = mainWidth; y = 0.25; width = 1 - mainWidth; height = 0.25; }
-                  { x = mainWidth; y = 0.50; width = 1 - mainWidth; height = 0.25; }
-                  {
-                    x = mainWidth;
-                    y = 0.75 - hiddenTitlebarHeight;
-                    width = 1 - mainWidth;
-                    height = 0.25 + hiddenTitlebarHeight;
-                  }
-                ]
+                mapWhen (t: t.x == mainWidth && t.y == 0.75) (extendTileUp hiddenTitlebarHeight) (cols [
+                  { width = mainWidth; splits = [ ]; }
+                  { width = 1 - mainWidth; splits = [ 0.25 0.5 0.75 ]; }
+                ])
               )
               (grid [ 0.27 ] [ ])
               (grid [ ] [ ])
               (grid [ 0.5 ] [ 0.5 ])
-              [
-                # bottom left tile covers ugly Spotify Wayland CSD titlebar
-                { height = 0.5; width = 0.5; x = 0; y = 0; }
-                { height = 0.5 + 0.014; width = 0.5; x = 0; y = 0.5 - 0.014; }
-                { height = 0.5; width = 0.5; x = 0.5; y = 0; }
-                { height = 0.5; width = 0.5; x = 0.5; y = 0.5; }
-              ]
+              # bottom left tile covers ugly Spotify Wayland CSD titlebar
+              (mapWhen (t: t.x == 0 && t.y == 0.5) (extendTileUp 0.014) (grid [ 0.5 ] [ 0.5 ]))
               (grid [ 0.33333 0.66667 ] [ 0.33333 0.66667 ])
               (grid [ 0.25 0.50 0.75 ] [ 0.25 0.50 0.75 ])
               (grid [ 0.2 0.4 0.6 0.8 ] [ 0.2 0.4 0.6 0.8 ])
