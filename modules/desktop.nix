@@ -127,15 +127,21 @@ in
             let
               mapWhen = p: f: map (x: if p x then f x else x);
               adjacentPairs = l: lib.zipListsWith (start: end: { inherit start end; }) l (lib.tail l);
-              cumulativeSum = list: builtins.genList (i: lib.foldl' builtins.add 0 (lib.take i list)) (builtins.length list + 1);
+              scanl = f: e: l:
+                let
+                  result = builtins.genList
+                    (i: if i == 0 then e else f (builtins.elemAt result (i - 1)) (builtins.elemAt l (i - 1)))
+                    (builtins.length l + 1);
+                in
+                result;
               boundaries = splits: adjacentPairs ([ 0 ] ++ splits ++ [ 1 ]);
               rows = rowDefs: lib.flatten (lib.zipListsWith
                 (pos: map (x: { x = x.start; y = pos.start; width = x.end - x.start; height = pos.end - pos.start; }))
-                (adjacentPairs (lib.init (cumulativeSum (map (row: row.height or 0) rowDefs)) ++ [ 1 ]))
+                (adjacentPairs (lib.init (scanl builtins.add 0 (map (row: row.height) rowDefs)) ++ [ 1 ]))
                 (map (row: boundaries row.splits) rowDefs));
               cols = colDefs: lib.flatten (lib.zipListsWith
                 (pos: map (y: { y = y.start; x = pos.start; height = y.end - y.start; width = pos.end - pos.start; }))
-                (adjacentPairs (lib.init (cumulativeSum (map (col: col.width or 0) colDefs)) ++ [ 1 ]))
+                (adjacentPairs (lib.init (scanl builtins.add 0 (map (col: col.width) colDefs)) ++ [ 1 ]))
                 (map (col: boundaries col.splits) colDefs));
               grid = xSplits: ySplits:
                 rows (map (y: { height = y.end - y.start; splits = xSplits; }) (boundaries ySplits));
@@ -149,7 +155,7 @@ in
               (grid [ 0.5 ] [ ])
               (rows [
                 { height = 0.68; splits = [ ]; }
-                { height = 0.32; splits = [ 0.4 ]; }
+                { splits = [ 0.4 ]; }
               ])
               (
                 let
@@ -158,7 +164,7 @@ in
                 in
                 mapWhen (t: t.x == mainWidth && t.y == 0.75) (extendTileUp hiddenTitlebarHeight) (cols [
                   { width = mainWidth; splits = [ ]; }
-                  { width = 1 - mainWidth; splits = [ 0.25 0.5 0.75 ]; }
+                  { splits = [ 0.25 0.5 0.75 ]; }
                 ])
               )
               (grid [ 0.27 ] [ ])
