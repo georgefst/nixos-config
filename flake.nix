@@ -167,12 +167,14 @@
         ];
       };
 
-      mandelbrot = { xMin, xMax, yMin, yMax }: packages.${buildSystem}.runCommand "mandelbrot" { } ''
+      mandelbrot = let pkgs = packages.${buildSystem}; in { x, y, size }: pkgs.runCommand "mandelbrot"
+        { nativeBuildInputs = [ pkgs.imagemagick ]; } ''
         ${lib.getExe packages.${buildSystem}.mandelbrot} \
           --width 3840 --height 3840 \
-          --xMin ${builtins.toString xMin} --xMax ${builtins.toString xMax} \
-          --yMin ${builtins.toString yMin} --yMax ${builtins.toString yMax} \
-          --out $out
+          --centreX ${builtins.toString x} --centreY ${builtins.toString y} \
+          --size ${builtins.toString size} \
+          --out raw.png
+        magick raw.png -dither FloydSteinberg PNG8:$out
       '';
 
       configs.sd.clark = lib.nixosSystem {
@@ -193,7 +195,7 @@
             inherit hostName;
             stateVersion = "25.05";
             laptop = true;
-            wallpaper = mandelbrot { xMin = -3; xMax = 1.8; yMin = -2.4; yMax = 2.4; };
+            wallpaper = mandelbrot { x = -0.6; y = 0; size = 4.8; };
           })
           ./modules/obsidian.nix
           nixos-hardware.nixosModules.framework-amd-ai-300-series
@@ -221,7 +223,7 @@
           (import ./modules/desktop.nix {
             inherit hostName;
             stateVersion = "25.11";
-            wallpaper = mandelbrot { xMin = -1; xMax = -0.5; yMin = 0; yMax = 0.5; };
+            wallpaper = mandelbrot { x = -0.75; y = 0.25; size = 0.5; };
             syncCamera = true;
             keyboardLayout = "gb+mac";
           })
