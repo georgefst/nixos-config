@@ -167,12 +167,13 @@
         ];
       };
 
-      mandelbrot = let pkgs = packages.${buildSystem}; in { x, y, size }: pkgs.runCommand "mandelbrot"
+      mandelbrot = let pkgs = packages.${buildSystem}; in { x, y, size, inverted ? false }: pkgs.runCommand "mandelbrot"
         { nativeBuildInputs = [ pkgs.imagemagick ]; } ''
         ${lib.getExe packages.${buildSystem}.mandelbrot} \
           --width 3840 --height 3840 \
           --centreX ${builtins.toString x} --centreY ${builtins.toString y} \
           --size ${builtins.toString size} \
+          ${if inverted then "--inverted" else ""} \
           --out raw.png
         magick raw.png -dither FloydSteinberg PNG8:$out
       '';
@@ -223,7 +224,7 @@
           (import ./modules/desktop.nix {
             inherit hostName;
             stateVersion = "25.11";
-            wallpaper = mandelbrot { x = -0.75; y = 0.25; size = 0.5; };
+            wallpaper = mandelbrot { x = -0.8; y = -0.2; size = 0.5; inverted = true; };
             syncCamera = true;
             keyboardLayout = "gb+mac";
           })

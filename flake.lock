@@ -610,11 +610,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1769035659,
-        "narHash": "sha256-3E/GxRtYzj9N9RtCe0hADKfoIo0r2G7YO0JGdK3mih4=",
+        "lastModified": 1769040050,
+        "narHash": "sha256-3125PEI4TRPpyrcnPHbA/37XjcgE7n4YM1WP/vuEUpk=",
         "owner": "georgefst",
         "repo": "hs-scripts",
-        "rev": "4d40896a11eec28496159571919ed3cf1ae144f3",
+        "rev": "f2854cd5cb83f34831b9d46f95dd6251dbfa59cf",
         "type": "github"
       },
       "original": {
