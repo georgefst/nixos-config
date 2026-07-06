@@ -23,6 +23,7 @@ in
   boot.loader.systemd-boot.enable = true;
   boot.loader.systemd-boot.configurationLimit = 16;
   boot.loader.efi.canTouchEfiVariables = true;
+  boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
 
   # desktop
   services.displayManager.gdm.enable = true;
@@ -295,7 +296,6 @@ in
     dedicatedServer.openFirewall = true;
     localNetworkGameTransfers.openFirewall = true;
   };
-  boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
 
   # firefox
   programs.firefox = {
