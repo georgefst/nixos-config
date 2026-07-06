@@ -16,7 +16,7 @@ send m =
             "mosquitto_pub"
             [ "--insecure"
             , "--cafile"
-            , "/syncthing/config/mqtt/certs/ca/ca.crt"
+            , "/sync/config/mqtt/certs/ca/ca.crt"
             , "-t"
             , "/appliance/1803194914121229080634298f154a3a/subscribe"
             , "-m"

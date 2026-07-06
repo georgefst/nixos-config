@@ -1,0 +1,154 @@
+--- a/packages/opencode/src/lsp/lsp.ts	1970-01-01 01:00:01.000000000 +0100
++++ b/packages/opencode/src/lsp/lsp.ts	2026-05-21 19:16:19.026372223 +0100
+@@ -147,6 +147,7 @@
+   readonly prepareCallHierarchy: (input: LocInput) => Effect.Effect<any[]>
+   readonly incomingCalls: (input: LocInput) => Effect.Effect<any[]>
+   readonly outgoingCalls: (input: LocInput) => Effect.Effect<any[]>
++  readonly restartByExtension: (extension: string) => Effect.Effect<string[]>
+ }
+ 
+ export class Service extends Context.Service<Service, Interface>()("@opencode/LSP") {}
+@@ -491,6 +492,32 @@
+       return yield* callHierarchyRequest(input, "callHierarchy/outgoingCalls")
+     })
+ 
++    const restartByExtension = Effect.fn("LSP.restartByExtension")(function* (extension: string) {
++      const s = yield* InstanceState.get(state)
++      return yield* Effect.promise(async () => {
++        const restarted: string[] = []
++
++        for (const server of Object.values(s.servers)) {
++          if (server.extensions.length && !server.extensions.includes(extension)) continue
++
++          for (const client of s.clients.filter((c) => c.serverID === server.id)) {
++            log.info("restarting LSP server", { serverID: client.serverID, root: client.root })
++            await client.shutdown()
++            const idx = s.clients.indexOf(client)
++            if (idx >= 0) s.clients.splice(idx, 1)
++            s.broken.delete(client.root + client.serverID)
++            restarted.push(server.id)
++          }
++        }
++
++        if (restarted.length > 0) {
++          Bus.publish(Event.Updated, {})
++        }
++
++        return restarted
++      })
++    })
++
+     return Service.of({
+       init,
+       status,
+@@ -506,6 +533,7 @@
+       prepareCallHierarchy,
+       incomingCalls,
+       outgoingCalls,
++      restartByExtension,
+     })
+   }),
+ )
+--- a/packages/opencode/src/tool/lsp.ts	1970-01-01 01:00:01.000000000 +0100
++++ b/packages/opencode/src/tool/lsp.ts	2026-05-21 19:16:37.920382030 +0100
+@@ -18,20 +18,26 @@
+   "prepareCallHierarchy",
+   "incomingCalls",
+   "outgoingCalls",
++  "restartServer",
+ ] as const
+ 
+ export const Parameters = Schema.Struct({
+   operation: Schema.Literals(operations).annotate({ description: "The LSP operation to perform" }),
+-  filePath: Schema.String.annotate({ description: "The absolute or relative path to the file" }),
+-  line: Schema.Int.check(Schema.isGreaterThanOrEqualTo(1)).annotate({
+-    description: "The line number (1-based, as shown in editors)",
++  filePath: Schema.optional(Schema.String).annotate({
++    description: "The absolute or relative path to the file (required for most operations)",
+   }),
+-  character: Schema.Int.check(Schema.isGreaterThanOrEqualTo(1)).annotate({
+-    description: "The character offset (1-based, as shown in editors)",
++  line: Schema.optional(Schema.Int.check(Schema.isGreaterThanOrEqualTo(1))).annotate({
++    description: "The line number (1-based, required for position-based operations)",
++  }),
++  character: Schema.optional(Schema.Int.check(Schema.isGreaterThanOrEqualTo(1))).annotate({
++    description: "The character offset (1-based, required for position-based operations)",
+   }),
+   query: Schema.optional(Schema.String).annotate({
+     description: "Search query for workspaceSymbol. Empty string requests all symbols.",
+   }),
++  extension: Schema.optional(Schema.String).annotate({
++    description: "File extension for restartServer operation (e.g., '.py', '.ts')",
++  }),
+ })
+ 
+ export const LspTool = Tool.define(
+@@ -44,6 +50,39 @@
+       parameters: Parameters,
+       execute: (args: Schema.Schema.Type<typeof Parameters>, ctx: Tool.Context) =>
+         Effect.gen(function* () {
++          if (args.operation === "restartServer") {
++            if (!args.extension) {
++              throw new Error("extension is required for restartServer operation")
++            }
++            const ext = args.extension.startsWith(".") ? args.extension : `.${args.extension}`
++            yield* ctx.ask({
++              permission: "lsp",
++              patterns: ["*"],
++              always: ["*"],
++              metadata: {},
++            })
++            const restarted = yield* lsp.restartByExtension(ext)
++            const output =
++              restarted.length === 0
++                ? `No LSP servers found for extension ${ext}`
++                : `Restarted LSP server(s): ${restarted.join(", ")}`
++            return {
++              title: `restartServer ${ext}`,
++              metadata: { result: restarted },
++              output,
++            }
++          }
++
++          if (!args.filePath) {
++            throw new Error("filePath is required for this operation")
++          }
++          if (args.line === undefined) {
++            throw new Error("line is required for this operation")
++          }
++          if (args.character === undefined) {
++            throw new Error("character is required for this operation")
++          }
++
+           const instance = yield* InstanceState.context
+           const file = path.isAbsolute(args.filePath) ? args.filePath : path.join(instance.directory, args.filePath)
+           yield* assertExternalDirectoryEffect(ctx, file)
+@@ -99,6 +138,8 @@
+                 return lsp.incomingCalls(position)
+               case "outgoingCalls":
+                 return lsp.outgoingCalls(position)
++              case "restartServer":
++                throw new Error("Unreachable")
+             }
+           })()
+ 
+--- a/packages/opencode/src/tool/lsp.txt	1970-01-01 01:00:01.000000000 +0100
++++ b/packages/opencode/src/tool/lsp.txt	2026-05-21 19:16:58.789393020 +0100
+@@ -10,6 +10,7 @@
+ - prepareCallHierarchy: Get call hierarchy item at a position (functions/methods)
+ - incomingCalls: Find all functions/methods that call the function at a position
+ - outgoingCalls: Find all functions/methods called by the function at a position
++- restartServer: Restart LSP server(s) for a file extension (useful after installing dependencies)
+ 
+ All operations require:
+ - filePath: The file to operate on
+@@ -19,6 +20,9 @@
+ workspaceSymbol also accepts:
+ - query: A query string to filter symbols by. Empty string requests all symbols.
+ 
++The restartServer operation requires:
++- extension: The file extension (e.g., ".py", ".ts")
++
+ For workspaceSymbol, filePath is not sent in the LSP workspace/symbol request. It is used by opencode to select and start the matching LSP server.
+ 
+ Note: LSP servers must be configured for the file type. If no server is available, an error will be returned.

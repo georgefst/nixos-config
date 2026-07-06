@@ -1,3 +1,4 @@
 dist*
 result
 *.qcow2
+*.img

@@ -5,18 +5,15 @@ exts: with exts; [
   brunnerh.insert-unicode
   dhall.dhall-lang
   dhall.vscode-dhall-lsp-server
-  gruntfuggly.todo-tree
   esbenp.prettier-vscode
   haskell.haskell
+  haskell.language-haskell
   janw4ld.lambda-black
   jnoortheen.nix-ide
   jsynowiec.vscode-insertdatestring
-  justusadam.language-haskell
   ms-vsliveshare.vsliveshare
-  nwolverson.ide-purescript
-  nwolverson.language-purescript
   rioj7.select-by
   rust-lang.rust-analyzer
-  saoudrizwan.claude-dev
   tamasfe.even-better-toml
+  well-typed.haskell-debugger-extension
 ]

@@ -1,4 +1,4 @@
-hpkgs: with hpkgs; [
+pkgs: hpkgs: with hpkgs; [
   aeson
   aeson-optics
   ansi-terminal
@@ -63,5 +63,36 @@ hpkgs: with hpkgs; [
   wai
   wai-app-static
   warp
-  websockets
+  # https://github.com/georgefst/colour-parsers (not on Hackage)
+  (pkgs.haskell.lib.dontCheck
+    (callCabal2nix "colour-parsers"
+      (pkgs.fetchFromGitHub {
+        owner = "georgefst";
+        repo = "colour-parsers";
+        rev = "57ee42e3bebb461a2a9cc0e1bd8c23b648d95147";
+        sha256 = "nZSRNKL/A05yS401RP8tvcG2Ms4uNtYxoUjj15QaGIE=";
+      })
+      { }
+    )
+  )
+  # https://github.com/lexi-lambda/freer-simple/pull/45
+  (callCabal2nix "freer-simple"
+    (pkgs.fetchFromGitHub {
+      owner = "georgefst";
+      repo = "freer-simple";
+      rev = "e1d88c1ee036115ef527bda8c66da997962b3f34";
+      sha256 = "/AnRoCx5IRf9Q8+fLk+Wilo16LNxhRxYvCLkuBIWIy0=";
+    })
+    { }
+  )
+  # https://github.com/haskell-game/webcolor-labels/issues/3
+  (callCabal2nix "webcolor-labels"
+    (pkgs.fetchFromGitHub {
+      owner = "haskell-game";
+      repo = "webcolor-labels";
+      rev = "279a8ef59f0dd2c77f51d606315d90431d548db0";
+      sha256 = "Y0o+MBSuzgCRtgYc+Vo3zt0GqWW6jjtGwqG/IB6LuYA=";
+    })
+    { }
+  )
 ]

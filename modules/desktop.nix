@@ -2,15 +2,17 @@
 , stateVersion # https://nixos.wiki/wiki/FAQ/When_do_I_update_stateVersion
 , laptop ? false
 , wallpaper
-, syncCamera ? false
 , keyboardLayout ? "gb"
 }:
-{ pkgs, options, ... }:
+{ pkgs, config, ... }:
 let
   gnomeExts = with pkgs.gnomeExtensions; [
+    appindicator
     clipboard-indicator
     hide-cursor
     just-perfection
+    mouse-follows-focus-2
+    panel-color
     tiling-shell
     window-calls
   ];
@@ -28,12 +30,61 @@ in
   # desktop
   services.displayManager.gdm.enable = true;
   services.desktopManager.gnome.enable = true;
-  programs.dconf.profiles.user.databases = [
-    {
+  programs.dconf.profiles.user.databases = with pkgs.lib.gvariant;
+    let
+      mkLoc = name: station: lat: lon: b: c: mkVariant (mkTuple [
+        (mkUint32 2)
+        (mkVariant (mkTuple [ name station b [ (mkTuple [ lat lon ]) ] c ]))
+      ]);
+      london = mkLoc "London" "EGWU" 0.89971699999999999 (-0.0072719999999999998)
+        true [ (mkTuple [ 0.89971722940307675 (-0.007272211034407213) ]) ];
+      cardiff = mkLoc "Cardiff" "EGFF" 0.89709923552508541 (-0.058468529941810045)
+        true [ (mkTuple [ 0.89884456477707964 (-0.055850536063818547) ]) ];
+      newcastle = mkLoc "Newcastle" "EGNT" 0.96051285919644858 (-0.029670597283903602)
+        false
+        (mkEmptyArray (type.tupleOf [ type.double type.double ]));
+      zurich = mkLoc "Zürich" "LSZH" 0.82874050067087668 0.14893475701908529
+        true [ (mkTuple [ 0.82670429484574492 0.14922565104551519 ]) ];
+      newYork = mkLoc "New York" "KNYC" 0.71180344078725644 (-1.2909618758762367)
+        true [ (mkTuple [ 0.71059804659265924 (-1.2916478949920254) ]) ];
+      hongKong = mkLoc "Hong Kong" "VHHH" 0.38979019379430269 1.9928751117510946
+        true [ (mkTuple [ 0.38949931722116538 1.9928751117510946 ]) ];
+      clockLocations = [ newYork london zurich hongKong ];
+      weatherLocations = [ london cardiff newcastle ];
+      bindings = with pkgs;
+        let
+          incrementBrightness = dir: name: binding: {
+            name = "brightness-small-step-" + name;
+            inherit binding;
+            command = "${lib.getExe brightnessctl} set --exponent=2.5 2%${dir}";
+          };
+        in
+        lib.imap0
+          (i: value: {
+            name = "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom${toString i}";
+            inherit value;
+          })
+          [
+            (incrementBrightness "-" "down" "<Shift>MonBrightnessDown")
+            (incrementBrightness "+" "up" "<Shift>MonBrightnessUp")
+            {
+              name = "toggle-panel";
+              binding = "<Super>semicolon";
+              command = "${pkgs.writeShellScript "toggle-panel" ''
+                  S=/org/gnome/shell/extensions/just-perfection/panel
+                  if [[ $(dconf read $S) == true ]] ; then dconf write $S false ; else dconf write $S true ; fi
+                ''}";
+            }
+          ];
+    in
+    [{
       lockAll = true;
-      settings = with pkgs.lib.gvariant; {
+      settings = {
         "desktop/ibus/panel/emoji" = {
           hotkey = [ "<Super>numbersign" ];
+        };
+        "org/gnome/clocks" = {
+          world-clocks = map (l: [ (mkDictionaryEntry "location" l) ]) clockLocations;
         };
         "org/gnome/desktop/background" = {
           picture-uri-dark = "file:///${wallpaper}";
@@ -67,6 +118,7 @@ in
           night-light-temperature = mkUint32 3500;
         };
         "org/gnome/settings-daemon/plugins/media-keys" = {
+          custom-keybindings = map (b: "/${b.name}/") bindings;
           logout = [ "<Control><Super>l" ];
           reboot = [ "<Control><Super>r" ];
           shutdown = [ "<Control><Super>o" ];
@@ -86,7 +138,7 @@ in
             "firefox.desktop"
             "code.desktop"
             "spotify.desktop"
-            "org.gnome.Geary.desktop"
+            "thunderbird.desktop"
             "org.gnome.Calendar.desktop"
             "org.gnome.Nautilus.desktop"
             "org.gnome.Console.desktop"
@@ -100,10 +152,21 @@ in
         "org/gnome/shell/extensions/clipboard-indicator" = {
           toggle-menu = [ "<Super>c" ];
         };
+        "org/gnome/shell/extensions/hide-cursor-elcste-com" = {
+          timeout = mkUint32 1;
+        };
         "org/gnome/shell/extensions/just-perfection" = {
           animation = mkUint32 4;
           double-super-to-appgrid = false;
           panel-in-overview = true;
+        };
+        "org/gnome/shell/extensions/mouse-follows-focus" = {
+          bottom-bar-height = mkUint32 0;
+          minimum-size-trigger = mkUint32 0;
+          top-bar-height = mkUint32 0;
+        };
+        "org/gnome/shell/extensions/panelcolor" = {
+          other-color = "rgba(0,0,0,0.5)";
         };
         "org/gnome/shell/extensions/tilingshell" = {
           cycle-layouts = [ "<Super>apostrophe" ];
@@ -127,7 +190,6 @@ in
           outer-gaps = mkUint32 0;
           layouts-json = let inherit (pkgs) lib; in builtins.toJSON (
             let
-              mapWhen = p: f: map (x: if p x then f x else x);
               adjacentPairs = l: lib.zipListsWith (start: end: { inherit start end; }) l (lib.tail l);
               scanl = f: e: l:
                 let
@@ -148,9 +210,6 @@ in
               grid = xSplits: ySplits:
                 rows (map (y: { height = y.end - y.start; splits = xSplits; }) (boundaries ySplits));
               uniformGrid = n: let splits = builtins.genList (i: (i + 1.0) / n) (n - 1); in grid splits splits;
-              # for a tile which is used to show an app with an ugly Wayland CSD titlebar,
-              # this can be used to ensure that bar is covered by the tile above
-              extendTileUp = d: tile: tile // { y = tile.y - d; height = tile.height + d; };
             in
             lib.imap
               (i: tiles: {
@@ -162,15 +221,13 @@ in
                 { height = 0.68; }
                 { splits = [ 0.4 ]; }
               ])
-              (mapWhen (t: t.y == 0.75) (extendTileUp 0.012) (cols [
+              (cols [
                 { width = 0.758; }
                 { splits = [ 0.25 0.5 0.75 ]; }
               ])
-              )
               (grid [ 0.27 ] [ ])
               (uniformGrid 1)
               (uniformGrid 2)
-              (mapWhen (t: t.x == 0 && t.y == 0.5) (extendTileUp 0.014) (uniformGrid 2))
               (uniformGrid 3)
               (uniformGrid 4)
               (uniformGrid 5)
@@ -182,42 +239,45 @@ in
           toggle-message-tray = [ "<Super>period" ];
           toggle-quick-settings = [ "<Super>comma" ];
         };
-      } // (with pkgs;
-        let
-          incrementBrightness = dir: name: binding: {
-            name = "brightness-small-step-" + name;
-            inherit binding;
-            command = "${lib.getExe brightnessctl} set --exponent=2.5 2%${dir}";
-          };
-          bindings = lib.imap0
-            (i: value: {
-              name = "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom${toString i}";
-              inherit value;
-            })
-            [
-              (incrementBrightness "-" "down" "<Shift>MonBrightnessDown")
-              (incrementBrightness "+" "up" "<Shift>MonBrightnessUp")
-              # the bindings below are a temporary workaround, for the above not firing consistently in GNOME 49
-              (incrementBrightness "-" "down-alt" "<Shift><Super>7")
-              (incrementBrightness "+" "up-alt" "<Shift><Super>8")
-              {
-                name = "toggle-panel";
-                binding = "<Super>semicolon";
-                command = "${pkgs.writeShellScript "toggle-panel" ''
-                  S=/org/gnome/shell/extensions/just-perfection/panel
-                  if [[ $(dconf read $S) == true ]] ; then dconf write $S false ; else dconf write $S true ; fi
-                ''}";
-              }
-            ];
-        in
-        { "org/gnome/settings-daemon/plugins/media-keys".custom-keybindings = map (b: "/${b.name}/") bindings; }
-          // lib.listToAttrs bindings
-      );
-    }
-  ];
+        "org/gnome/shell/weather" = {
+          locations = weatherLocations;
+        };
+        "org/gnome/shell/world-clocks" = {
+          locations = clockLocations;
+        };
+        "org/gnome/Weather" = {
+          locations = weatherLocations;
+        };
+      }
+      // pkgs.lib.listToAttrs bindings;
+    }];
   services.logind.settings.Login.HandleLidSwitch = "lock";
   # forces electron apps to use Wayland - needed for Discord, at least, to avoid blurry text
   environment.variables.ELECTRON_OZONE_PLATFORM_HINT = "auto";
+
+  # serve Nix store over SSH
+  nix.sshServe = {
+    enable = true;
+    keys = config.users.users.gthomas.openssh.authorizedKeys.keys;
+  };
+  programs.ssh = {
+    knownHosts = {
+      fry.publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGigM5uHEdyX7x4GXAYY5YxdYIH/3pt+XlhagfqRVtm+";
+      crow.publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILeV081Gv4Gxxqoko//8anSYWITZV7OWL83bZM7eigmt";
+    };
+    extraConfig = ''
+      Host fry crow
+        IdentityFile /home/gthomas/.ssh/id_ed25519
+      Host *
+        ConnectTimeout 3
+    '';
+  };
+  nix.settings.fallback = true;
+  services.openssh.settings = {
+    MaxStartups = "100:30:300";
+    MaxSessions = 50;
+  };
+  nix.settings.secret-key-files = [ "/home/gthomas/.config/nix/private-key" ];
 
   # global installs
   environment.systemPackages = with pkgs;
@@ -237,17 +297,22 @@ in
         # Gather as desktop app, via Chromium
         name = "gather";
         desktopName = "Gather";
-        exec = "${lib.getExe chromium} --app=https://app.v2.gather.town/app/obsidian-3812d4d3-1a3e-4e30-b603-b31c7b22e94f";
+        exec = pkgs.writeShellScript "gather-launch" ''
+          id=$(<${config.age.secrets.gather-id.path})
+          exec ${lib.getExe chromium} --class=gather --app=https://app.v2.gather.town/app/$id;
+        '';
         icon = "${../assets/gather.png}";
-        startupWMClass = "chrome-app.v2.gather.town__app_obsidian-3812d4d3-1a3e-4e30-b603-b31c7b22e94f-Default";
+        startupWMClass = "gather";
       };
-      ghc = haskellPackages.ghcWithPackages (import ./haskell-libs.nix);
+      ghc = haskellPackages.ghcWithPackages (import ./haskell-libs.nix pkgs);
       vscode = vscode-with-extensions.override {
         vscode = pkgs.vscode;
-        vscodeExtensions = import ./vscode-extensions.nix nix-vscode-extensions.vscode-marketplace;
+        vscodeExtensions = import ./vscode-extensions.nix nix-vscode-extensions.vscode-marketplace-release;
       };
     in
     [
+      agenix
+      crosspipe
       dhall-lsp-server
       discord
       element-desktop
@@ -258,23 +323,25 @@ in
       ghcid
       ghciwatch
       haskell-language-server
-      helvum
       hix
       libreoffice
       (lifx-manager [ 192 168 178 29 ])
       (lifx-manager [ 192 168 178 30 ])
       (lifx-manager [ 192 168 178 37 ])
       nil
+      nixd
+      nixfmt
       nixpkgs-fmt
-      obelisk
       opencode
       popsicle
       rust-analyzer
       signal-desktop
       spotify
+      thunderbird
       vscode
       wl-clipboard
       ydotool
+      zed-editor
     ]
     ++ gnomeExts
     ++ [
@@ -316,36 +383,6 @@ in
     pulse.enable = true;
     jack.enable = true;
   };
-
-  # syncthing
-  services.syncthing = {
-    enable = true;
-    openDefaultPorts = true;
-    group = "users";
-    user = "gthomas";
-    dataDir = "/home/gthomas/sync";
-    settings.devices = {
-      billy = {
-        id = "3WIFNUH-VIST5DA-RROQ732-DDCKOQK-PWVERCB-7RNNG5R-JGRZX3M-WMAUQQP";
-        introducer = true;
-      };
-    };
-    settings.folders = {
-      default = {
-        path = "~/sync/main";
-        devices = [ "billy" ];
-      };
-      fp5_bu8k-photos = {
-        path = "~/sync/camera";
-        label = "Android Camera";
-        devices = [ "billy" ];
-        enable = syncCamera;
-      };
-    };
-  };
-  system.activationScripts.syncthing-root-link = ''
-    if [[ ! -e /sync ]]; then ln -s /home/gthomas/sync/main /sync ; fi
-  '';
 
   # custom services
   systemd.services.net-evdev = {

@@ -1,10 +1,16 @@
 let
-  clark = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBxRb7WoSVlSXAcj6x/uTz6MSO5ZyOOY+yo7wecCI3A2";
-  x = { publicKeys = [ clark ]; };
+  keys = builtins.concatLists
+    (map (d: builtins.attrValues (d.ssh or { }))
+      (builtins.attrValues (import ../nix/devices.nix)));
 in
-{
-  "github.key.age" = x;
-  "mailgun.key.age" = x;
-  "mailgun.sandbox.age" = x;
-  "wifi.age" = x;
-}
+builtins.listToAttrs (map
+  (s: {
+    name = s + ".age";
+    value.publicKeys = keys;
+  }) [
+  "wifi"
+  "github.key"
+  "mailgun.key"
+  "mailgun.sandbox"
+  "gather.id"
+])

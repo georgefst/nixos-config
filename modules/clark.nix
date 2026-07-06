@@ -1,30 +1,20 @@
-{ pkgs, config, ... }:
-with builtins;
+{ pkgs, lib, config, ... }:
 let
   # some of the places I'm using this are running as root
   home = "/home/gthomas";
-
-  # useful for systemd `wanted-by` field, to make services always on
-  startup-root = [ "multi-user.target" ];
-  startup = [ "default.target" ];
 
   # arbitrary - all that matters is that these don't conflict with each other or anything else
   clark-script-udp-port = 56710; # if we change this we need to modify Tasker config, .bashrc etc.
   clark-script-lifx-port = 56711;
   clark-script-http-port = 8000; # if we change this we need to modify Shelly buttons etc.
   evdev-share-port = 56701;
-  droopy-port = 80;
+  file-server-port = 80;
   mqtt-port = 8883; # actually the default port, and probably implicitly assumed all over, including outside this file
   extra-ports = [ 56720 ]; # for temporary scripts etc.
   system-led-pipe = "/tmp/system-led-pipe";
   power-off-pipe = "/tmp/power-off-pipe";
   email-pipe = "/tmp/email-pipe";
-  ip-file = "/tmp/ip-address";
-
-  # directories
-  file-server-dir = home + "/serve";
-  syncthing-main-dir = home + "/sync";
-  syncthing-camera-dir = home + "/sync-camera";
+  notify-crash-service = "notify-crash@";
 
   # GPIO
   gpio-chip = 0;
@@ -33,51 +23,38 @@ let
   led-other-pin = 26;
 
   # helpers
-  agenix-user-secret = file: {
-    inherit file;
-    mode = "770";
-    owner = "gthomas";
-    group = "users";
-  };
-  service-with-crash-notification = service: service // {
-    postStop = ''
-      printf "SERVICE_RESULT: $SERVICE_RESULT\n"
-      printf "EXIT_CODE: $EXIT_CODE\n"
-      printf "EXIT_STATUS: $EXIT_STATUS\n"
-    '' + (service.postStop or "") + ''
-      if [ $SERVICE_RESULT != success ]
-      then
-        printf 'Clark service crashed: ${service.description}
-        Inspect service logs for more info.
-        ' > ${email-pipe}
-      fi
-    '';
-    path = (service.path or [ ]);
-  };
+  mkService =
+    { asUser ? false
+    , atStartup ? true
+    , notifyOnCrash ? true
+    }: service:
+    lib.mkMerge ([
+      service
+      {
+        postStop = ''
+          printf "SERVICE_RESULT: $SERVICE_RESULT\n"
+          printf "EXIT_CODE: $EXIT_CODE\n"
+          printf "EXIT_STATUS: $EXIT_STATUS\n"
+        '';
+      }
+    ] ++ lib.optional atStartup {
+      wantedBy = [ "multi-user.target" ];
+    } ++ lib.optional asUser {
+      # we use system services everywhere to avoid issues with lingering, but sometimes need to drop down to user level
+      serviceConfig.User = "gthomas";
+      serviceConfig.Group = "users";
+    } ++ lib.optional notifyOnCrash {
+      unitConfig.OnFailure = [ "${notify-crash-service}%n.service" ];
+    });
 in
 {
-  imports =
-    [
-    ];
-
   # stuff I'm probably never going to change
   networking.hostName = "clark";
-  system.stateVersion = "21.05"; # https://nixos.wiki/wiki/FAQ/When_do_I_update_stateVersion
+  system.stateVersion = "26.05"; # https://nixos.wiki/wiki/FAQ/When_do_I_update_stateVersion
   boot.loader.grub.enable = false;
   boot.loader.generic-extlinux-compatible.enable = true;
   hardware.enableRedistributableFirmware = true;
   hardware.firmware = [ pkgs.wireless-regdb ];
-
-  # agenix
-  age.secrets.gh-key = agenix-user-secret ../secrets/github.key.age;
-  age.secrets.mailgun-key = agenix-user-secret ../secrets/mailgun.key.age;
-  age.secrets.mailgun-sandbox = agenix-user-secret ../secrets/mailgun.sandbox.age;
-  age.secrets.wifi = agenix-user-secret ../secrets/wifi.age;
-
-  # overlays
-  nixpkgs.overlays = [
-    (self: super: { })
-  ];
 
   # gpio and uinput permissions
   users.groups.gpio = { members = [ "gthomas" ]; };
@@ -91,24 +68,25 @@ in
   networking.wireless.enable = true;
   networking.wireless.interfaces = [ "wlan0" ];
   networking.wireless.secretsFile = config.age.secrets.wifi.path;
-  networking.wireless.networks = {
-    lisa.pskRaw = "ext:PSK_lisa";
-    Zeus.pskRaw = "ext:PSK_Zeus";
-  };
-
-  # ssh
-  services.openssh.enable = true;
+  networking.wireless.networks = builtins.listToAttrs
+    (map (name: { inherit name; value.pskRaw = "ext:PSK_${name}"; })
+      (import ../nix/wifi.nix));
 
   # global installs
   environment.systemPackages = with pkgs; [
-    autoPatchelfHook
     libgpiod
   ];
 
   # systemd
-  users.users.gthomas.linger = true;
-  systemd.user.services = {
-    clark = service-with-crash-notification {
+  systemd.services = {
+    "${notify-crash-service}" = mkService { notifyOnCrash = false; } {
+      script = ''
+        printf 'Clark service crashed: %s\nInspect service logs for more info.\n' "$1" > ${email-pipe}
+      '';
+      scriptArgs = "%i";
+      serviceConfig.Type = "oneshot";
+    };
+    clark = mkService { asUser = true; } {
       script = ''
         clark \
           --gpio-chip ${toString gpio-chip} \
@@ -131,64 +109,17 @@ in
       '';
       description = "main Haskell script";
       path = [ pkgs.clark pkgs.libgpiod pkgs.mosquitto pkgs.openssh ];
-      wantedBy = startup;
     };
-    ip-notify = service-with-crash-notification {
+    evdev-share = mkService { } {
       script = ''
-        OLD_IP=$(cat ${ip-file} || echo undefined)
-        NEW_IP=$(curl -s https://ipinfo.io/ip)
-        if [[ $NEW_IP != $OLD_IP ]]
-        then
-          echo "Changed: $NEW_IP"
-
-          DIR=$(mktemp -d)
-          cd $DIR
-          git clone git@github.com:georgefst/george-conf
-          cd george-conf
-
-          BRANCH=clark-ip-$(date +%s)
-          git switch -c $BRANCH
-          sed -i -e "0,/HostName.*/s//HostName $NEW_IP/" ssh/config # NB. this assumes home is the first in the file
-
-          if [[ ! `git status --porcelain` ]]
-          then
-            # this should only happen at startup when $OLD_IP is empty
-            echo "Actually, no change: $OLD_IP, $NEW_IP"
-          else
-            MSG="Update home IP"
-
-            git add ssh/config
-            git commit -m "$MSG"
-            git push --set-upstream origin $BRANCH
-
-            export GH_TOKEN=$(<${config.age.secrets.gh-key.path})
-            OUT=$(gh pr create --title "$MSG" --body "")
-            printf '%s' "$OUT"
-            URL=$(printf '%s' "$OUT" | tail -n1)
-
-            printf "Public IP address changed\n$URL" > ${email-pipe}
-          fi
-        else
-          echo "No change"
-        fi
-        echo -n $NEW_IP > ${ip-file}
-      '';
-      serviceConfig = { Restart = "always"; RestartSec = 15 * 60; };
-      description = "IP change notifier";
-      path = [ pkgs.curl pkgs.gh pkgs.git pkgs.openssh ];
-      wantedBy = startup;
-    };
-    evdev-share = service-with-crash-notification {
-      script = ''
-        evdev-share-server -p ${builtins.toString evdev-share-port} -n evdev-share
+        evdev-share-server -p ${toString evdev-share-port} -n evdev-share
       '';
       description = "evdev share server";
       path = [ pkgs.evdev-share ];
-      wantedBy = startup;
     };
-    http-watch = service-with-crash-notification {
+    http-watch = mkService { } {
       script = ''
-        config=/syncthing/config/http-watch.dhall
+        config=/sync/config/http-watch.dhall
         while true
         do
           readarray -t sites < <(echo "($config).sites" | dhall-to-json | jq -c '.[]')
@@ -216,9 +147,8 @@ in
       '';
       description = "HTTP watcher";
       path = [ pkgs.curl pkgs.dhall pkgs.dhall-json pkgs.diffutils pkgs.jq ];
-      wantedBy = startup;
     };
-    email-handler = {
+    email-handler = mkService { } {
       script = ''
         data=$(<${email-pipe})
         subject=$(head -n1 <<< "$data")
@@ -231,36 +161,31 @@ in
           -F subject="$subject" \
           -F text="$body" \
       '';
+      serviceConfig.Restart = "always";
+      description = "email handler";
+      path = [ pkgs.curl ];
+      # fallback: if email sending itself fails, log somewhere that will be seen
       postStop = ''
         if [ $SERVICE_RESULT != success ]
         then
-          sed -i "1iClark failed to send email at $(date)" ${syncthing-main-dir}/notes/todo.md
+          sudo -u gthomas sed -i "1iClark failed to send email at $(date)" /sync/notes/todo.md
         fi
       '';
-      serviceConfig = { Restart = "always"; };
-      description = "email handler";
-      path = [ pkgs.curl ];
-      wantedBy = startup;
     };
-    mosquitto = service-with-crash-notification {
-      script = "mosquitto -c ${syncthing-main-dir}/config/mqtt/meross.conf -v";
+    mosquitto = mkService { } {
+      script = "mosquitto -c /sync/config/mqtt/meross.conf -v";
       description = "mosquitto MQTT broker";
       path = [ pkgs.mosquitto ];
-      wantedBy = startup;
     };
-  };
-  # for whatever reason (e.g. binding to port 80), these need to be run as root
-  systemd.services = {
-    power-off = service-with-crash-notification {
+    power-off = mkService { } {
       script = ''
         data=$(<${power-off-pipe})
         echo $data
         poweroff
       '';
       description = "poweroff server";
-      wantedBy = startup-root;
     };
-    system-leds = service-with-crash-notification {
+    system-leds = mkService { } {
       script = ''
         data=$(<${system-led-pipe})
         echo $data
@@ -275,20 +200,19 @@ in
       '';
       serviceConfig = { Restart = "always"; };
       description = "system led server";
-      wantedBy = startup-root;
     };
-    droopy = service-with-crash-notification {
-      script = ''
-        mkdir -p ${file-server-dir}
-        HOME=${home} droopy \
-          --dl \
-          -m 'Upload/download files' \
-          -d ${file-server-dir} \
-          ${toString droopy-port} \
+    miniserve = mkService { asUser = true; } {
+      script = let dir = home + "/serve"; in ''
+        mkdir -p ${dir}
+        miniserve \
+          -u \
+          -t 'Upload/download files' \
+          -p ${toString file-server-port} \
+          ${dir}
       '';
-      description = "droopy file server";
-      path = [ pkgs.droopy ];
-      wantedBy = startup-root;
+      serviceConfig = { AmbientCapabilities = [ "CAP_NET_BIND_SERVICE" ]; };
+      description = "file server";
+      path = [ pkgs.miniserve ];
     };
   };
 
@@ -299,50 +223,16 @@ in
     evdev-share-port
   ] ++ extra-ports;
   networking.firewall.allowedTCPPorts = [
-    droopy-port
+    file-server-port
     mqtt-port
     clark-script-http-port
   ] ++ extra-ports;
-
-  # syncthing
-  services.syncthing = {
-    enable = true;
-    openDefaultPorts = true;
-    user = "gthomas";
-    group = "users";
-    dataDir = home;
-    settings.devices = {
-      # Billy will introduce us to all others, so there's no need to list them here
-      billy = {
-        id = "3WIFNUH-VIST5DA-RROQ732-DDCKOQK-PWVERCB-7RNNG5R-JGRZX3M-WMAUQQP";
-        introducer = true;
-      };
-    };
-    settings.folders = {
-      default = {
-        path = syncthing-main-dir;
-        label = "Default";
-        devices = [ "billy" ];
-      };
-      fp5_bu8k-photos = {
-        path = syncthing-camera-dir;
-        label = "Android Camera";
-        devices = [ "billy" ];
-      };
-    };
-  };
   system.activationScripts = {
     # these pipes are used from multiple services, so we set them up as early as possible
     make-pipes = ''
       if [[ ! -p ${email-pipe} ]]; then mkfifo ${email-pipe} && chown gthomas:users ${email-pipe} ; fi
       if [[ ! -p ${system-led-pipe} ]]; then mkfifo ${system-led-pipe} && chown gthomas:users ${system-led-pipe} ; fi
       if [[ ! -p ${power-off-pipe} ]]; then mkfifo ${power-off-pipe} && chown gthomas:users ${power-off-pipe} ; fi
-    '';
-    # allows certain scripts and config files to be compatible across my devices
-    syncthing-root-link = ''
-      if [[ ! -e /syncthing ]]; then
-        ln -s ${syncthing-main-dir} /syncthing
-      fi
     '';
   };
 }

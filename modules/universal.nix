@@ -1,6 +1,11 @@
 # config we want to share across all machines
-{ flake }:
-{ pkgs, lib, ... }:
+{ flake
+, syncCamera ? false
+}:
+{ pkgs, lib, config, ... }:
+let
+  devices = import ../nix/devices.nix;
+in
 {
   system.nixos.tags = [ flake.shortRev or flake.dirtyShortRev ];
   i18n.defaultLocale = "en_GB.UTF-8";
@@ -12,7 +17,6 @@
     "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
     "cache.soopy.moe-1:0RZVsQeR+GOh0VQI9rvnHz55nVXkFardDqfm4+afjPo="
     "crow.george.fst-1:vOnc1YKNNo4bQSQ+dcuzdaP3W5motYonCi2jnXGobb0="
-    "digitallyinduced.cachix.org-1:y+wQvrnxQ+PdEsCt91rmvv39qRCYzEgGQaldK26hCKE="
     "fry.george.fst-1:Po60oDPTbWVr6m7IQMFBe9G1Y6y4GE6Z44KJaKAx8cY="
     "hackworthltd-private.cachix.org-1:rgRRt26yorDGvo2cu48JRE3dVPxFot/8C7L+wmiYe20="
     "hackworthltd.cachix.org-1:0JTCI0qDo2J+tonOalrSQP3yRNleN6bQucJ05yDltRI="
@@ -20,19 +24,27 @@
     "haskell-pretty-simple.cachix.org-1:AWHkzPidwcDzWUIUjKcx/PYgud2OBAa9SNUEoIOsATY="
     "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="
     "loony-tools:pr9m4BkM/5/eSTZlkQyRt57Jz7OMBxNSUiMC4FkcNfk="
-    "miso-haskell.cachix.org-1:6N2DooyFlZOHUfJtAx1Q09H0P5XXYzoxxQYiwn6W1e8="
+    "haskell-miso-cachix.cachix.org-1:m8hN1cvFMJtYib4tj+06xkKt5ABMSGfe8W7s40x1kQ0="
   ];
-  nix.settings.substituters = lib.imap0 (i: s: "${s}?priority=${toString i}") [
-    "https://cache.nixos.org"
-    "https://cache.iog.io"
-    "https://cache.zw3rk.com"
-    "https://cache.soopy.moe"
-    "https://hackworthltd.cachix.org"
-    "https://haskell-miso-cachix.cachix.org"
-    "https://haskell-language-server.cachix.org"
-    "https://haskell-pretty-simple.cachix.org"
-    "https://digitallyinduced.cachix.org"
-  ];
+  nix.settings.substituters =
+    let withPriority = i: s: "${s}?priority=${toString i}";
+    in lib.imap1 withPriority [
+      "https://cache.nixos.org"
+      "https://cache.iog.io"
+    ];
+  nix.settings.trusted-substituters =
+    builtins.concatMap
+      (h: if h == config.networking.hostName then [ ] else [ "ssh://nix-ssh@${h}" ])
+      (builtins.attrNames devices)
+    ++ [
+      "https://cache.zw3rk.com"
+      "https://cache.soopy.moe"
+      "https://hackworthltd.cachix.org"
+      "https://haskell-miso-cachix.cachix.org"
+      "https://haskell-language-server.cachix.org"
+      "https://haskell-pretty-simple.cachix.org"
+      "https://d1gu8ums2n7plh.cloudfront.net" # temporary Obsidian/ARIA/Reflex S3 cache
+    ];
   environment.variables.NIXPKGS_ALLOW_UNFREE = "1";
   programs.bash.promptInit = ''
     green=$(tput setaf 10)
@@ -46,6 +58,18 @@
   programs.bash.interactiveShellInit = ''
     bind -x '"\ec": printf "%s" "$READLINE_LINE" | wl-copy'
   '';
+
+  # agenix
+  age.secrets.wifi.file = ../secrets/wifi.age;
+  age.secrets.wifi.group = "wpa_supplicant";
+  age.secrets.wifi.mode = "0440";
+  age.secrets.gh-key.file = ../secrets/github.key.age;
+  age.secrets.mailgun-key.file = ../secrets/mailgun.key.age;
+  age.secrets.mailgun-sandbox.file = ../secrets/mailgun.sandbox.age;
+  age.secrets.gather-id.file = ../secrets/gather.id.age;
+  age.secrets.gather-id.mode = "0444";
+
+  services.openssh.enable = true;
   services.openssh.settings.PasswordAuthentication = false;
   users.users.gthomas.openssh.authorizedKeys.keys = [
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINUnvz6Q8zIzqbIG2iy72u6zl5Xg/tem1r93G3FNwGF9 gthomas@billy"
@@ -88,6 +112,7 @@
   environment.systemPackages = with pkgs; [
     dhall
     dhall-json
+    direnv
     evtest
     file
     imagemagick
@@ -95,6 +120,7 @@
     lazygit
     live-server
     jq
+    nix-direnv
     p7zip
     simple-http-server
     tree
@@ -108,4 +134,39 @@
     8000
     8001
   ];
+  services.syncthing =
+    let
+      devs = lib.filterAttrs (_: d: d ? syncthing) devices;
+      devNames = builtins.attrNames devs;
+    in
+    {
+      enable = true;
+      openDefaultPorts = true;
+      group = "users";
+      user = "gthomas";
+      dataDir = "/home/gthomas/sync";
+      settings.devices = builtins.mapAttrs (_: d: d.syncthing) devs;
+      settings.folders =
+        builtins.mapAttrs (_: f: f // { devices = devNames; }) {
+          default = {
+            path = "~/sync/main";
+            devices = devNames;
+            versioning = {
+              type = "staggered";
+              params.maxAge = toString (365 * 24 * 60 * 60);
+            };
+          };
+          fp5_bu8k-photos = {
+            path = "~/sync/camera";
+            label = "Android Camera";
+            devices = devNames;
+            enable = syncCamera;
+          };
+        };
+    };
+  system.activationScripts = {
+    syncthing-root-link = ''
+      if [[ ! -e /sync ]]; then ln -s /home/gthomas/sync/main /sync ; fi
+    '';
+  };
 }

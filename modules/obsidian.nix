@@ -1,5 +1,5 @@
 # stuff from Obsidian setup docs
-{ pkgs, ... }: {
+{ ... }: {
   imports = [
     ../obsidian
     ../obsidian/users
@@ -12,4 +12,5 @@
     enable = true;
     interval = "monthly";
   };
+  boot.zfs.forceImportRoot = false;
 }

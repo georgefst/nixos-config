@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     nixos-hardware.url = "github:NixOS/nixos-hardware";
     flake-utils.url = "github:numtide/flake-utils";
@@ -11,14 +11,7 @@
     };
     haskell-nix.url = "github:input-output-hk/haskell.nix";
     nixpkgs-haskell.follows = "haskell-nix/nixpkgs-unstable";
-    evdev-share = {
-      url = "github:georgefst/evdev-share";
-      inputs.cargo2nix.inputs = {
-        nixpkgs.follows = "nixpkgs";
-        flake-compat.follows = "haskell-nix/flake-compat";
-        flake-utils.follows = "flake-utils";
-      };
-    };
+    evdev-share.url = "github:georgefst/evdev-share";
     net-evdev = {
       url = "github:georgefst/net-evdev";
       inputs.flake-utils.follows = "flake-utils";
@@ -28,7 +21,6 @@
       url = "github:nix-community/nix-vscode-extensions";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    obelisk = { url = "github:obsidiansystems/obelisk/develop"; flake = false; };
     hs-scripts = {
       url = "github:georgefst/hs-scripts/nix";
       inputs.flake-utils.follows = "flake-utils";
@@ -37,7 +29,8 @@
     lifx-manager = {
       url = "github:georgefst/lifx-manager/nix"; # https://github.com/georgefst/lifx-manager/pull/17
       inputs.flake-utils.follows = "flake-utils";
-      inputs.haskellNix.follows = "haskell-nix";
+      inputs.haskell-nix.follows = "haskell-nix";
+      inputs.nixpkgs.follows = "nixpkgs-haskell";
     };
     self.submodules = true;
   };
@@ -47,7 +40,7 @@
       buildSystem = evalSystem;
 
       lib = inputs.nixpkgs.lib;
-      inherit (flake-utils.lib.eachDefaultSystem (system:
+      inherit (flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-linux" ] (system:
         let
           nixpkgs-config = {
             allowUnfree = true;
@@ -60,8 +53,7 @@
                 hixProject =
                   final.haskell-nix.hix.project {
                     src = ./.;
-                    compiler-nix-name = "ghc9122";
-                    index-state = "2025-09-02T00:00:00Z";
+                    compiler-nix-name = "ghc912";
                     inherit evalSystem;
                     shell.tools = {
                       cabal = "latest";
@@ -79,76 +71,30 @@
             inherit system;
             config = nixpkgs-config;
             overlays = [
-              # third-party overlays
               inputs.nix-vscode-extensions.overlays.default
-              # packages pulled from Nixpkgs unstable, since we want frequent updates
               (
-                let pkgs-unstable = import inputs.nixpkgs-unstable { inherit system; config = nixpkgs-config; }; in
-                (final: prev: {
+                let pkgs-unstable = import inputs.nixpkgs-unstable { inherit system; config = nixpkgs-config; };
+                in final: prev: {
+                  # frequent updates are desirable
+                  nixd = pkgs-unstable.nixd;
                   opencode = pkgs-unstable.opencode;
                   spotify = pkgs-unstable.spotify;
                   vscode = pkgs-unstable.vscode;
-                })
+                  zed-editor = pkgs-unstable.zed-editor;
+                  # non-Nixpkgs flake inputs
+                  agenix = inputs.agenix.packages.${system}.default;
+                  evdev-share = inputs.evdev-share.packages.${system}.default;
+                  hix = inputs.haskell-nix.packages.${system}.hix;
+                  mandelbrot = inputs.hs-scripts.packages.${system}.mandelbrot;
+                  lifx-manager = inputs.lifx-manager.packages.${system}.lifx-manager;
+                  net-evdev = inputs.net-evdev.packages.${system}."net-evdev:exe:net-evdev";
+                  # developed locally
+                  clark = haskell.packages."clark:exe:clark";
+                  magic-mouse = haskell.packages."magic-mouse:exe:magic-mouse";
+                }
               )
-              # packages from non-Nixpkgs flake inputs
-              (final: prev: {
-                clark = haskell.packages."clark:exe:clark";
-                evdev-share = inputs.evdev-share.packages.${system}.default;
-                hix = inputs.haskell-nix.packages.${system}.hix;
-                magic-mouse = haskell.packages."magic-mouse:exe:magic-mouse";
-                mandelbrot = inputs.hs-scripts.packages.${system}.mandelbrot;
-                lifx-manager = inputs.lifx-manager.packages.${system}."lifx-manager:exe:lifx-manager";
-                net-evdev = inputs.net-evdev.packages.${system}."net-evdev:exe:net-evdev";
-                obelisk = (final.callPackage inputs.obelisk { inherit system; }).command;
-              })
-              # fixes to upstream
-              (final: prev: {
-                gnomeExtensions = prev.gnomeExtensions // {
-                  # we can remove this once there's no longer anything interesting in `patches` field
-                  tiling-shell = final.buildNpmPackage {
-                    pname = "gnome-shell-extension-tiling-shell";
-                    version = "17.3-pre-patched-18-01-2026";
-                    src = final.fetchFromGitHub {
-                      owner = "domferr";
-                      repo = "tilingshell";
-                      rev = "8f0f19be5c15d83ce2737ca7908676185f86a9f3";
-                      sha256 = "oNHgC6BaF9uAclXGoBwFNztVf4oRDAlABNviWezCgk8=";
-                    };
-                    patches = [
-                      # adds package-lock.json - needed for Nix
-                      (final.fetchpatch {
-                        url = "https://github.com/georgefst/tilingshell/commit/4c85456.patch";
-                        sha256 = "KycUCcHWqpt+qfJfsPlumqi9L3i4uBxgpceXTgEIzqQ=";
-                      })
-                      # https://github.com/domferr/tilingshell/pull/474
-                      (final.fetchpatch {
-                        url = "https://github.com/georgefst/tilingshell/commit/8448a59.patch";
-                        sha256 = "PEpwI7+Y8CwVv1Fxhkr5A9tR751gqSk4kE3KMe/et7g=";
-                      })
-                    ];
-                    nativeBuildInputs = [ final.glib ];
-                    npmDepsHash = "sha256-ctNiJ+Esf0TOuqbJBz53rQLqSkwn875woDrEl8rJo3A=";
-                    dontNpmInstall = true;
-                    npmFlags = [ "--legacy-peer-deps" ];
-                    installPhase = ''
-                      runHook preInstall
-                      mkdir -p $out/share/gnome-shell/extensions/tilingshell@ferrarodomenico.com
-                      cp -r dist/* $out/share/gnome-shell/extensions/tilingshell@ferrarodomenico.com/
-                      runHook postInstall
-                    '';
-                    passthru = {
-                      extensionUuid = "tilingshell@ferrarodomenico.com";
-                      extensionPortalSlug = "tiling-shell";
-                    };
-                  };
-                };
-                # https://community.spotify.com/t5/Desktop-Linux/Wayland-support/td-p/5231525/page/6
-                # when fixed, we can also remove `tilingshell` overlapping layout
-                spotify = prev.spotify.overrideAttrs (old: {
-                  nativeBuildInputs = old.nativeBuildInputs ++ [ final.makeWrapper ];
-                  postInstall = (old.postInstall or "") + "wrapProgram $out/bin/spotify --add-flags --ozone-platform=wayland";
-                });
-              })
+              (import ./fixes/opencode.nix)
+              (import ./fixes/tiling-shell.nix)
             ];
           };
         })) packages devShells;
@@ -166,28 +112,36 @@
           }
         ];
       };
+      mkSdAndVm = arch: modules:
+        let
+          mkSystem = pkgs: hardwareModules: lib.nixosSystem { inherit pkgs; modules = modules ++ hardwareModules; };
+        in
+        {
+          system = mkSystem packages.${arch}
+            [ "${inputs.nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix" ];
+          vm = mkSystem packages.${buildSystem}
+            [ ];
+        };
 
       mandelbrot = let pkgs = packages.${buildSystem}; in { x, y, size, inverted ? false }: pkgs.runCommand "mandelbrot"
         { nativeBuildInputs = [ pkgs.imagemagick ]; } ''
-        ${lib.getExe packages.${buildSystem}.mandelbrot} \
+        ${lib.getExe pkgs.mandelbrot} \
           --width 3840 --height 3840 \
-          --centreX ${builtins.toString x} --centreY ${builtins.toString y} \
-          --size ${builtins.toString size} \
-          ${if inverted then "--inverted" else ""} \
+          --centreX ${toString x} --centreY ${toString y} \
+          --size ${toString size} \
+          --innerColour "hsl(213, 76%, ${if inverted then "2%" else "55%"})" \
+          --outerColour "hsl(213, 76%, ${if inverted then "55%" else "2%"})" \
           --out raw.png
         magick raw.png -dither FloydSteinberg PNG8:$out
       '';
 
-      configs.sd.clark = lib.nixosSystem {
-        pkgs = packages.aarch64-linux;
-        modules = [
-          (import ./modules/universal.nix { flake = self; })
+      configs.sd.clark = mkSdAndVm "aarch64-linux"
+        [
+          (import ./modules/universal.nix { flake = self; syncCamera = true; })
           ./modules/users.nix
-          "${inputs.nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
           ./modules/clark.nix
           inputs.agenix.nixosModules.default
         ];
-      };
       configs.desktop.fry = mkDesktopAndInstaller "fry" (hostName: hardwareModules: lib.nixosSystem {
         pkgs = packages.x86_64-linux;
         modules = hardwareModules ++ [
@@ -199,12 +153,9 @@
             wallpaper = mandelbrot { x = -0.6; y = 0; size = 4.8; };
           })
           ./modules/obsidian.nix
+          ./modules/airpods-hfp-fix.nix
           nixos-hardware.nixosModules.framework-amd-ai-300-series
           inputs.agenix.nixosModules.default
-          ({ pkgs, ... }: {
-            # ZFS 2.4 is needed for 6.18 kernel, but NixOS 25.11 uses ZFS 2.3 by default
-            boot.zfs.package = pkgs.zfs_2_4;
-          })
           {
             # avoid some broken caches
             options.nix.settings.substituters = lib.mkOption {
@@ -219,20 +170,18 @@
       configs.desktop.crow = mkDesktopAndInstaller "crow" (hostName: hardwareModules: lib.nixosSystem {
         pkgs = packages.x86_64-linux;
         modules = hardwareModules ++ [
-          (import ./modules/universal.nix { flake = self; })
+          (import ./modules/universal.nix { flake = self; syncCamera = true; })
           ./modules/users.nix
           (import ./modules/desktop.nix {
             inherit hostName;
             stateVersion = "25.11";
             wallpaper = mandelbrot { x = -0.8; y = -0.2; size = 0.5; inverted = true; };
-            syncCamera = true;
             keyboardLayout = "gb+mac";
           })
           ./modules/apple-t2.nix
           nixos-hardware.nixosModules.apple-t2
           inputs.agenix.nixosModules.default
           ({ pkgs, ... }: {
-            services.openssh.enable = true;
             systemd.services.magic-mouse = {
               script = lib.getExe pkgs.magic-mouse;
               serviceConfig = { Restart = "always"; RestartSec = 1; };
@@ -244,8 +193,8 @@
         ];
       });
 
-      nixosConfigurations = configs.sd
-        // builtins.mapAttrs (_: { system, ... }: system) configs.desktop;
+      nixosConfigurations = builtins.mapAttrs (_: { system, ... }: system)
+        (configs.sd // configs.desktop);
 
     in
     {
@@ -253,9 +202,10 @@
       inherit nixosConfigurations;
       inherit packages;
 
-      images = builtins.mapAttrs (_: system: system.config.system.build.sdImage) configs.sd //
+      images = builtins.mapAttrs (_: { system, ... }: system.config.system.build.sdImage) configs.sd //
         builtins.mapAttrs (_: { installer, ... }: installer.config.system.build.isoImage) configs.desktop;
       configs = builtins.mapAttrs (_: system: system.config.system.build.toplevel) nixosConfigurations;
-      vms = builtins.mapAttrs (_: system: system.config.system.build.vm) nixosConfigurations;
+      vms = builtins.mapAttrs (_: system: system.config.system.build.vm) nixosConfigurations //
+        builtins.mapAttrs (_: { vm, ... }: vm.config.system.build.vm) configs.sd;
     };
 }
