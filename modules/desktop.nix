@@ -214,6 +214,8 @@ in
     }
   ];
   services.logind.settings.Login.HandleLidSwitch = "lock";
+  # forces electron apps to use Wayland - needed for Discord, at least, to avoid blurry text
+  environment.variables.ELECTRON_OZONE_PLATFORM_HINT = "auto";
 
   # global installs
   environment.systemPackages = with pkgs;
