@@ -370,9 +370,42 @@ in
     enable = true;
     languagePacks = [ "en-GB" ];
     preferences = {
+      "browser.aboutConfig.showWarning" = false;
       "browser.tabs.closeWindowWithLastTab" = false;
       "toolkit.legacyUserProfileCustomizations.stylesheets" = true;
     };
+    # N.B. default is "locked"
+    # changing this makes no difference for `full-screen-api` (nor does setting it to "user", the other option)
+    # but actually I suspect I might want it regardless, since I've no real reason to lock
+    # note that I haven't really looked at the effect yet
+    # plus, this mathces with using `defaultPref` in `autoConfig`
+    # it's also kinda similar to how we configure GNOME
+    preferencesStatus = "default";
+    # N.B. adding `"full-screen-api.ignore-widgets" = true;` in `programs.firefox.preferences` doesn't work
+    # it shows in `about:policies`, but not changed and locked in `about:config` like the others
+    # this is because only preferences with certain prefixes can be configured this way:
+    # https://mozilla.github.io/policy-templates/#preferences (tbf, this is in the NixOS docs for this option)
+    # `autoConfig` is basically precisely for stuff not in that list
+    # was implied by Claude looking at source that the difference is a matter of stability
+    # the (FF, not Nix) docs say something about the first line of `autoConfig` needing to be a comment,
+    # and Claude is very insistent, but we seem to get away with it
+    # before we realised we could use `autoConfig`, I was exasperated and wondering whether we should fork Firefox,
+    # (esp. if the other things above amount to genuine bugs), and we couldn't use some /etc config file
+    # TODO maybe disable animations etc. to go with this
+    # https://news.ycombinator.com/item?id=40903570
+    # okay, added the two for disabling the pretty pointless warning, though that should be a separate commit
+    # and I think the first isn't strictly necessary when the second is set to 0
+    # the transition ones have no apparent effect - even setting to 0 doesn't change visible speed
+    # TODO assuming we do add more here, can we use JS to DRY a little?
+    # assuming that we'd want `defaultPref` or all options
+    # or tbh, we could abstract further by using Nix
+    # but then maybe that's overkill
+    # probably fine, but we should be careful about showing numbers and bools
+    autoConfig = ''
+      defaultPref("full-screen-api.ignore-widgets", true)
+      defaultPref("full-screen-api.warning.delay", 0)
+      defaultPref("full-screen-api.warning.timeout", 0)
+    '';
   };
 
   # pipewire
@@ -397,5 +430,10 @@ in
     '';
     description = "keyboard forwarding for Pi";
     wantedBy = [ "multi-user.target" ];
+  };
+
+  # can we thing remove the git config for this?
+  environment.variables = {
+    EDITOR = "code --wait";
   };
 }

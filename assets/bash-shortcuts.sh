@@ -1,0 +1,113 @@
+# rename to aliases, idea being that everything is simple and expandable?
+# drop the ones that aren't aliases? maybe easier when I move to GHCIWatch
+# note that we add a space after most aliases in order for expansion to work nicely
+# exceptions are the commands where any manual post-expansion additions are more likely to be useful without a space
+
+# ghc
+alias h='ghc'
+# why -ghci-script necessary? maybe `XDG_CONFIG_HOME` not being set is an issue
+alias hi='ghc --interactive -ghci-script ~/.config/ghc/ghci.conf'
+alias hls='haskell-language-server'
+alias hr='ghc --run'
+function hw { if [ -z $2 ]; then R="-r"; else R="-T $2"; fi; ghcid -c "ghci $1" -W $R; }
+
+# cabal
+alias c='cabal '
+alias cb='cabal build '
+alias cba='cabal build all'
+alias ci='cabal repl '
+alias cr='cabal run '
+alias cu='cabal update '
+function cw { if [ -z $2 ]; then R="-r"; else R="-T $2"; fi; ghcid -c "cabal repl $1" -W $R; }
+
+# git
+alias g='git '
+alias ga='git add '
+alias gad='git add . '
+alias gb='git rebase '
+alias gba='git rebase --abort '
+alias gbc='git rebase --continue '
+alias gbi='git rebase -i '
+alias gbi1='git rebase -i HEAD~10'
+alias gbi2='git rebase -i HEAD~20'
+alias gbi3='git rebase -i HEAD~30'
+alias gbi4='git rebase -i HEAD~40'
+alias gbi5='git rebase -i HEAD~50'
+alias gbih='git rebase -i HEAD'
+alias gc='git clone '
+alias gch='git clone git@github.com:'
+alias gchg='git clone git@github.com:georgefst/'
+alias gcl='git clone git@gitlab.com:'
+alias gclg='git clone git@gitlab.com:georgefst/'
+alias gco='git clone git@code.obsidian.systems:'
+alias gcoo='git clone git@code.obsidian.systems:obsidian.systems/'
+alias gd='git diff '
+alias gdh='git diff HEAD'
+alias gds='git diff --staged '
+alias ge='git status '
+alias gf='git fetch '
+alias gfa='git fetch --all '
+alias gh='git push '
+alias ghf='git push -f '
+alias ghu='git push -u '
+alias gl='git log '
+alias gm='git merge '
+alias gma='git merge --abort '
+alias go='git commit '
+alias gom='git commit -m '
+alias gp='git pull '
+alias gpr='git pull --rebase '
+alias gr='git reset '
+alias grh='git reset HEAD'
+alias gs='git switch '
+alias gsc='git switch -c '
+alias gsd='git switch -d '
+alias gt='git stash '
+alias gta='git stash apply '
+alias gtp='git stash pop '
+alias gts='git stash --staged '
+alias gtu='git stash -u '
+alias gtv='git stash save '
+alias gv='git rev-parse '
+alias gvh='git rev-parse HEAD'
+
+# nix
+alias n='nix '
+alias nb='nix build '
+alias nbd='nix build .#'
+alias nc='nix copy '
+alias ncf='nix copy --from '
+alias ncfs='nix copy --from ssh://'
+alias nct='nix copy --to '
+alias ncts='nix copy --to ssh://'
+alias nd='nix develop '
+alias ndh='nix develop .?rev=$(git rev-parse HEAD)'
+alias nf='nix flake '
+alias nfm='nix flake metadata '
+alias nfs='nix flake show '
+alias nfu='nix flake update '
+alias ni='nix repl '
+alias no='nix store '
+alias nos='nix store sign --recursive --key-file ~/.config/nix/private-key '
+alias nr='nix run '
+alias nr='nix run '
+alias nrd='nix run .#'
+alias ns='nix shell '
+alias nsn='nix shell nixpkgs#'
+
+# two letters
+alias cc='wl-copy '
+alias cch='wl-copy -t text/html '
+alias lg='lazygit '
+alias oc='opencode '
+alias te='gnome-text-editor '
+
+# longer
+alias del='gio trash '
+alias open='xdg-open '
+alias private='set +o history'
+alias public='set -o history'
+
+# TODO stuff that I should actually generate
+alias gpsc='git pull ssh://crow$(pwd)'
+alias gpsf='git pull ssh://fry$(pwd)'

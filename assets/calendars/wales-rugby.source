@@ -1,0 +1,43 @@
+[Data Source]
+DisplayName=Wales rugby
+Enabled=true
+Parent=webcal-stub
+
+[Authentication]
+Host=ics.ecal.com
+Method=plain/password
+Port=0
+ProxyUid=system-proxy
+RememberPassword=true
+User=
+CredentialName=
+IsExternal=false
+
+[Security]
+Method=none
+
+[WebDAV Backend]
+AvoidIfmatch=false
+CalendarAutoSchedule=false
+Color=
+DisplayName=
+EmailAddress=
+ResourcePath=/ecal-sub/692250cfca50aa000848bb14/Six%20Nations%20Rugby.ics
+ResourceQuery=
+SslTrust=
+Order=4294967295
+Timeout=90
+
+[Calendar]
+BackendName=webcal
+Color=rgb(197,25,18)
+Selected=true
+Order=0
+
+[Offline]
+StaySynchronized=true
+
+[Refresh]
+Enabled=true
+EnabledOnMeteredNetwork=true
+IntervalMinutes=30
