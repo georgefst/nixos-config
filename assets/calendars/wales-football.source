@@ -1,0 +1,43 @@
+[Data Source]
+DisplayName=Wales football
+Enabled=true
+Parent=webcal-stub
+
+[Authentication]
+Host=www.skysports.com
+Method=plain/password
+Port=443
+ProxyUid=system-proxy
+RememberPassword=true
+User=
+CredentialName=
+IsExternal=false
+
+[Security]
+Method=tls
+
+[WebDAV Backend]
+AvoidIfmatch=false
+CalendarAutoSchedule=false
+Color=
+DisplayName=
+EmailAddress=
+ResourcePath=/calendars/football/fixtures/teams/wales
+ResourceQuery=
+SslTrust=
+Order=4294967295
+Timeout=90
+
+[Calendar]
+BackendName=webcal
+Color=rgb(219,58,47)
+Selected=true
+Order=0
+
+[Offline]
+StaySynchronized=true
+
+[Refresh]
+Enabled=true
+EnabledOnMeteredNetwork=true
+IntervalMinutes=30
