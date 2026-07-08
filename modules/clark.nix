@@ -27,6 +27,7 @@ let
     { asUser ? false
     , atStartup ? true
     , notifyOnCrash ? true
+    , needsNetwork ? true
     }: service:
     lib.mkMerge ([
       service
@@ -45,7 +46,12 @@ let
       serviceConfig.Group = "users";
     } ++ lib.optional notifyOnCrash {
       unitConfig.OnFailure = [ "${notify-crash-service}%n.service" ];
-    });
+    } ++ lib.optional needsNetwork (
+      let wants = [ "network-online.target" ]; in {
+        inherit wants;
+        after = wants;
+      }
+    ));
 in
 {
   # stuff I'm probably never going to change
@@ -79,7 +85,7 @@ in
 
   # systemd
   systemd.services = {
-    "${notify-crash-service}" = mkService { notifyOnCrash = false; } {
+    "${notify-crash-service}" = mkService { notifyOnCrash = false; needsNetwork = false; } {
       script = ''
         printf 'Clark service crashed: %s\nInspect service logs for more info.\n' "$1" > ${email-pipe}
       '';
@@ -177,7 +183,7 @@ in
       description = "mosquitto MQTT broker";
       path = [ pkgs.mosquitto ];
     };
-    power-off = mkService { } {
+    power-off = mkService { needsNetwork = false; } {
       script = ''
         data=$(<${power-off-pipe})
         echo $data
@@ -185,7 +191,7 @@ in
       '';
       description = "poweroff server";
     };
-    system-leds = mkService { } {
+    system-leds = mkService { needsNetwork = false; } {
       script = ''
         data=$(<${system-led-pipe})
         echo $data
