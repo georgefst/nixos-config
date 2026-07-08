@@ -6,8 +6,8 @@ packages:
 source-repository-package
     type: git
     location: https://github.com/georgefst/lifx-lan
-    tag: 6209f4cd1d6ff8033c5d294d2388af66a0a87620
-    --sha256: mkjexaeRkw5m2Q+Doz+PhAFaFut6+G6qDJyMdRfPsqU=
+    tag: d1672919e4d07edd4fbf0b90ae051d360532c21d
+    --sha256: aFnxYTY83yzTktxtyHFBw1L4QgInXeiRNzJQnNKX9YM=
 allow-newer: lifx-lan:base
 
 -- using `okapi-prerelease` branch due to depending on non-Hackage version of Okapi (see below)

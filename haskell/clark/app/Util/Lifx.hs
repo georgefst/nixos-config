@@ -8,7 +8,7 @@ import Lifx.Lan
 import Lifx.Lan.Internal
 
 import Control.Concurrent (threadDelay)
-import Control.Monad.Catch (MonadCatch (..), MonadThrow (..))
+import Control.Monad.Catch (MonadCatch (..), MonadMask, MonadThrow (..))
 import Control.Monad.Except (ExceptT, runExceptT)
 import Control.Monad.Log (LoggingT, MonadLog)
 import Control.Monad.Trans (MonadIO (liftIO), lift)
@@ -37,7 +37,7 @@ lifxTime :: Double -> Int
 lifxTime = round . (* 1_000_000)
 
 -- | Run the action. If it fails then just print the error and go again.
-runLifxUntilSuccess :: (MonadIO m) => (Either e LifxError -> m ()) -> Int -> Maybe PortNumber -> ExceptT e (LifxT m) a -> m a
+runLifxUntilSuccess :: (MonadIO m, MonadMask m) => (Either e LifxError -> m ()) -> Int -> Maybe PortNumber -> ExceptT e (LifxT m) a -> m a
 runLifxUntilSuccess p t n x =
     either (p' . Right) (either (p' . Left) pure)
         =<< runLifxT t n (runExceptT x)
