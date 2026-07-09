@@ -67,14 +67,14 @@ main = do
         setLED :: (MonadState AppState m, MonadIO m, MonadLog Text m) => Int -> Bool -> m ()
         setLED pin =
             bool
-                ( use #activeLEDs <&> Map.lookup pin >>= \case
-                    Just h -> GPIO.reset h >> #activeLEDs %= Map.delete pin
-                    Nothing -> logMessage "LED is already off"
-                )
-                ( use #activeLEDs <&> Map.lookup pin >>= \case
-                    Nothing -> GPIO.set opts.gpioChip [pin] >>= ((#activeLEDs %=) . Map.insert pin)
-                    Just _ -> logMessage "LED is already on"
-                )
+                    ( use #activeLEDs <&> Map.lookup pin >>= \case
+                        Just h -> GPIO.reset h >> #activeLEDs %= Map.delete pin
+                        Nothing -> logMessage "LED is already off"
+                    )
+                    ( use #activeLEDs <&> Map.lookup pin >>= \case
+                        Nothing -> GPIO.set opts.gpioChip [pin] >>= ((#activeLEDs %=) . Map.insert pin)
+                        Just _ -> logMessage "LED is already on"
+                    )
 
         handleError :: (MonadIO m, MonadState AppState m, MonadLog Text m) => Error -> m ()
         handleError err = do
@@ -110,18 +110,22 @@ main = do
                             Map.lookup (roomName r, lightName l) lightMap
                 runEventStream handleError logMessage (runAction (opts & \Opts{..} -> ActionOpts{..}))
                     . S.morphInner liftIO
-                    $ S.parList
-                        id
-                        [ WebServer.feed $
-                            opts & \Opts{..} -> WebServer.Opts{port = httpPort, ..}
-                        , GPIO.feed $
-                            opts
-                                & \Opts
-                                    { gpioChip = chip
-                                    , buttonPin = pin
-                                    , buttonDebounce = debounce
-                                    , buttonWindow = window
-                                    } -> GPIO.Opts{..}
-                        , UDP.feed $
-                            opts & \Opts{..} -> UDP.Opts{..}
+                    . S.parList id
+                    $ mconcat
+                        [
+                            [ GPIO.feed $
+                                opts
+                                    & \Opts
+                                        { gpioChip = chip
+                                        , buttonPin = pin
+                                        , buttonDebounce = debounce
+                                        , buttonWindow = window
+                                        } -> GPIO.Opts{..}
+                            ]
+                        ,
+                            [ WebServer.feed $
+                                opts & \Opts{..} -> WebServer.Opts{port = httpPort, ..}
+                            , UDP.feed $
+                                opts & \Opts{..} -> UDP.Opts{..}
+                            ]
                         ]
