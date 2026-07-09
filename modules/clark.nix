@@ -102,7 +102,7 @@ in
           --button-pin ${toString button-pin} \
           --led-error-pin ${toString led-error-pin} \
           --led-other-pin ${toString led-other-pin} \
-          --lifx-timeout 5 \
+          --lifx-timeout 10 \
           --lifx-port ${toString clark-script-lifx-port} \
           --receive-port ${toString clark-script-udp-port} \
           --http-port ${toString clark-script-http-port} \
