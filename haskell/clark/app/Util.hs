@@ -8,6 +8,7 @@ import Control.Concurrent
 import Control.Concurrent.Async
 import Control.Monad.Catch
 import Control.Monad.Freer
+import Data.Bifunctor
 import Data.ByteString (ByteString)
 import Data.ByteString qualified as B
 import Data.Either.Extra
@@ -19,6 +20,12 @@ import Network.Socket
 import Options.Generic
 import RawFilePath
 import System.Exit
+
+firstRight :: [Either e a] -> Either [e] a
+firstRight = \case
+    [] -> Left []
+    Left e : xs -> first (e :) $ firstRight xs
+    Right r : _ -> Right r
 
 -- TODO return partial stdout/stderr in timeout case
 

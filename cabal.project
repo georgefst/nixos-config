@@ -10,21 +10,12 @@ source-repository-package
     --sha256: aFnxYTY83yzTktxtyHFBw1L4QgInXeiRNzJQnNKX9YM=
 allow-newer: lifx-lan:base
 
--- using `okapi-prerelease` branch due to depending on non-Hackage version of Okapi (see below)
+-- not on Hackage
 source-repository-package
     type: git
     location: https://github.com/georgefst/georgefst-utils
-    tag: fa8e20cab48b2e111070a22e76ab1baa6a33422d
-    --sha256: s9LflRj8TKuOc6XrxVSN9ETGPb89z75djvbQLAjUBt4=
-
--- using unreleased API - https://github.com/monadicsystems/okapi/issues/30
-source-repository-package
-    type: git
-    location: https://github.com/monadicsystems/okapi
-    tag: d502f56eddff53d960ffe9cf687fa6f86397ab93
-    subdir: lib
-    --sha256: ivNvLHgoPDK3u1sSba5PK/x23OGku3cznmXJi86+IDw=
-allow-newer: okapi:*
+    tag: 182bc59a44beb7659ca1bab0523932c3fcfb2710
+    --sha256: 0vnnsfjxn3r4fa2w5qfb1mrvpmilv4niv19ys6ax0vrg70qsjlwz
 
 -- https://github.com/lexi-lambda/freer-simple/pull/45
 source-repository-package
@@ -32,3 +23,11 @@ source-repository-package
     location: https://github.com/georgefst/freer-simple
     tag: e1d88c1ee036115ef527bda8c66da997962b3f34
     --sha256: /AnRoCx5IRf9Q8+fLk+Wilo16LNxhRxYvCLkuBIWIy0=
+
+-- see Util.Servant.Curl
+source-repository-package
+    type: git
+    location: https://github.com/georgefst/servant
+    tag: 48adbe3f4f1dc8b8f9bfed4c1642fad35fba33db
+    subdir: servant-foreign
+    --sha256: 0lhlg91pkch74rwj3k48bdam5a32piki8d09w47f1gizk9gqkhv7

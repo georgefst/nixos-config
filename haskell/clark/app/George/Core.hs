@@ -21,6 +21,7 @@ import Control.Monad.Except hiding (handleError)
 import Control.Monad.Freer
 import Control.Monad.Log (MonadLog, logMessage)
 import Control.Monad.State.Strict
+import Data.Bifunctor
 import Data.ByteString qualified as B
 import Data.ByteString.Char8 qualified as BC8
 import Data.Foldable
@@ -223,6 +224,25 @@ instance FromHttpApiData (Light Office KelvinOnly) where
     parseUrlPiece = \case
         "main" -> Right OfficeLight
         s -> Left $ "unknown light name: " <> s
+instance
+    ( FromHttpApiData (Light LivingRoom c)
+    , FromHttpApiData (Light Bedroom c)
+    , FromHttpApiData (Light Office c)
+    ) =>
+    FromHttpApiData (RoomLightPair c)
+    where
+    parseUrlPiece = \case
+        (T.stripPrefix "living-room-" -> Just l) -> RoomLightPair SLivingRoom <$> parseUrlPiece l
+        (T.stripPrefix "bedroom-" -> Just l) -> RoomLightPair SBedroom <$> parseUrlPiece l
+        (T.stripPrefix "office-" -> Just l) -> RoomLightPair SOffice <$> parseUrlPiece l
+        s -> Left $ "unknown room name: " <> s
+instance FromHttpApiData (Exists' RoomLightPair) where
+    parseUrlPiece t =
+        first T.unlines $
+            firstRight
+                [ Exists' <$> parseUrlPiece @(RoomLightPair FullColours) t
+                , Exists' <$> parseUrlPiece @(RoomLightPair KelvinOnly) t
+                ]
 instance FromHttpApiData DeskPowerDevice where
     parseUrlPiece = \case
         "computer" -> Right Computer
