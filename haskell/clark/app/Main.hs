@@ -21,6 +21,7 @@ import Data.List.Extra
 import Data.List.NonEmpty (NonEmpty, nonEmpty)
 import Data.Map qualified as Map
 import Data.Maybe
+import Data.Monoid.Extra
 import Data.Text.IO qualified as T
 import Data.Time
 import Data.Word
@@ -37,6 +38,7 @@ import Util
 
 data Opts = Opts
     { gpioChip :: B.ByteString
+    , noGpio :: Bool
     , buttonDebounce :: NominalDiffTime
     , buttonWindow :: NominalDiffTime
     , buttonPin :: Int
@@ -66,7 +68,8 @@ main = do
     let
         setLED :: (MonadState AppState m, MonadIO m, MonadLog Text m) => Int -> Bool -> m ()
         setLED pin =
-            bool
+            unless opts.noGpio
+                . bool
                     ( use #activeLEDs <&> Map.lookup pin >>= \case
                         Just h -> GPIO.reset h >> #activeLEDs %= Map.delete pin
                         Nothing -> logMessage "LED is already off"
@@ -112,7 +115,8 @@ main = do
                     . S.morphInner liftIO
                     . S.parList id
                     $ mconcat
-                        [
+                        [ mwhen
+                            (not opts.noGpio)
                             [ GPIO.feed $
                                 opts
                                     & \Opts

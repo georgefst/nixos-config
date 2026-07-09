@@ -96,6 +96,7 @@ in
       script = ''
         clark \
           --gpio-chip ${toString gpio-chip} \
+          --no-gpio \
           --button-debounce 0.03s \
           --button-window 1.5s \
           --button-pin ${toString button-pin} \
