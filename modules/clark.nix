@@ -11,9 +11,10 @@ let
   file-server-port = 80;
   mqtt-port = 8883; # actually the default port, and probably implicitly assumed all over, including outside this file
   extra-ports = [ 56720 ]; # for temporary scripts etc.
-  system-led-pipe = "/tmp/system-led-pipe";
-  power-off-pipe = "/tmp/power-off-pipe";
-  email-pipe = "/tmp/email-pipe";
+  pipe-dir = "/run/clark";
+  system-led-pipe = "${pipe-dir}/system-led-pipe";
+  power-off-pipe = "${pipe-dir}/power-off-pipe";
+  email-pipe = "${pipe-dir}/email-pipe";
   notify-crash-service = "notify-crash@";
 
   # GPIO
@@ -234,12 +235,11 @@ in
     mqtt-port
     clark-script-http-port
   ] ++ extra-ports;
-  system.activationScripts = {
-    # these pipes are used from multiple services, so we set them up as early as possible
-    make-pipes = ''
-      if [[ ! -p ${email-pipe} ]]; then mkfifo ${email-pipe} && chown gthomas:users ${email-pipe} ; fi
-      if [[ ! -p ${system-led-pipe} ]]; then mkfifo ${system-led-pipe} && chown gthomas:users ${system-led-pipe} ; fi
-      if [[ ! -p ${power-off-pipe} ]]; then mkfifo ${power-off-pipe} && chown gthomas:users ${power-off-pipe} ; fi
-    '';
-  };
+  # these pipes are used from multiple services, so we set them up as early as possible
+  systemd.tmpfiles.rules = [
+    "d ${pipe-dir} 0755 gthomas users -"
+    "p ${email-pipe} 0644 gthomas users -"
+    "p ${system-led-pipe} 0644 gthomas users -"
+    "p ${power-off-pipe} 0644 gthomas users -"
+  ];
 }
