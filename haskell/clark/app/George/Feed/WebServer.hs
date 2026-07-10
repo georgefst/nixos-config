@@ -112,7 +112,7 @@ curlDocs :: Int -> Text
 curlDocs port =
     T.intercalate "\n" $
         zipWith
-            (\v es -> T.unlines $ v : if length es == 1 then [] else es)
+            (\v es -> T.unlines $ v : es)
             (curlFunctions host api)
             (curlExamples host api)
   where
