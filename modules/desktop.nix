@@ -294,13 +294,57 @@ in
           startupWMClass = "LIFX";
         };
       gather = makeDesktopItem {
-        # Gather as desktop app, via Chromium
+        # Gather as desktop app, via Firefox
         name = "gather";
         desktopName = "Gather";
+        # lengthy message from original commit:
+        #         use Firefox for Gather
+
+        # only real actual concrete advantage is no ugly top border (thus no overlapping tiles)
+        # I'd hoped that behaviour for opening links would be better, but it's actually worse (see comments)
+
+        # Gather doesn't actually work quite as well on Firefox
+        # - custom backgrounds don't work in Gather - we can click them, but nothing happens
+        # - shows "unsupported browser" dialog
+        #   - we could spoof the user agent to Chrome
+        #     - this breaks audio, i.e. I can't unmute my mic
+        #     - probably best to let Gather's stats show that they have Firefox users
+        #   - we can close it with a keyboard so it's not too bad
+        #   - we _could_ use something like Greasemonkey to automate
+
+        # note that a lot of guides say to use `--class` but it's actually `--name` that works. possibly a Wayland thing
+
+        # also, note that using `pkgs.firefox` rather than `firefox` creates some weird issues because it points to a binary that hasn't been wrapped, so e.g. `autoConfig` doesn't apply
+        # it's possible we could use `config.programs.firefox.package`, but really there's nothing gained by doing so
+
+        # this can obviously be split up in to separate commits once successful (refactors, tiling layout, about:config prefs...)
+
+
+
+        # TODO "gather" profile has to be created manually and non-declaratively on first launch
+        # unfortunately, we can't have two windows open at the same time with the same profile and different WM classes
+        # because Firefox reuses the same process, even with `--new-window`
+        # could we instead launch as though using a separate binary, like FF developer edition?
+        # TODO we'd like to pass `--kiosk` to be more app-like, or at least just start in fullscreen
+        # it crashes without `widget.wayland.vsync.enabled=false` - set non-declaratively on Crow for profile
+        # oh actually, I think I've seen it work without that even being set now...
+        # also it's fullscreen rather than tiled unless there's already a window open with that profile
+        # (and --name only takes effect if there isn't - see below)
+        # i.e. it doesn't consistenly respect `full-screen-api.ignore-widgets`
+        # TODO we want links to open in Firefox, but this doesn't work as I'd hoped
+        # normal links are navigated to, though these are unlikely/impossible in Gather
+        # links supposed to open in new tab get put in invisible tabs that we can navigate via keyboard, in kiosk mode
+        # see `link-test.html`
+        # even without kiosk, we're in the non-default profile, due to the WM name restriction
+        # maybe we can live with this for now, since it wasn't great in Chromium anyway
+        # I think kiosk new-tab links getting passed to `xdg-open` or whatever is actually a reasonable feature request
+        # aha, this is mentioned here: https://connect.mozilla.org/t5/discussions/how-can-firefox-create-the-best-support-for-web-apps-on-the/m-p/60561#M21220
+        # also mentioned in my Reddit post...
         exec = pkgs.writeShellScript "gather-launch" ''
           id=$(<${config.age.secrets.gather-id.path})
-          exec ${lib.getExe chromium} --class=gather --app=https://app.v2.gather.town/app/$id;
+          exec firefox --name gather -P gather https://app.v2.gather.town/app/$id;
         '';
+        # exec = "firefox --name gather -P gather https://app.v2.gather.town/app/obsidian-3812d4d3-1a3e-4e30-b603-b31c7b22e94f";
         icon = "${../assets/gather.png}";
         startupWMClass = "gather";
       };
