@@ -91,6 +91,7 @@
                   # developed locally
                   clark = haskell.packages."clark:exe:clark";
                   magic-mouse = haskell.packages."magic-mouse:exe:magic-mouse";
+                  qr = haskell.packages."qr:exe:qr";
                 }
               )
               (import ./fixes/opencode.nix)

@@ -334,6 +334,7 @@ in
       nixpkgs-fmt
       opencode
       popsicle
+      qr
       rust-analyzer
       signal-desktop
       spotify

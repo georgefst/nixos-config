@@ -1,0 +1,44 @@
+cabal-version:      3.0
+name:               qr
+version:            0.1.0.0
+license:            BSD-3-Clause
+author:             George Thomas
+maintainer:         georgefsthomas@gmail.com
+
+executable qr
+    main-is: QR.hs
+    hs-source-dirs: .
+    default-language: GHC2024
+    default-extensions:
+        BlockArguments
+        DuplicateRecordFields
+        LexicalNegation
+        MultiWayIf
+        NoFieldSelectors
+        OverloadedLabels
+        OverloadedRecordDot
+        OverloadedStrings
+        PartialTypeSignatures
+        RecordWildCards
+        ViewPatterns
+    build-depends:
+        async,
+        base,
+        bytestring,
+        containers,
+        directory,
+        extra,
+        filepath,
+        JuicyPixels,
+        mtl,
+        pretty-simple,
+        process,
+        qrcode-core,
+        qrcode-juicypixels,
+        text,
+        time,
+        transformers,
+        unix,
+    ghc-options:
+        -Wall
+        -threaded
