@@ -128,7 +128,7 @@ main = do
                             ]
                         ,
                             [ WebServer.feed $
-                                opts & \Opts{..} -> WebServer.Opts{port = httpPort, ..}
+                                opts & \Opts{..} -> WebServer.Opts{port = httpPort, curlDocsCallback = T.putStrLn, ..}
                             , UDP.feed $
                                 opts & \Opts{..} -> UDP.Opts{..}
                             ]

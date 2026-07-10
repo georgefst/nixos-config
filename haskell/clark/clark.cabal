@@ -16,6 +16,7 @@ executable clark
         MQTT.Meross
         Util
         Util.Lifx
+        Util.Servant.Curl
         Util.Servant.Streamly
     hs-source-dirs: app
     default-language: GHC2021

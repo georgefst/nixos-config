@@ -2,13 +2,16 @@ module George.Feed.WebServer (feed, Opts (..)) where
 
 import George.Core
 import Util
+import Util.Servant.Curl
 
 import Control.Concurrent
 import Control.Monad
 import Control.Monad.Freer
 import Control.Monad.IO.Class
 import Data.Functor
+import Data.Proxy
 import Data.Text (Text)
+import Data.Text qualified as T
 import Data.Time
 import Data.Word
 import GHC.Generics (Generic)
@@ -16,6 +19,7 @@ import Lifx.Lan (HSBK (..))
 import Network.HTTP.Types
 import Network.Wai.Handler.Warp qualified as Warp
 import Servant
+import Servant.Client (BaseUrl (..), Scheme (Http))
 import Streamly.Data.Stream.Prelude qualified as S
 import System.Exit
 import Util.Servant.Streamly qualified as Servant
@@ -25,6 +29,7 @@ data Opts = Opts
     { port :: Warp.Port
     , lifxMorningDelay :: NominalDiffTime
     , lifxMorningKelvin :: Word16
+    , curlDocsCallback :: Text -> IO ()
     }
 
 type R = Get '[PlainText] Text
@@ -68,7 +73,10 @@ feed opts =
     S.catMaybes $
         Servant.stream @(NamedRoutes Routes)
             Servant.Opts
-                { warpSettings = Warp.setPort opts.port Warp.defaultSettings
+                { warpSettings =
+                    Warp.setBeforeMainLoop
+                        (opts.curlDocsCallback $ curlDocs opts.port)
+                        $ Warp.setPort opts.port Warp.defaultSettings
                 , routes = \act ->
                     Routes
                         { resetError = f showT act $ send ResetError
@@ -99,3 +107,20 @@ feed opts =
         m <- newEmptyMVar
         act $ ActionEvent (putMVar m) a
         (<> "\n") . show' <$> takeMVar m
+
+curlDocs :: Int -> Text
+curlDocs port =
+    T.intercalate "\n" $
+        zipWith
+            (\v es -> T.unlines $ v : if length es == 1 then [] else es)
+            (curlFunctions host api)
+            (curlExamples host api)
+  where
+    api = Proxy @(NamedRoutes Routes)
+    host =
+        BaseUrl
+            { baseUrlScheme = Http
+            , baseUrlHost = "clark"
+            , baseUrlPort = port
+            , baseUrlPath = ""
+            }

@@ -38,12 +38,13 @@ import Lifx.Lan qualified as Lifx
 import MQTT.Meross qualified
 import Options.Generic
 import RawFilePath
+import Servant.Foreign
 import Streamly.Data.Fold qualified as SF
 import Streamly.Data.Stream.Prelude qualified as S
 import System.Exit
 import System.IO.Error
+import Util.Servant.Curl
 import Util.Util
-import Web.HttpApiData (FromHttpApiData, parseUrlPiece)
 
 newtype AppState = AppState
     { activeLEDs :: Map Int GPIO.Handle
@@ -183,47 +184,80 @@ instance FromHttpApiData (SRoom LivingRoom) where
     parseUrlPiece = \case
         "living-room" -> Right SLivingRoom
         s -> Left $ "unknown room name: " <> s
+instance ToHttpApiData (SRoom LivingRoom) where
+    toUrlPiece = \case
+        SLivingRoom -> "living-room"
 instance FromHttpApiData (SRoom Bedroom) where
     parseUrlPiece = \case
         "bedroom" -> Right SBedroom
         s -> Left $ "unknown room name: " <> s
+instance ToHttpApiData (SRoom Bedroom) where
+    toUrlPiece = \case
+        SBedroom -> "bedroom"
 instance FromHttpApiData (SRoom Office) where
     parseUrlPiece = \case
         "office" -> Right SOffice
         s -> Left $ "unknown room name: " <> s
+instance ToHttpApiData (SRoom Office) where
+    toUrlPiece = \case
+        SOffice -> "office"
 instance FromHttpApiData (Exists' (Light LivingRoom)) where
     parseUrlPiece = \case
         "lamp" -> Right $ Exists' Lamp
         s -> Left $ "unknown light name: " <> s
+instance ToHttpApiData (Exists' (Light LivingRoom)) where
+    toUrlPiece = \case
+        Exists Lamp -> "lamp"
 instance FromHttpApiData (Exists' (Light Bedroom)) where
     parseUrlPiece = \case
         "main" -> Right $ Exists' BedroomLight
         s -> Left $ "unknown light name: " <> s
+instance ToHttpApiData (Exists' (Light Bedroom)) where
+    toUrlPiece = \case
+        Exists BedroomLight -> "main"
 instance FromHttpApiData (Exists' (Light Office)) where
     parseUrlPiece = \case
         "main" -> Right $ Exists' OfficeLight
         s -> Left $ "unknown light name: " <> s
+instance ToHttpApiData (Exists' (Light Office)) where
+    toUrlPiece = \case
+        Exists OfficeLight -> "main"
 instance FromHttpApiData (Light LivingRoom FullColours) where
     parseUrlPiece = \case
         "lamp" -> Right Lamp
         s -> Left $ "unknown light name: " <> s
+instance ToHttpApiData (Light LivingRoom FullColours) where
+    toUrlPiece = \case
+        Lamp -> "lamp"
 instance FromHttpApiData (Light LivingRoom KelvinOnly) where
     parseUrlPiece = \case
         s -> Left $ "unknown light name: " <> s
+instance ToHttpApiData (Light LivingRoom KelvinOnly) where
+    toUrlPiece = \case {}
 instance FromHttpApiData (Light Bedroom FullColours) where
     parseUrlPiece = \case
         s -> Left $ "unknown light name: " <> s
+instance ToHttpApiData (Light Bedroom FullColours) where
+    toUrlPiece = \case {}
 instance FromHttpApiData (Light Bedroom KelvinOnly) where
     parseUrlPiece = \case
         "main" -> Right BedroomLight
         s -> Left $ "unknown light name: " <> s
+instance ToHttpApiData (Light Bedroom KelvinOnly) where
+    toUrlPiece = \case
+        BedroomLight -> "main"
 instance FromHttpApiData (Light Office FullColours) where
     parseUrlPiece = \case
         s -> Left $ "unknown light name: " <> s
+instance ToHttpApiData (Light Office FullColours) where
+    toUrlPiece = \case {}
 instance FromHttpApiData (Light Office KelvinOnly) where
     parseUrlPiece = \case
         "main" -> Right OfficeLight
         s -> Left $ "unknown light name: " <> s
+instance ToHttpApiData (Light Office KelvinOnly) where
+    toUrlPiece = \case
+        OfficeLight -> "main"
 instance
     ( FromHttpApiData (Light LivingRoom c)
     , FromHttpApiData (Light Bedroom c)
@@ -236,6 +270,17 @@ instance
         (T.stripPrefix "bedroom-" -> Just l) -> RoomLightPair SBedroom <$> parseUrlPiece l
         (T.stripPrefix "office-" -> Just l) -> RoomLightPair SOffice <$> parseUrlPiece l
         s -> Left $ "unknown room name: " <> s
+instance
+    ( ToHttpApiData (Light LivingRoom c)
+    , ToHttpApiData (Light Bedroom c)
+    , ToHttpApiData (Light Office c)
+    ) =>
+    ToHttpApiData (RoomLightPair c)
+    where
+    toUrlPiece = \case
+        RoomLightPair SLivingRoom l -> "living-room-" <> toUrlPiece l
+        RoomLightPair SBedroom l -> "bedroom-" <> toUrlPiece l
+        RoomLightPair SOffice l -> "office-" <> toUrlPiece l
 instance FromHttpApiData (Exists' RoomLightPair) where
     parseUrlPiece t =
         first T.unlines $
@@ -243,6 +288,29 @@ instance FromHttpApiData (Exists' RoomLightPair) where
                 [ Exists' <$> parseUrlPiece @(RoomLightPair FullColours) t
                 , Exists' <$> parseUrlPiece @(RoomLightPair KelvinOnly) t
                 ]
+instance ToHttpApiData (Exists' RoomLightPair) where
+    toUrlPiece = \case
+        Exists l@(RoomLightPair SLivingRoom Lamp) -> toUrlPiece l
+        Exists l@(RoomLightPair SBedroom BedroomLight) -> toUrlPiece l
+        Exists l@(RoomLightPair SOffice OfficeLight) -> toUrlPiece l
+instance HasForeignType Curl Examples (RoomLightPair FullColours) where
+    typeFor =
+        typeForExamples
+            [ RoomLightPair SLivingRoom Lamp
+            ]
+instance HasForeignType Curl Examples (RoomLightPair KelvinOnly) where
+    typeFor =
+        typeForExamples
+            [ RoomLightPair SBedroom BedroomLight
+            , RoomLightPair SOffice OfficeLight
+            ]
+instance HasForeignType Curl Examples (Exists' RoomLightPair) where
+    typeFor =
+        typeForExamples
+            [ Exists' $ RoomLightPair SLivingRoom Lamp
+            , Exists' $ RoomLightPair SBedroom BedroomLight
+            , Exists' $ RoomLightPair SOffice OfficeLight
+            ]
 instance FromHttpApiData DeskPowerDevice where
     parseUrlPiece = \case
         "computer" -> Right Computer
@@ -250,6 +318,14 @@ instance FromHttpApiData DeskPowerDevice where
         "portrait-monitor" -> Right PortraitMonitor
         "usb-ports" -> Right UsbPorts
         s -> Left $ "unknown desk device: " <> s
+instance ToHttpApiData DeskPowerDevice where
+    toUrlPiece = \case
+        Computer -> "computer"
+        MainMonitor -> "main-monitor"
+        PortraitMonitor -> "portrait-monitor"
+        UsbPorts -> "usb-ports"
+instance HasForeignType Curl Examples DeskPowerDevice where
+    typeFor = typeForExamples [MainMonitor, UsbPorts]
 
 data ActionOpts = ActionOpts
     { ledErrorPin :: Int
