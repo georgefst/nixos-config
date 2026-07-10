@@ -20,6 +20,7 @@ import Network.HTTP.Types
 import Network.Wai.Handler.Warp qualified as Warp
 import Servant
 import Servant.Client (BaseUrl (..), Scheme (Http))
+import Servant.Foreign (HasForeignType, typeFor)
 import Streamly.Data.Stream.Prelude qualified as S
 import System.Exit
 import Util.Servant.Streamly qualified as Servant
@@ -47,7 +48,7 @@ data Routes mode = Routes
                 :> Capture "light" (RoomLightPair KelvinOnly)
                 :> Capture "delay" NominalDiffTime
                 :> Capture "brightness" Word16
-                :> Capture "kelvin" Word16
+                :> Capture "kelvin" Kelvin
                 :> R
     , setLightColour ::
         mode
@@ -57,7 +58,7 @@ data Routes mode = Routes
                 :> Capture "hue" Word16
                 :> Capture "saturation" Word16
                 :> Capture "brightness" Word16
-                :> Capture "kelvin" Word16
+                :> Capture "kelvin" Kelvin
                 :> R
     , setDeskPower :: mode :- "set-desk-power" :> Capture "device" DeskPowerDevice :> Capture "power" Bool :> R
     , sendEmail :: mode :- "send-email" :> Capture "subject" Text :> Capture "body" Text :> R
@@ -86,9 +87,9 @@ feed opts =
                         , setLightPower = withExists $ f showT act . send .: SetLightPower
                         , getLightColour = withExists $ f showT act . send . GetLightColour
                         , toggleLight = withExists $ f showT act . toggleLight
-                        , setLightColourBK = \lightBK delay brightness kelvin ->
+                        , setLightColourBK = \lightBK delay brightness (Kelvin kelvin) ->
                             f showT act $ send SetLightColourBK{..}
-                        , setLightColour = \light delay hue saturation brightness kelvin ->
+                        , setLightColour = \light delay hue saturation brightness (Kelvin kelvin) ->
                             f showT act $ send SetLightColour{colour = HSBK{..}, ..}
                         , setDeskPower = \device power -> f showT act . send $ SetDeskPower device power
                         , sendEmail = \subject body -> f showT act $ send SendEmail{..}
@@ -124,3 +125,9 @@ curlDocs port =
             , baseUrlPort = port
             , baseUrlPath = ""
             }
+
+-- TODO use more newtypes like this in `lifx-lan` itself?
+-- this is the important one, since the values aren't meaningful across the whole `Word16` range
+newtype Kelvin = Kelvin Word16 deriving newtype (ToHttpApiData, FromHttpApiData)
+instance HasForeignType Curl Examples Kelvin where
+    typeFor = typeForExamples $ map Kelvin [2700, 3500]
