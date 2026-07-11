@@ -81,6 +81,7 @@ in
       lockAll = true;
       settings = {
         "desktop/ibus/panel/emoji" = {
+          # TODO ah, I don't think this is triggerable on Crow...
           hotkey = [ "<Super>numbersign" ];
         };
         "org/gnome/clocks" = {
@@ -252,9 +253,11 @@ in
       // pkgs.lib.listToAttrs bindings;
     }];
   services.logind.settings.Login.HandleLidSwitch = "lock";
+  # still necessary on 26.05?
   # forces electron apps to use Wayland - needed for Discord, at least, to avoid blurry text
   environment.variables.ELECTRON_OZONE_PLATFORM_HINT = "auto";
 
+  # TODO review all this properly...
   # serve Nix store over SSH
   nix.sshServe = {
     enable = true;
@@ -366,6 +369,10 @@ in
       ghc
       ghcid
       ghciwatch
+      # giving up on this until GHC 9.14 in Nixpkgs is in better shape
+      # see Fry `haskell-debugger` stash
+      # also, try to get support added to Haskell.nix
+      # haskell-debugger
       haskell-language-server
       hix
       libreoffice

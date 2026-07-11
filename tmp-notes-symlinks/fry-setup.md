@@ -1,0 +1,1 @@
+/sync/notes/tech/setup/fry.md

@@ -1,0 +1,1 @@
+/sync/notes/tmp-fry-nixos.md

@@ -82,6 +82,7 @@
                   vscode = pkgs-unstable.vscode;
                   zed-editor = pkgs-unstable.zed-editor;
                   # non-Nixpkgs flake inputs
+                  # TODO we should make sure this errors if we try to shadow something in nixpkgs
                   agenix = inputs.agenix.packages.${system}.default;
                   evdev-share = inputs.evdev-share.packages.${system}.default;
                   hix = inputs.haskell-nix.packages.${system}.hix;
@@ -94,6 +95,14 @@
                   qr = haskell.packages."qr:exe:qr";
                 }
               )
+              # Opus 4.5 attempt to reconcile with `mouse-follows-focus`
+              # idea is that we don't want the cursor to become visible when we switch focus via the extension
+              # anyway, this "fix" has some weird behaviour, and crucially doesn't even fulfil its purpose
+              # (import ./fixes/hide-cursor.nix)
+              # also, reducing to minimum timeout (`timeout = 1`) potentially makes this not an issue in practice
+              # time will tell
+              # note that unlike when I first installed this extension, the timeout does actually work reliably, due to a significant rewrite for GNOME 49
+              # EDIT while squashing everything: not sure that's true?
               (import ./fixes/opencode.nix)
               (import ./fixes/tiling-shell.nix)
             ];

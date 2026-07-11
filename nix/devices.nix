@@ -1,3 +1,8 @@
+# TODO this file should be used for SSH keys
+# incl. `keys = config.users.users.gthomas.openssh.authorizedKeys.keys` for `nix.sshServe`
+# plus `nix.sshServe`
+# (whole `serve Nix store over SSH` section which needs more general review, ideally from Fable, and stuff to be moved elsewhere)
+# and maybe also  even use this file for other non-SSH stuff
 {
   fry = {
     ssh.user = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIENRoUCeCrR6KtXi/Trx5igMumHuDR2enXubiisk+QTE";
