@@ -62,7 +62,6 @@ data Routes mode = Routes
                 :> R
     , setDeskPower :: mode :- "set-desk-power" :> Capture "device" DeskPowerDevice :> Capture "power" Bool :> R
     , sendEmail :: mode :- "send-email" :> Capture "subject" Text :> Capture "body" Text :> R
-    , suspendLaptop :: mode :- "suspend-laptop" :> R
     , setOtherLED :: mode :- "set-other-led" :> Capture "power" Bool :> R
     , setSystemLEDs :: mode :- "set-system-leds" :> Capture "power" Bool :> R
     , sleepOrWake :: mode :- "sleep-or-wake" :> R
@@ -93,7 +92,6 @@ feed opts =
                             f showT act $ send SetLightColour{colour = HSBK{..}, ..}
                         , setDeskPower = \device power -> f showT act . send $ SetDeskPower device power
                         , sendEmail = \subject body -> f showT act $ send SendEmail{..}
-                        , suspendLaptop = f showT act $ send SuspendLaptop
                         , setOtherLED = f showT act . send . SetOtherLED
                         , setSystemLEDs = f showT act . send . SetSystemLEDs
                         , sleepOrWake = f showT act $ sleepOrWake opts.lifxMorningDelay opts.lifxMorningKelvin

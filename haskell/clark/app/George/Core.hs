@@ -101,7 +101,6 @@ data Action a where
     SetLightColourBK :: {lightBK :: RoomLightPair KelvinOnly, delay :: NominalDiffTime, brightness :: Word16, kelvin :: Word16} -> Action () -- TODO we should in principle be allowed to reuse the name `light` for the field - https://github.com/ghc-proposals/ghc-proposals/pull/535#issuecomment-1694388075
     SetDeskPower :: DeskPowerDevice -> Bool -> Action ()
     SendEmail :: {subject :: Text, body :: Text} -> Action ()
-    SuspendLaptop :: Action ()
     SetOtherLED :: Bool -> Action ()
     SetSystemLEDs :: Bool -> Action ()
 deriving instance Show (Action a)
@@ -369,15 +368,6 @@ runAction opts@ActionOpts{getLight, setLED {- TODO GHC doesn't yet support impre
             UsbPorts -> 4
     SendEmail{subject, body} ->
         writePipe opts.emailPipe $ T.unlines [subject, body]
-    SuspendLaptop ->
-        maybe
-            (logMessage "SSH timeout")
-            (logWhenFailureExitCode "SSH failure")
-            =<< liftIO
-                ( traverse (\(e, out, err) -> showOutput out err >> pure e)
-                    <=< readProcessWithExitCodeTimeout (opts.sshTimeout * 1_000_000)
-                    $ proc "ssh" ["billy", "systemctl suspend"]
-                )
     SetOtherLED b -> setLED opts.ledOtherPin b
     SetSystemLEDs b -> writePipe opts.systemLedPipe . showT $ fromEnum b
   where
@@ -385,9 +375,6 @@ runAction opts@ActionOpts{getLight, setLED {- TODO GHC doesn't yet support impre
         unless (B.null t) $ T.putStrLn ("    " <> s <> ": ") >> B.putStr (BC8.strip t)
     throwWhenFailureExitCode s ec =
         unless (ec == ExitSuccess) $ throwError $ Error s ec
-    logWhenFailureExitCode s = \case
-        ExitSuccess -> pure ()
-        ExitFailure ec -> logMessage $ s <> ": " <> showT ec
     writePipe p t =
         liftIO (T.writeFile p t)
             `catchDNE` \_ ->
@@ -417,6 +404,5 @@ sleepOrWake lifxMorningDelay lifxMorningKelvin =
                     , brightness = maxBound
                     , kelvin = lifxMorningKelvin
                     }
-        when night . void $ send SuspendLaptop
   where
     light = RoomLightPair SBedroom BedroomLight
