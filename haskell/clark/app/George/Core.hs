@@ -142,6 +142,12 @@ enumerateLights = \case
     SBedroom -> [Exists' BedroomLight]
     SOffice -> [Exists' OfficeLight]
 
+enumerateRoomLights :: [Exists' RoomLightPair]
+enumerateRoomLights =
+    concatMap
+        (\(Exists r) -> map (\(Exists l) -> Exists $ RoomLightPair r l) $ enumerateLights r)
+        enumerateRooms
+
 -- TODO we can't use the type synonym directly without the unreleased `-XUnsaturatedTypeFamilies`
 type RoomConstraints0 r =
     ( Typeable r
