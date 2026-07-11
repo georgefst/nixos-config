@@ -8,6 +8,7 @@ import Control.Concurrent
 import Control.Monad
 import Control.Monad.Freer
 import Control.Monad.IO.Class
+import Data.Foldable
 import Data.Functor
 import Data.Proxy
 import Data.Text (Text)
@@ -65,6 +66,7 @@ data Routes mode = Routes
     , setOtherLED :: mode :- "set-other-led" :> Capture "power" Bool :> R
     , setSystemLEDs :: mode :- "set-system-leds" :> Capture "power" Bool :> R
     , sleepOrWake :: mode :- "sleep-or-wake" :> R
+    , lightsOut :: mode :- "lights-out" :> R
     }
     deriving (Generic)
 
@@ -95,6 +97,7 @@ feed opts =
                         , setOtherLED = f showT act . send . SetOtherLED
                         , setSystemLEDs = f showT act . send . SetSystemLEDs
                         , sleepOrWake = f showT act $ sleepOrWake opts.lifxMorningDelay opts.lifxMorningKelvin
+                        , lightsOut = f showT act $ traverse_ (withExists' $ send . flip SetLightPower False) enumerateRoomLights
                         }
                 }
             <&> \case
