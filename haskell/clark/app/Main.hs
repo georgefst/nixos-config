@@ -3,7 +3,6 @@ module Main (main) where
 
 import George.Core
 import George.Feed.GPIO qualified as GPIO
-import George.Feed.UDP qualified as UDP
 import George.Feed.WebServer qualified as WebServer
 import Util.GPIO qualified as GPIO
 import Util.Lifx
@@ -129,7 +128,5 @@ main = do
                         ,
                             [ WebServer.feed $
                                 opts & \Opts{..} -> WebServer.Opts{port = httpPort, curlDocsCallback = T.putStrLn, ..}
-                            , UDP.feed $
-                                opts & \Opts{..} -> UDP.Opts{..}
                             ]
                         ]

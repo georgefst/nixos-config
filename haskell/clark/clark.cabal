@@ -11,7 +11,6 @@ executable clark
     other-modules:
         George.Core
         George.Feed.GPIO
-        George.Feed.UDP
         George.Feed.WebServer
         MQTT.Meross
         Util
@@ -45,7 +44,6 @@ executable clark
         georgefst-utils:gpio-utils,
         georgefst-utils:streamly-utils,
         georgefst-utils:streamly-gpio,
-        georgefst-utils:streamly-udp,
         aeson ^>= {2.1.1, 2.2},
         async >= 2.2.4,
         binary >= 0.8.9,
