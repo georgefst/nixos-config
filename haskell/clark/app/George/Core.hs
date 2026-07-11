@@ -51,7 +51,7 @@ newtype AppState = AppState
     deriving (Generic)
 
 data Event where
-    ActionEvent :: (Show a) => (a -> IO ()) -> (CompoundAction a) -> Event
+    ActionEvent :: (Show a) => (a -> IO ()) -> CompoundAction a -> Event
     LogEvent :: Text -> Event
     ErrorEvent :: Error -> Event
 runEventStream ::
