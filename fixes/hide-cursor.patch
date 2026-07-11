@@ -1,0 +1,25 @@
+diff --git a/extension.js b/extension.js
+index 1234567..abcdefg 100644
+--- a/extension.js
++++ b/extension.js
+@@ -14,14 +14,14 @@ export default class HideCursor extends Extension {
+ 
+     this._seat = Clutter.get_default_backend().get_default_seat()
+     this._timer = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, this.TICK_TIMEOUT, this.tick)
+-    this._tracker = global.backend.get_cursor_tracker()
+-    this._positionChangedId = this._tracker.connect('position-invalidated', this.move)
++    this._tracker = global.backend.get_cursor_tracker()
++    this._motionEventId = global.stage.connect('motion-event', this.move)
+     this._lastMove = Date.now()
+   }
+ 
+   disable() {
+-    if (this._positionChangedId) {
+-      this._tracker.disconnect(this._positionChangedId)
+-      this._positionChangedId = null
++    if (this._motionEventId) {
++      global.stage.disconnect(this._motionEventId)
++      this._motionEventId = null
+     }
+ 
+     if (this._settingsConnectionID) {

@@ -82,6 +82,7 @@ in
 
   services.openssh.enable = true;
   services.openssh.settings.PasswordAuthentication = false;
+  # add alias for sol non-local at 51.155.237.58:24? should probably be aged
   users.users.gthomas.openssh.authorizedKeys.keys = [
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINUnvz6Q8zIzqbIG2iy72u6zl5Xg/tem1r93G3FNwGF9 gthomas@billy"
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMpgTcLz/Bu3KefOGAD2wbKybYoQBKGRDATraxQUiXMV gthomas@clark"
@@ -90,6 +91,9 @@ in
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMA9w/yrArTnqUQMKkVD6ngN5J17e7s9Eo3sKFxR3fit gthomas@sol"
   ];
   programs.git.enable = true;
+  # use `push.autoSetupRemote`?
+  # see `git help config`
+  # problem is I don't really know how a default remote is chosen
   programs.git.config = {
     core.editor = "code --wait";
     core.excludesFile = "/etc/gitignore";

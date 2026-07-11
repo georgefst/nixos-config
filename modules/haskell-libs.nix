@@ -60,6 +60,11 @@ pkgs: hpkgs: with hpkgs; [
   uuid
   vector
   Vis
+  # also, given that all this stuff is _largely_ for `hs-scripts`, I should think about alternatives there
+  # how easy would it be to generate a GHC environment file pointing to paths in Nix store?
+  # seems a bit icky, but no worse for stability or usability than using one on non-Nix
+  # although actually, I do use the global packages elsewhere, e.g. for non-VCS-ed scripts in sync folder
+  # webcolor-labels
   wai
   wai-app-static
   warp

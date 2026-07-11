@@ -1,0 +1,1 @@
+/sync/notes/tech/projects/personal/clark.md
