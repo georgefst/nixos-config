@@ -19,7 +19,7 @@ import Control.Monad
 import Control.Monad.Catch
 import Control.Monad.Except hiding (handleError)
 import Control.Monad.Freer
-import Control.Monad.Log (MonadLog, logMessage)
+import Control.Monad.Log (MonadLog)
 import Control.Monad.State.Strict
 import Data.Bifunctor
 import Data.ByteString qualified as B
@@ -37,7 +37,6 @@ import Lifx.Lan hiding (SetColor, SetLightPower)
 import Lifx.Lan qualified as Lifx
 import MQTT.Meross qualified
 import Options.Generic
-import RawFilePath
 import Servant.Foreign
 import Streamly.Data.Fold qualified as SF
 import Streamly.Data.Stream.Prelude qualified as S
@@ -392,7 +391,7 @@ toggleLight :: RoomLightPair c -> CompoundAction ()
 toggleLight l = send . SetLightPower l . not =<< send (GetLightPower l)
 sleepOrWake :: NominalDiffTime -> Word16 -> CompoundAction ()
 sleepOrWake lifxMorningDelay lifxMorningKelvin =
-    send (GetLightPower light) >>= \night@(not -> morning) -> do
+    send (GetLightPower light) >>= \(not -> morning) -> do
         send $ SetSystemLEDs morning
         send $ SetLightPower light morning
         when morning do
