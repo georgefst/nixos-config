@@ -99,11 +99,9 @@ main = do
                     ds <- discoverLifx
                     let (notFound, ds') =
                             partitionEithers $
-                                concatMap
-                                    (\(Exists r) -> map (\(Exists l) -> (roomName r, lightName l)) $ enumerateLights r)
-                                    enumerateRooms
-                                    <&> \rl@(r, l) ->
-                                        maybeToEither rl $
+                                enumerateRoomLights <&> \(Exists (RoomLightPair (roomName -> r) (lightName -> l))) ->
+                                    let rl = (r, l)
+                                     in maybeToEither rl $
                                             ds & firstJust \(d, s, g) -> guard (g.label == r && s.label == l) $> (rl, d)
                     maybe (pure $ Map.fromList ds') (throwError @(NonEmpty (Text, Text))) $ nonEmpty notFound
                 let getLight :: forall c. RoomLightPair c -> Lifx.Device
