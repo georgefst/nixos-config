@@ -2,7 +2,12 @@
 
 if [ -n "$1" ]
 then
-    REV="?rev=$(git rev-parse $1)"
+    TARGET="--target-host $1 --ask-sudo-password"
 fi
 
-nixos-rebuild switch --flake .$REV --sudo
+if [ -n "$2" ]
+then
+    REV="?rev=$(git rev-parse $2)"
+fi
+
+nixos-rebuild switch --flake .$REV --sudo $TARGET
