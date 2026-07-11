@@ -110,23 +110,22 @@ main = do
                     getLight (RoomLightPair r l) =
                         fromMaybe (error "light map not exhaustive") $
                             Map.lookup (roomName r, lightName l) lightMap
-                runEventStream handleError logMessage (runAction (opts & \Opts{..} -> ActionOpts{..}))
+                    Opts{..} = opts
+                runEventStream handleError logMessage (runAction ActionOpts{..})
                     . S.morphInner liftIO
                     . S.parList id
                     $ mconcat
                         [ mwhen
                             (not opts.noGpio)
-                            [ GPIO.feed $
-                                opts
-                                    & \Opts
-                                        { gpioChip = chip
-                                        , buttonPin = pin
-                                        , buttonDebounce = debounce
-                                        , buttonWindow = window
-                                        } -> GPIO.Opts{..}
+                            [ let
+                                chip = gpioChip
+                                pin = buttonPin
+                                debounce = buttonDebounce
+                                window = buttonWindow
+                               in
+                                GPIO.feed GPIO.Opts{..}
                             ]
                         ,
-                            [ WebServer.feed $
-                                opts & \Opts{..} -> WebServer.Opts{port = httpPort, curlDocsCallback = T.putStrLn, ..}
+                            [ WebServer.feed WebServer.Opts{port = httpPort, curlDocsCallback = T.putStrLn, ..}
                             ]
                         ]
