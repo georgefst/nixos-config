@@ -1,5 +1,6 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Util where
@@ -8,12 +9,14 @@ import Control.Concurrent
 import Control.Concurrent.Async
 import Control.Monad.Catch
 import Control.Monad.Freer
+import Control.Monad.Freer.Internal
 import Data.Bifunctor
 import Data.ByteString (ByteString)
 import Data.ByteString qualified as B
 import Data.Either.Extra
 import Data.Kind
 import Data.List.Extra
+import Data.OpenUnion.Internal
 import Data.Proxy
 import Data.Time (NominalDiffTime)
 import Network.Socket
@@ -105,3 +108,13 @@ deriving anyclass instance ParseField NominalDiffTime
 deriving anyclass instance ParseFields NominalDiffTime
 instance ParseRecord NominalDiffTime where
     parseRecord = fmap getOnly parseRecord
+
+-- Add an effect to the end of the row. Sound because 'Union' tags index from the head.
+-- TODO maybe just move to effectful or cleff...
+type family Append xs ys where
+    Append '[] ys = ys
+    Append (x ': xs) ys = x ': Append xs ys
+raiseLast :: forall u effs a. Eff effs a -> Eff (Append effs '[u]) a
+raiseLast = \case
+    Val x -> Val x
+    E (Union n t) q -> E (Union n t) $ tsingleton $ raiseLast @u . qApp q

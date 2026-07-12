@@ -4,15 +4,18 @@ import George.Core
 import Util
 import Util.Servant.Curl
 
-import Control.Concurrent
 import Control.Monad
+import Control.Monad.Except
 import Control.Monad.Freer
+import Control.Monad.Freer.Error qualified as Freer
 import Control.Monad.IO.Class
 import Data.Foldable
 import Data.Functor
 import Data.Proxy
 import Data.Text (Text)
 import Data.Text qualified as T
+import Data.Text.Lazy qualified as TL
+import Data.Text.Lazy.Encoding qualified as TLE
 import Data.Time
 import Data.Word
 import GHC.Generics (Generic)
@@ -34,6 +37,7 @@ data Opts = Opts
     , curlDocsCallback :: Text -> IO ()
     }
 
+-- hmm, what about future Haskell consumers?
 type R = Get '[PlainText] Text
 data Routes mode = Routes
     { resetError :: mode :- "reset-error" :> R
@@ -70,8 +74,8 @@ data Routes mode = Routes
     }
     deriving (Generic)
 
-feed :: Opts -> S.Stream IO [Event]
-feed opts =
+feed :: Handle -> Opts -> S.Stream IO [Event]
+feed (Handle submit) opts =
     S.catMaybes $
         Servant.stream @(NamedRoutes Routes)
             Servant.Opts
@@ -79,36 +83,43 @@ feed opts =
                     Warp.setBeforeMainLoop
                         (opts.curlDocsCallback $ curlDocs opts.port)
                         $ Warp.setPort opts.port Warp.defaultSettings
-                , routes = \act ->
+                , routes =
                     Routes
-                        { resetError = f showT act $ send ResetError
-                        , exitSuccess = f showT act . send $ Exit ExitSuccess
-                        , exitFailure = f showT act . send . Exit . ExitFailure
-                        , getLightPower = withExists $ f showT act . send . GetLightPower
-                        , setLightPower = withExists $ f showT act . send .: SetLightPower
-                        , getLightColour = withExists $ f showT act . send . GetLightColour
-                        , toggleLight = withExists $ f showT act . toggleLight
+                        { resetError = f $ send ResetError
+                        , exitSuccess = f . send $ Exit ExitSuccess
+                        , exitFailure = f . send . Exit . ExitFailure
+                        , getLightPower = withExists $ f . send . GetLightPower
+                        , setLightPower = withExists $ f . send .: SetLightPower
+                        , getLightColour = withExists $ f . send . GetLightColour
+                        , toggleLight = withExists $ f . toggleLight
                         , setLightColourBK = \lightBK delay brightness (Kelvin kelvin) ->
-                            f showT act $ send SetLightColourBK{..}
+                            f $ send SetLightColourBK{..}
                         , setLightColour = \light delay hue saturation brightness (Kelvin kelvin) ->
-                            f showT act $ send SetLightColour{colour = HSBK{..}, ..}
-                        , setDeskPower = \device power -> f showT act . send $ SetDeskPower device power
-                        , sendEmail = \subject body -> f showT act $ send SendEmail{..}
-                        , setOtherLED = f showT act . send . SetOtherLED
-                        , setSystemLEDs = f showT act . send . SetSystemLEDs
-                        , sleepOrWake = f showT act $ sleepOrWake opts.lifxMorningDelay opts.lifxMorningKelvin
-                        , lightsOut = f showT act $ traverse_ (withExists' $ send . flip SetLightPower False) enumerateRoomLights
+                            f $ send SetLightColour{colour = HSBK{..}, ..}
+                        , setDeskPower = \device power -> f . send $ SetDeskPower device power
+                        , sendEmail = \subject body -> f $ send SendEmail{..}
+                        , setOtherLED = f . send . SetOtherLED
+                        , setSystemLEDs = f . send . SetSystemLEDs
+                        , sleepOrWake = f $ sleepOrWake opts.lifxMorningDelay opts.lifxMorningKelvin
+                        , lightsOut = f $ traverse_ (withExists' $ send . flip SetLightPower False) enumerateRoomLights
                         }
                 }
             <&> \case
-                Servant.Event x -> Just [x]
                 Servant.WarpLog r s i ->
-                    guard (not $ statusIsSuccessful s) $> [ErrorEvent (Error "HTTP error" (r, s, i))]
+                    guard (not $ statusIsSuccessful s) $> [Freer.throwError $ Error "HTTP error" (r, s, i)]
   where
-    f show' (act :: Event -> IO ()) a = liftIO do
-        m <- newEmptyMVar
-        act $ ActionEvent (putMVar m) a
-        (<> "\n") . show' <$> takeMVar m
+    f :: forall a. (Show a) => CompoundAction a -> ExceptT ServerError IO Text
+    f a =
+        liftIO (submit $ reinterpret3 send a) >>= \case
+            Right r -> pure $ showT r <> "\n"
+            Left e ->
+                throwError
+                    err500
+                        { errBody =
+                            TLE.encodeUtf8 . TL.fromStrict $ case e of
+                                Error{title, body} -> title <> ": " <> showT body
+                                SimpleError t -> t
+                        }
 
 curlDocs :: Int -> Text
 curlDocs port =

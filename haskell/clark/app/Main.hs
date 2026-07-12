@@ -1,4 +1,5 @@
 {- HLINT ignore "Redundant <&>" -}
+{- HLINT ignore "Avoid lambda" -}
 module Main (main) where
 
 import George.Core
@@ -109,7 +110,7 @@ main = do
                         fromMaybe (error "light map not exhaustive") $
                             Map.lookup (roomName r, lightName l) lightMap
                     Opts{..} = opts
-                runEventStream handleError logMessage (runAction ActionOpts{..})
+                runEventStream handleError logMessage (runAction ActionOpts{..}) \handle -> id
                     . S.morphInner liftIO
                     . S.parList id
                     $ mconcat
@@ -124,6 +125,6 @@ main = do
                                 GPIO.feed GPIO.Opts{..}
                             ]
                         ,
-                            [ WebServer.feed WebServer.Opts{port = httpPort, curlDocsCallback = T.putStrLn, ..}
+                            [ WebServer.feed handle WebServer.Opts{port = httpPort, curlDocsCallback = T.putStrLn, ..}
                             ]
                         ]

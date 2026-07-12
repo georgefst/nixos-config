@@ -14,18 +14,19 @@ import Util
 import Util.GPIO qualified as GPIO
 import Util.Lifx
 
+import Control.Concurrent
 import Control.Exception
 import Control.Monad
 import Control.Monad.Catch
 import Control.Monad.Except hiding (handleError)
 import Control.Monad.Freer
+import Control.Monad.Freer.Error qualified as Freer
 import Control.Monad.Log (MonadLog)
 import Control.Monad.State.Strict
 import Data.Bifunctor
 import Data.ByteString qualified as B
 import Data.ByteString.Char8 qualified as BC8
 import Data.Foldable
-import Data.Function
 import Data.Functor
 import Data.Map (Map)
 import Data.Text qualified as T
@@ -50,32 +51,61 @@ newtype AppState = AppState
     }
     deriving (Generic)
 
-data Event where
-    ActionEvent :: (Show a) => (a -> IO ()) -> CompoundAction a -> Event
-    LogEvent :: Text -> Event
-    ErrorEvent :: Error -> Event
+data Log r where
+    Log :: Text -> Log ()
+logMsg :: (Member Log effs) => Text -> Eff effs ()
+logMsg = send . Log
+type Program a = Eff '[Action, Log, Freer.Error Error] a
+type CompoundAction a = Eff '[Action] a
+type Event = Program ()
+newtype Handle = Handle {submit :: forall a. (Show a) => Program a -> IO (Either Error a)}
+data Job where
+    Job :: (Show a) => Program a -> (Either Error a -> IO ()) -> Job
+
 runEventStream ::
+    forall m.
     (MonadIO m) =>
     (Error -> m ()) ->
     (Text -> m ()) ->
     (forall a. Action a -> ExceptT Error m a) ->
-    S.Stream m [Event] ->
+    (Handle -> S.Stream IO [Event]) ->
     m ()
-runEventStream handleError log' run' =
+runEventStream handleError log' run' feeds = do
+    jobs <- liftIO newChan
+    let runnerHandle = Handle \prog -> do
+            m <- newEmptyMVar
+            writeChan jobs $ Job prog $ putMVar m
+            takeMVar m
+        runJob (Job prog f) = do
+            r <-
+                runM
+                    . Freer.runError
+                    . interpret
+                        ( \(Log t) ->
+                            sendM $ log' t
+                        )
+                    . interpret
+                        ( \a -> do
+                            logMsg $ showT a
+                            either Freer.throwError pure =<< sendM (runExceptT $ run' a)
+                        )
+                    . raiseLast
+                    $ prog
+            either handleError (log' . showT) r
+            liftIO $ f r
     S.fold
         ( SF.drainMapM \case
-            ErrorEvent e -> handleError e
-            LogEvent t -> log' t
-            ActionEvent f action -> (either handleError pure <=< runExceptT) $ runM do
-                r <-
-                    action & translate \a -> do
-                        lift . log' $ showT a
-                        run' a
-                sendM . lift . log' $ showT r
-                sendM . liftIO $ f r
+            Right prog -> runJob $ Job prog mempty
+            Left job -> runJob job
         )
         . S.concatMap S.fromList
-        . S.cons [LogEvent "Starting..."]
+        . S.cons [Right $ logMsg "Starting..."]
+        . S.morphInner liftIO
+        $ S.parList
+            id
+            [ fmap (pure . Left) . S.repeatM $ readChan jobs
+            , Right <<$>> feeds runnerHandle
+            ]
 
 data Error where
     Error :: (Show a) => {title :: Text, body :: a} -> Error
@@ -88,7 +118,6 @@ data Error where
 catchActionErrors :: forall m a. (MonadCatch m, MonadError Error m) => m a -> m a
 catchActionErrors = catchMany @'[IOException] $ throwError . Error "Error when running action"
 
-type CompoundAction a = Eff '[Action] a
 data Action a where
     Exit :: ExitCode -> Action ()
     PowerOff :: Action ()
@@ -387,8 +416,13 @@ runAction opts@ActionOpts{getLight, setLED {- TODO GHC doesn't yet support impre
       where
         catchDNE = catchIf isDoesNotExistError
 
+-- toggleLight :: (Member Action effs) => RoomLightPair c -> Eff effs ()
+-- toggleLight :: RoomLightPair c -> Eff '[Action] ()
 toggleLight :: RoomLightPair c -> CompoundAction ()
 toggleLight l = send . SetLightPower l . not =<< send (GetLightPower l)
+
+-- sleepOrWake :: (Member Action effs) => NominalDiffTime -> Word16 -> Eff effs ()
+-- sleepOrWake :: NominalDiffTime -> Word16 -> Eff '[Action] ()
 sleepOrWake :: NominalDiffTime -> Word16 -> CompoundAction ()
 sleepOrWake lifxMorningDelay lifxMorningKelvin =
     send (GetLightPower light) >>= \(not -> morning) -> do
