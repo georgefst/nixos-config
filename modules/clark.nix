@@ -63,6 +63,72 @@ in
   hardware.enableRedistributableFirmware = true;
   hardware.firmware = [ pkgs.wireless-regdb ];
 
+  # HiFiBerry DAC+ (standard, phone jack version): PCM5122 codec at I2C address 0x4d.
+  # Mainline-kernel approach: enable the (default-disabled) I2S controller, declare the
+  # codec on i2c1, and bind them with the kernel's generic "simple-audio-card" driver.
+  # The Pi is bitclock/frame master and the PCM5122 locks its PLL to BCLK, which is how
+  # this board works electrically (no onboard oscillators, unlike the DAC+ Pro).
+  # Drivers (snd-soc-bcm2835-i2s, snd-soc-pcm512x, snd-soc-simple-card) autoload from DT.
+  # Same pattern as nixos-hardware's raspberry-pi/4/digi-amp-plus.nix, but avoiding
+  # downstream-kernel-only compatibles, so it works with the mainline kernel.
+  # Expect a harmless "supply AVDD not found, using dummy regulator" in dmesg.
+  hardware.deviceTree = {
+    enable = true; # aarch64 default, but be explicit
+    filter = "bcm2837-rpi-3-b.dtb";
+    overlays = [{
+      name = "hifiberry-dacplus";
+      dtsText = ''
+        /dts-v1/;
+        /plugin/;
+        / {
+          compatible = "brcm,bcm2837";
+
+          fragment@0 {
+            target = <&i2s>;
+            __overlay__ {
+              status = "okay";
+            };
+          };
+
+          fragment@1 {
+            target = <&i2c1>;
+            __overlay__ {
+              #address-cells = <1>;
+              #size-cells = <0>;
+              status = "okay";
+
+              pcm5122: pcm5122@4d {
+                compatible = "ti,pcm5122";
+                reg = <0x4d>;
+                #sound-dai-cells = <0>;
+              };
+            };
+          };
+
+          fragment@2 {
+            target-path = "/";
+            __overlay__ {
+              sound {
+                compatible = "simple-audio-card";
+                simple-audio-card,name = "HifiberryDacPlus";
+                simple-audio-card,format = "i2s";
+                simple-audio-card,frame-master = <&dailink0_master>;
+                simple-audio-card,bitclock-master = <&dailink0_master>;
+
+                dailink0_master: simple-audio-card,cpu {
+                  sound-dai = <&i2s>;
+                };
+                simple-audio-card,codec {
+                  sound-dai = <&pcm5122>;
+                };
+              };
+            };
+          };
+        };
+      '';
+    }];
+  };
+
   # gpio and uinput permissions
   users.groups.gpio = { members = [ "gthomas" ]; };
   users.groups.uinput = { members = [ "gthomas" ]; };
