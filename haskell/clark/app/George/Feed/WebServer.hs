@@ -85,23 +85,23 @@ feed (Handle submit) opts =
                         $ Warp.setPort opts.port Warp.defaultSettings
                 , routes =
                     Routes
-                        { resetError = f $ send ResetError
-                        , exitSuccess = f . send $ Exit ExitSuccess
-                        , exitFailure = f . send . Exit . ExitFailure
-                        , getLightPower = withExists $ f . send . GetLightPower
-                        , setLightPower = withExists $ f . send .: SetLightPower
-                        , getLightColour = withExists $ f . send . GetLightColour
+                        { resetError = f resetError
+                        , exitSuccess = f $ exit ExitSuccess
+                        , exitFailure = f . exit . ExitFailure
+                        , getLightPower = withExists $ f . getLightPower
+                        , setLightPower = withExists $ f .: setLightPower
+                        , getLightColour = withExists $ f . getLightColour
                         , toggleLight = withExists $ f . toggleLight
                         , setLightColourBK = \lightBK delay brightness (Kelvin kelvin) ->
                             f $ send SetLightColourBK{..}
                         , setLightColour = \light delay hue saturation brightness (Kelvin kelvin) ->
                             f $ send SetLightColour{colour = HSBK{..}, ..}
-                        , setDeskPower = \device power -> f . send $ SetDeskPower device power
+                        , setDeskPower = \device power -> f $ setDeskPower device power
                         , sendEmail = \subject body -> f $ send SendEmail{..}
-                        , setOtherLED = f . send . SetOtherLED
-                        , setSystemLEDs = f . send . SetSystemLEDs
+                        , setOtherLED = f . setOtherLED
+                        , setSystemLEDs = f . setSystemLEDs
                         , sleepOrWake = f $ sleepOrWake opts.lifxMorningDelay opts.lifxMorningKelvin
-                        , lightsOut = f $ traverse_ (withExists' $ send . flip SetLightPower False) enumerateRoomLights
+                        , lightsOut = f $ traverse_ (withExists' $ flip setLightPower False) enumerateRoomLights
                         }
                 }
             <&> \case

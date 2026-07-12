@@ -1,3 +1,4 @@
+{-# LANGUAGE TemplateHaskell #-}
 {- TODO this is intended to eventually form the core of a library:
 George's
 Effective (pun!)
@@ -21,6 +22,7 @@ import Control.Monad.Catch
 import Control.Monad.Except hiding (handleError)
 import Control.Monad.Freer
 import Control.Monad.Freer.Error qualified as Freer
+import Control.Monad.Freer.TH
 import Control.Monad.Log (MonadLog)
 import Control.Monad.State.Strict
 import Data.Bifunctor
@@ -416,18 +418,20 @@ runAction opts@ActionOpts{getLight, setLED {- TODO GHC doesn't yet support impre
       where
         catchDNE = catchIf isDoesNotExistError
 
+makeEffect ''Action
+
 -- toggleLight :: (Member Action effs) => RoomLightPair c -> Eff effs ()
 -- toggleLight :: RoomLightPair c -> Eff '[Action] ()
 toggleLight :: RoomLightPair c -> CompoundAction ()
-toggleLight l = send . SetLightPower l . not =<< send (GetLightPower l)
+toggleLight l = setLightPower l . not =<< getLightPower l
 
 -- sleepOrWake :: (Member Action effs) => NominalDiffTime -> Word16 -> Eff effs ()
 -- sleepOrWake :: NominalDiffTime -> Word16 -> Eff '[Action] ()
 sleepOrWake :: NominalDiffTime -> Word16 -> CompoundAction ()
 sleepOrWake lifxMorningDelay lifxMorningKelvin =
-    send (GetLightPower light) >>= \(not -> morning) -> do
-        send $ SetSystemLEDs morning
-        send $ SetLightPower light morning
+    getLightPower light >>= \(not -> morning) -> do
+        setSystemLEDs morning
+        setLightPower light morning
         when morning do
             send
                 SetLightColourBK

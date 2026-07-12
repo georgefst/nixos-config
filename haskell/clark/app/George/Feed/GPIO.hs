@@ -2,7 +2,6 @@ module George.Feed.GPIO (feed, Opts (..)) where
 
 import George.Core
 
-import Control.Monad.Freer (send)
 import Control.Monad.Freer.Error (throwError)
 import Data.ByteString (ByteString)
 import Data.Foldable
@@ -21,8 +20,8 @@ data Opts = Opts
 feed :: Opts -> S.Stream IO [Event]
 feed Opts{..} =
     ( \case
-        1 -> [send ResetError]
-        3 -> [send PowerOff]
+        1 -> [resetError]
+        3 -> [powerOff]
         n -> [throwError $ Error "No action for this number of GPIO presses" n]
     )
         . length @[] @()
