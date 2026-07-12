@@ -86,6 +86,7 @@ in
           fragment@0 {
             target = <&i2s>;
             __overlay__ {
+              #sound-dai-cells = <0>; /* absent from the upstream node, required by simple-audio-card */
               status = "okay";
             };
           };
