@@ -343,6 +343,7 @@ in
       wl-clipboard
       ydotool
       zed-editor
+      zip
     ]
     ++ gnomeExts
     ++ [
