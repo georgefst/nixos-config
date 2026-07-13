@@ -115,7 +115,6 @@ in
           --led-other-pin ${toString led-other-pin} \
           --lifx-timeout 10 \
           --lifx-port ${toString clark-script-lifx-port} \
-          --receive-port ${toString clark-script-udp-port} \
           --http-port ${toString clark-script-http-port} \
           --email-pipe ${email-pipe} \
           --laptop-host-name billy \

@@ -25,7 +25,6 @@ import Data.Text.IO qualified as T
 import Data.Time
 import Data.Word
 import Lifx.Lan qualified as Lifx
-import Network.Socket (PortNumber)
 import Network.Wai.Handler.Warp qualified as Warp
 import Optics
 import Optics.State.Operators
@@ -45,7 +44,6 @@ data Opts = Opts
     , ledOtherPin :: Int
     , lifxTimeout :: Double
     , lifxPort :: Word16
-    , receivePort :: PortNumber
     , httpPort :: Warp.Port
     , emailPipe :: FilePath
     , laptopHostName :: Text
