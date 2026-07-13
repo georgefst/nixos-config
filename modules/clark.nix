@@ -89,6 +89,7 @@ in
 
   # global installs
   environment.systemPackages = with pkgs; [
+    alsa-utils
     libgpiod
   ];
 
