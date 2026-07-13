@@ -25,6 +25,7 @@ in
     "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="
     "loony-tools:pr9m4BkM/5/eSTZlkQyRt57Jz7OMBxNSUiMC4FkcNfk="
     "haskell-miso-cachix.cachix.org-1:m8hN1cvFMJtYib4tj+06xkKt5ABMSGfe8W7s40x1kQ0="
+    "nixos-raspberrypi.cachix.org-1:4iMO9LXa8BqhU+Rpg6LQKiGa2lsNh/j2oiYLNOQ5sPI="
   ];
   nix.settings.substituters =
     let withPriority = i: s: "${s}?priority=${toString i}";
@@ -43,6 +44,7 @@ in
       "https://haskell-miso-cachix.cachix.org"
       "https://haskell-language-server.cachix.org"
       "https://haskell-pretty-simple.cachix.org"
+      "https://nixos-raspberrypi.cachix.org"
       "https://d1gu8ums2n7plh.cloudfront.net" # temporary Obsidian/ARIA/Reflex S3 cache
     ];
   environment.variables.NIXPKGS_ALLOW_UNFREE = "1";

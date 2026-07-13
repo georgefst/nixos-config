@@ -199,10 +199,10 @@ in
         echo $data
         if [[ $data == 0 ]]
         then
-          echo none > /sys/class/leds/mmc1::/trigger
+          echo none > /sys/class/leds/mmc0/trigger
           echo none > /sys/class/leds/ACT/trigger
         else
-          echo mmc1 > /sys/class/leds/mmc1::/trigger
+          echo mmc0 > /sys/class/leds/mmc0/trigger
           echo heartbeat > /sys/class/leds/ACT/trigger
         fi
       '';

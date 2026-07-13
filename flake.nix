@@ -3,6 +3,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     nixos-hardware.url = "github:NixOS/nixos-hardware";
+    nixos-raspberrypi.url = "github:nvmd/nixos-raspberrypi/main";
     flake-utils.url = "github:numtide/flake-utils";
     agenix = {
       url = "github:ryantm/agenix";
@@ -114,15 +115,16 @@
           }
         ];
       };
-      mkSdAndVm = arch: modules:
-        let
-          mkSystem = pkgs: hardwareModules: lib.nixosSystem { inherit pkgs; modules = modules ++ hardwareModules; };
-        in
+      mkPi3SdAndVm = modules:
         {
-          system = mkSystem packages.${arch}
-            [ "${inputs.nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix" ];
-          vm = mkSystem packages.${buildSystem}
-            [ ];
+          system = inputs.nixos-raspberrypi.lib.nixosSystem {
+            modules = modules ++ [
+              inputs.nixos-raspberrypi.nixosModules.raspberry-pi-3.base
+              inputs.nixos-raspberrypi.nixosModules.sd-image
+              { nixpkgs.overlays = [ (_: _: extraPackages.aarch64-linux) ]; }
+            ];
+          };
+          vm = lib.nixosSystem { pkgs = packages.${buildSystem}; inherit modules; };
         };
 
       mandelbrot = let pkgs = packages.${buildSystem}; in { x, y, size, inverted ? false }: pkgs.runCommand "mandelbrot"
@@ -137,7 +139,7 @@
         magick raw.png -dither FloydSteinberg PNG8:$out
       '';
 
-      configs.sd.clark = mkSdAndVm "aarch64-linux"
+      configs.sd.clark = mkPi3SdAndVm
         [
           (import ./modules/universal.nix { flake = self; syncCamera = true; })
           ./modules/users.nix
