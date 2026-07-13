@@ -74,6 +74,7 @@ in
   # wifi
   networking.wireless.enable = true;
   networking.wireless.interfaces = [ "wlan0" ];
+  networking.dhcpcd.wait = "both";
   networking.wireless.secretsFile = config.age.secrets.wifi.path;
   networking.wireless.networks = builtins.listToAttrs
     (map (name: { inherit name; value.pskRaw = "ext:PSK_${name}"; })
