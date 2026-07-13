@@ -74,6 +74,7 @@
               spotify = pkgs-unstable.spotify;
               vscode = pkgs-unstable.vscode;
               zed-editor = pkgs-unstable.zed-editor;
+              inherit (pkgs-unstable) kdePackages; # Bigscreen requires KDE 6.7, which is only in unstable
               # non-Nixpkgs flake inputs
               agenix = inputs.agenix.packages.${system}.default;
               evdev-share = inputs.evdev-share.packages.${system}.default;
@@ -126,6 +127,19 @@
           };
           vm = lib.nixosSystem { pkgs = packages.${buildSystem}; inherit modules; };
         };
+      mkPi5SdAndVm = modules:
+        {
+          system = inputs.nixos-raspberrypi.lib.nixosSystem {
+            modules = modules ++ [
+              inputs.nixos-raspberrypi.nixosModules.raspberry-pi-5.base
+              inputs.nixos-raspberrypi.nixosModules.raspberry-pi-5.display-vc4
+              inputs.nixos-raspberrypi.nixosModules.raspberry-pi-5.bluetooth
+              inputs.nixos-raspberrypi.nixosModules.sd-image
+              { nixpkgs.overlays = [ (_: _: extraPackages.aarch64-linux) ]; }
+            ];
+          };
+          vm = lib.nixosSystem { pkgs = packages.${buildSystem}; inherit modules; };
+        };
 
       mandelbrot = let pkgs = packages.${buildSystem}; in { x, y, size, inverted ? false }: pkgs.runCommand "mandelbrot"
         { nativeBuildInputs = [ pkgs.imagemagick ]; } ''
@@ -144,6 +158,13 @@
           (import ./modules/universal.nix { flake = self; syncCamera = true; })
           ./modules/users.nix
           ./modules/clark.nix
+          inputs.agenix.nixosModules.default
+        ];
+      configs.sd.sol = mkPi5SdAndVm
+        [
+          (import ./modules/universal.nix { flake = self; })
+          ./modules/users.nix
+          ./modules/sol.nix
           inputs.agenix.nixosModules.default
         ];
       configs.desktop.fry = mkDesktopAndInstaller "fry" (hostName: hardwareModules: lib.nixosSystem {

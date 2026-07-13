@@ -14,6 +14,10 @@
     syncthing.id = "2DXPUJC-4B6TIZQ-N5ESX5I-52RBOOS-3443BUK-SZVUCYM-MILGZHZ-YNXAAAA";
     syncthing.introducer = true;
   };
+  sol = {
+    ssh.system = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIB/mgYE5hhvLGtz2EijqiglUFnRqSkpzlA8z4DpT8ORt";
+    syncthing.id = "SLHUTK5-VWEZ7PU-DLTELA4-ZYMST4N-A7THSZH-Y7M7E3K-AXJG2WF-2KUZSQ2";
+  };
   fp5 = {
     syncthing.id = "7F5DOOF-FWVPO3U-IX5LGHL-OQBL5DA-SG47QUF-N7ECRH4-EEHX76Z-KU7Q3QL";
   };

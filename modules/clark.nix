@@ -4,7 +4,6 @@ let
   home = "/home/gthomas";
 
   # arbitrary - all that matters is that these don't conflict with each other or anything else
-  clark-script-udp-port = 56710; # if we change this we need to modify Tasker config, .bashrc etc.
   clark-script-lifx-port = 56711;
   clark-script-http-port = 8000; # if we change this we need to modify Shelly buttons etc.
   evdev-share-port = 56701;
@@ -235,7 +234,6 @@ in
 
   # open ports
   networking.firewall.allowedUDPPorts = [
-    clark-script-udp-port
     clark-script-lifx-port
     evdev-share-port
   ] ++ extra-ports;
