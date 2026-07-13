@@ -79,6 +79,14 @@ in
     (map (name: { inherit name; value.pskRaw = "ext:PSK_${name}"; })
       (import ../nix/wifi.nix));
 
+  # HifiBerry
+  users.groups.audio = { members = [ "gthomas" ]; };
+  hardware.raspberry-pi.config.all.dt-overlays.hifiberry-dacplus.enable = true;
+  environment.etc."asound.conf".text = ''
+    defaults.pcm.!card "sndrpihifiberry"
+    defaults.ctl.!card "sndrpihifiberry"
+  '';
+
   # global installs
   environment.systemPackages = with pkgs; [
     libgpiod
