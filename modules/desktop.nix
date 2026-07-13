@@ -317,6 +317,7 @@ in
       discord
       element-desktop
       eyedropper
+      file-roller
       fourmolu
       gather
       ghc
