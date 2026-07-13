@@ -64,41 +64,42 @@
             ];
             config = inputs.haskell-nix.config;
           }).hixProject.flake { };
+          extraPackages =
+            let pkgs-unstable = import inputs.nixpkgs-unstable { inherit system; config = nixpkgs-config; };
+            in {
+              # frequent updates are desirable
+              nixd = pkgs-unstable.nixd;
+              opencode = pkgs-unstable.opencode;
+              spotify = pkgs-unstable.spotify;
+              vscode = pkgs-unstable.vscode;
+              zed-editor = pkgs-unstable.zed-editor;
+              # non-Nixpkgs flake inputs
+              agenix = inputs.agenix.packages.${system}.default;
+              evdev-share = inputs.evdev-share.packages.${system}.default;
+              hix = inputs.haskell-nix.packages.${system}.hix;
+              mandelbrot = inputs.hs-scripts.packages.${system}.mandelbrot;
+              lifx-manager = inputs.lifx-manager.packages.${system}.lifx-manager;
+              net-evdev = inputs.net-evdev.packages.${system}."net-evdev:exe:net-evdev";
+              # developed locally
+              clark = haskell.packages."clark:exe:clark";
+              magic-mouse = haskell.packages."magic-mouse:exe:magic-mouse";
+              qr = haskell.packages."qr:exe:qr";
+            };
         in
         {
           inherit (haskell) devShells;
+          inherit extraPackages;
           packages = import inputs.nixpkgs {
             inherit system;
             config = nixpkgs-config;
             overlays = [
               inputs.nix-vscode-extensions.overlays.default
-              (
-                let pkgs-unstable = import inputs.nixpkgs-unstable { inherit system; config = nixpkgs-config; };
-                in final: prev: {
-                  # frequent updates are desirable
-                  nixd = pkgs-unstable.nixd;
-                  opencode = pkgs-unstable.opencode;
-                  spotify = pkgs-unstable.spotify;
-                  vscode = pkgs-unstable.vscode;
-                  zed-editor = pkgs-unstable.zed-editor;
-                  # non-Nixpkgs flake inputs
-                  agenix = inputs.agenix.packages.${system}.default;
-                  evdev-share = inputs.evdev-share.packages.${system}.default;
-                  hix = inputs.haskell-nix.packages.${system}.hix;
-                  mandelbrot = inputs.hs-scripts.packages.${system}.mandelbrot;
-                  lifx-manager = inputs.lifx-manager.packages.${system}.lifx-manager;
-                  net-evdev = inputs.net-evdev.packages.${system}."net-evdev:exe:net-evdev";
-                  # developed locally
-                  clark = haskell.packages."clark:exe:clark";
-                  magic-mouse = haskell.packages."magic-mouse:exe:magic-mouse";
-                  qr = haskell.packages."qr:exe:qr";
-                }
-              )
+              (_: _: extraPackages)
               (import ./fixes/opencode.nix)
               (import ./fixes/tiling-shell.nix)
             ];
           };
-        })) packages devShells;
+        })) packages extraPackages devShells;
 
       mkDesktopAndInstaller = name: mkSystem: rec {
         system = mkSystem name [ ./hardware-configuration/${name}.nix ];
@@ -201,7 +202,7 @@
     {
       inherit devShells;
       inherit nixosConfigurations;
-      inherit packages;
+      packages = extraPackages;
 
       images = builtins.mapAttrs (_: { system, ... }: system.config.system.build.sdImage) configs.sd //
         builtins.mapAttrs (_: { installer, ... }: installer.config.system.build.isoImage) configs.desktop;
