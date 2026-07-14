@@ -1,19 +1,17 @@
 cabal-version:      3.0
-name:               clark
+name:               utils
 version:            0.1.0.0
 license:            BSD-3-Clause
-license-file:       LICENSE
 author:             George Thomas
 maintainer:         georgefsthomas@gmail.com
 
-executable clark
-    main-is: Main.hs
-    other-modules:
-        George.Core
-        George.Feed.GPIO
-        George.Feed.WebServer
-        MQTT.Meross
-    hs-source-dirs: app
+library
+    exposed-modules:
+        Util
+        Util.Lifx
+        Util.Servant.Curl
+        Util.Servant.Streamly
+    hs-source-dirs: src
     default-language: GHC2021
     default-extensions:
         BlockArguments
@@ -36,7 +34,6 @@ executable clark
         ViewPatterns
     build-depends:
         base >= 4.16,
-        utils,
         georgefst-utils,
         georgefst-utils:gpio-utils,
         georgefst-utils:streamly-utils,
@@ -48,6 +45,7 @@ executable clark
         containers >= 0.6,
         directory >= 1.2,
         exceptions >= 0.10,
+        evdev >= 2.3,
         extra >= 1.7.10,
         freer-simple >= 1.2.1.2,
         http-api-data >= 0.6,
@@ -66,6 +64,9 @@ executable clark
         servant-client >= 0.20,
         servant-foreign >= 0.16,
         servant-server >= 0.20,
+        spotify:spotify >= 0.1,
+        spotify:spotify-servant >= 0.1,
+        spotify:spotify-types >= 0.1,
         streamly >= 0.10,
         streamly-core >= 0.1,
         text >= 1.2.4,
@@ -74,4 +75,3 @@ executable clark
         warp >= 3.3.28,
     ghc-options:
         -Wall
-        -threaded
