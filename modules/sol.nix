@@ -84,7 +84,7 @@ in
           --led-sending-mode-pin 13 \
           --led-normal-mode-pin 16 \
           --led-tv-mode-pin 6 \
-          --lifx-timeout 4 \
+          --lifx-timeout 10 \
           --lifx-ignore Ceiling \
           --lifx-port ${toString sol-script-lifx-port} \
           --http-port ${toString sol-script-http-port} \
