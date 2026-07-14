@@ -139,7 +139,7 @@ dispatchKeys opts = wrap \case
                     KeyP | alt -> irOnce IRFan "power"
                     KeyP -> act do
                         wasOn <- send GetHifiPlugPower
-                        if wasOn then hifiOn else hifiOff
+                        if wasOn then hifiOff else hifiOn
                     KeyS -> act do
                         send NextLight
                         l <- send GetCurrentLight
@@ -165,7 +165,7 @@ dispatchKeys opts = wrap \case
                         send $ SetLightPower l True
                         send $ SetLightColour False l 0 $ rgbToHsbk $ toSRGB Colour.red
                         p <- send GetHifiPlugPower
-                        when (not p) hifiOff
+                        when (not p) hifiOn
                         send . SpotifySearchAndPlay Spotify.TrackSearch "La Femme L'hawaïenne"
                             =<< send (SpotifyGetDevice speakerName)
                     KeyF -> simpleAct $ LaunchProgram "firefox"
@@ -190,9 +190,9 @@ dispatchKeys opts = wrap \case
                 if alt
                     then send . GetLightsInGroup =<< send GetCurrentLightGroup
                     else pure <$> send GetCurrentLight
-            hifiOn = do
-                send $ SetHifiPlugPower False
             hifiOff = do
+                send $ SetHifiPlugPower False
+            hifiOn = do
                 send $ SetHifiPlugPower True
         TV -> case k of
             KeySpace | e == Pressed -> act do
