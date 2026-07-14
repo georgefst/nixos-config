@@ -3,6 +3,8 @@ let
   # arbitrary
   evdev-share-port = 56701;
   spotifyd-port = 56702;
+  sol-script-lifx-port = 56710;
+  sol-script-http-port = 8000;
 
   # basic user service helper
   mkService =
@@ -25,11 +27,13 @@ in
     pulse.enable = true;
   };
   networking.firewall.allowedUDPPorts = [
+    sol-script-lifx-port
     evdev-share-port
     spotifyd-port
     5353 # mDNS
   ];
   networking.firewall.allowedTCPPorts = [
+    sol-script-http-port
     spotifyd-port
   ];
   users.groups.gpio = { members = [ "gthomas" ]; };
@@ -70,6 +74,27 @@ in
 
   # custom services
   systemd.user.services = {
+    sol = mkService { } {
+      script = ''
+        sol \
+          --gpio-chip 0 \
+          --button-pin 15 \
+          --led-error-pin 5 \
+          --led-idle-mode-pin 12 \
+          --led-sending-mode-pin 13 \
+          --led-normal-mode-pin 16 \
+          --led-tv-mode-pin 6 \
+          --lifx-timeout 4 \
+          --lifx-ignore Ceiling \
+          --lifx-port ${toString sol-script-lifx-port} \
+          --http-port ${toString sol-script-http-port} \
+          --key-send-port 56702 \
+          --key-send-ips 192.168.178.20 \
+          --hifi-plug-ip 192.168.178.28 \
+      '';
+      description = "main Haskell script";
+      path = with pkgs; [ sol dbus kdePackages.qttools libgpiod ];
+    };
     spotifyd = mkService { } {
       description = "Spotify daemon";
       serviceConfig = {

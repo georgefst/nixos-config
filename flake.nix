@@ -86,6 +86,7 @@
               clark = haskell.packages."clark:exe:clark";
               magic-mouse = haskell.packages."magic-mouse:exe:magic-mouse";
               qr = haskell.packages."qr:exe:qr";
+              sol = haskell.packages."sol:exe:sol";
             };
         in
         {
