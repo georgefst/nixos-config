@@ -37,9 +37,11 @@ in
     spotifyd-port
   ];
   users.groups.gpio = { members = [ "gthomas" ]; };
+  users.groups.lirc = { members = [ "gthomas" ]; };
   users.groups.uinput = { members = [ "gthomas" ]; };
   services.udev.extraRules = ''
     SUBSYSTEM=="gpio", KERNEL=="gpiochip*", GROUP="gpio", MODE="0660"
+    SUBSYSTEM=="lirc", GROUP="lirc", MODE="0660"
     KERNEL=="uinput", GROUP="uinput", MODE:="0660", OPTIONS+="static_node=uinput"
   '';
 
@@ -91,9 +93,10 @@ in
           --key-send-port 56702 \
           --key-send-ips 192.168.178.20 \
           --hifi-plug-ip 192.168.178.28 \
+          --ir-config-dir ${../assets/ir}
       '';
       description = "main Haskell script";
-      path = with pkgs; [ sol dbus kdePackages.qttools libgpiod ];
+      path = with pkgs; [ sol dbus kdePackages.qttools libgpiod v4l-utils ];
     };
     spotifyd = mkService { } {
       description = "Spotify daemon";

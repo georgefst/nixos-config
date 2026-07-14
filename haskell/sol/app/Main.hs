@@ -49,6 +49,7 @@ data Opts = Opts
     , keySendPort :: PortNumber
     , keySendIps :: [IP]
     , hifiPlugIp :: IP
+    , irConfigDir :: Text
     }
     deriving (Show, Generic)
 instance ParseRecord Opts where

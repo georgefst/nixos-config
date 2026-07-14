@@ -155,6 +155,7 @@ data ActionOpts = ActionOpts
     , keySendIps :: [IP]
     , lifxIgnore :: [Text]
     , hifiPlugIp :: IP
+    , irConfigDir :: Text
     }
 
 runAction ::
@@ -236,7 +237,7 @@ runAction opts@ActionOpts{setLED {- TODO GHC doesn't yet support impredicative f
                 ( map
                     T.unpack
                     [ "-k"
-                    , (<> ".toml") case dev of
+                    , ((opts.irConfigDir <> "/") <>) $ (<> ".toml") case dev of
                         IRTV -> "tv"
                         IRSwitcher -> "switcher"
                         IRFan -> "fan"
