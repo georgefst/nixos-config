@@ -62,7 +62,8 @@ in
   hardware.enableRedistributableFirmware = true;
   hardware.firmware = [ pkgs.wireless-regdb ];
 
-  # gpio and uinput permissions
+  # permissions
+  users.groups.audio = { members = [ "gthomas" ]; };
   users.groups.gpio = { members = [ "gthomas" ]; };
   users.groups.uinput = { members = [ "gthomas" ]; };
   services.udev.extraRules = ''
@@ -78,13 +79,6 @@ in
   networking.wireless.networks = builtins.listToAttrs
     (map (name: { inherit name; value.pskRaw = "ext:PSK_${name}"; })
       (import ../nix/wifi.nix));
-
-  # HifiBerry
-  users.groups.audio = { members = [ "gthomas" ]; };
-  environment.etc."asound.conf".text = ''
-    defaults.pcm.!card "sndrpihifiberry"
-    defaults.ctl.!card "sndrpihifiberry"
-  '';
 
   # global installs
   environment.systemPackages = with pkgs; [

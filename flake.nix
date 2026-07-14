@@ -150,6 +150,8 @@
           {
             hardware.raspberry-pi.config.all = {
               dt-overlays.hifiberry-dacplus.enable = true;
+              base-dt-params.audio.enable = lib.mkForce false;
+              dt-overlays.vc4-kms-v3d.params.noaudio.enable = true;
             };
           }
         ]
