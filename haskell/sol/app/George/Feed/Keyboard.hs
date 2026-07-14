@@ -190,10 +190,8 @@ dispatchKeys opts = wrap \case
                 if alt
                     then send . GetLightsInGroup =<< send GetCurrentLightGroup
                     else pure <$> send GetCurrentLight
-            hifiOff = do
-                send $ SetHifiPlugPower False
-            hifiOn = do
-                send $ SetHifiPlugPower True
+            hifiOff = send $ SetHifiPlugPower False
+            hifiOn = send $ SetHifiPlugPower True
         TV -> case k of
             KeySpace | e == Pressed -> act do
                 send $ SendIR IRTV "KEY_AUX"
