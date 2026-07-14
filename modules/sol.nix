@@ -18,11 +18,6 @@ in
   # basics
   networking.hostName = "sol";
   system.stateVersion = "26.05";
-  hardware = {
-    raspberry-pi.config.all.dt-overlays.hifiberry-dacplusdsp.enable = true;
-    raspberry-pi.config.all.base-dt-params.audio.enable = lib.mkForce false;
-    raspberry-pi.config.all.dt-overlays.vc4-kms-v3d.params.noaudio.enable = true;
-  };
   networking.networkmanager.enable = true;
   services.pipewire = {
     enable = true;

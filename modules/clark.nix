@@ -81,7 +81,6 @@ in
 
   # HifiBerry
   users.groups.audio = { members = [ "gthomas" ]; };
-  hardware.raspberry-pi.config.all.dt-overlays.hifiberry-dacplus.enable = true;
   environment.etc."asound.conf".text = ''
     defaults.pcm.!card "sndrpihifiberry"
     defaults.ctl.!card "sndrpihifiberry"

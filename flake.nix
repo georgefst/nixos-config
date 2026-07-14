@@ -116,29 +116,20 @@
           }
         ];
       };
-      mkPi3SdAndVm = modules:
-        {
+      mkPiSdAndVm = hardwareModules: modules:
+        let overlays = system: [ (_: _: extraPackages.${system}) ]; in {
           system = inputs.nixos-raspberrypi.lib.nixosSystem {
-            modules = modules ++ [
-              inputs.nixos-raspberrypi.nixosModules.raspberry-pi-3.base
+            modules = modules ++ hardwareModules ++ [
               inputs.nixos-raspberrypi.nixosModules.sd-image
-              { nixpkgs.overlays = [ (_: _: extraPackages.aarch64-linux) ]; }
+              { nixpkgs.overlays = overlays "aarch64-linux"; }
             ];
           };
-          vm = lib.nixosSystem { pkgs = packages.${buildSystem}; inherit modules; };
-        };
-      mkPi5SdAndVm = modules:
-        {
-          system = inputs.nixos-raspberrypi.lib.nixosSystem {
+          vm = lib.nixosSystem {
+            pkgs = packages.${buildSystem};
             modules = modules ++ [
-              inputs.nixos-raspberrypi.nixosModules.raspberry-pi-5.base
-              inputs.nixos-raspberrypi.nixosModules.raspberry-pi-5.display-vc4
-              inputs.nixos-raspberrypi.nixosModules.raspberry-pi-5.bluetooth
-              inputs.nixos-raspberrypi.nixosModules.sd-image
-              { nixpkgs.overlays = [ (_: _: extraPackages.aarch64-linux) ]; }
+              { nixpkgs.overlays = overlays buildSystem; }
             ];
           };
-          vm = lib.nixosSystem { pkgs = packages.${buildSystem}; inherit modules; };
         };
 
       mandelbrot = let pkgs = packages.${buildSystem}; in { x, y, size, inverted ? false }: pkgs.runCommand "mandelbrot"
@@ -153,14 +144,34 @@
         magick raw.png -dither FloydSteinberg PNG8:$out
       '';
 
-      configs.sd.clark = mkPi3SdAndVm
+      configs.sd.clark = mkPiSdAndVm
+        [
+          inputs.nixos-raspberrypi.nixosModules.raspberry-pi-3.base
+          {
+            hardware.raspberry-pi.config.all = {
+              dt-overlays.hifiberry-dacplus.enable = true;
+            };
+          }
+        ]
         [
           (import ./modules/universal.nix { flake = self; syncCamera = true; })
           ./modules/users.nix
           ./modules/clark.nix
           inputs.agenix.nixosModules.default
         ];
-      configs.sd.sol = mkPi5SdAndVm
+      configs.sd.sol = mkPiSdAndVm
+        [
+          inputs.nixos-raspberrypi.nixosModules.raspberry-pi-5.base
+          inputs.nixos-raspberrypi.nixosModules.raspberry-pi-5.bluetooth
+          inputs.nixos-raspberrypi.nixosModules.raspberry-pi-5.display-vc4
+          {
+            hardware.raspberry-pi.config.all = {
+              dt-overlays.hifiberry-dacplusdsp.enable = true;
+              base-dt-params.audio.enable = lib.mkForce false;
+              dt-overlays.vc4-kms-v3d.params.noaudio.enable = true;
+            };
+          }
+        ]
         [
           (import ./modules/universal.nix { flake = self; })
           ./modules/users.nix
