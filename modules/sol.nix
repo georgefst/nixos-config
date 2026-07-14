@@ -16,6 +16,44 @@ let
     ] ++ lib.optional atStartup {
       wantedBy = [ "default.target" ];
     });
+
+  # Firefox web apps ("taskbar tabs"), managed declaratively
+  #
+  # why use this feature at all, rather than plain bookmarks or the kiosk-window hack (cf. `gather` in desktop.nix)?
+  # - each site runs in a dedicated window: no tab bar, slim toolbar, and scope enforcement -
+  #   in-scope links stay in the app window, anything else opens in the normal browser
+  #   (unlike `--kiosk`, where external links are a mess)
+  # - each window gets its own identity (app id matches the desktop entry name),
+  #   so apps appear in the Bigscreen launcher and task switcher as themselves, with their own icons, not as "Firefox"
+  # - all apps share the one Firefox profile, so logins, cookies and DRM state just work -
+  #   no per-app profile creation and maintenance like `gather` needs
+  #
+  # when a site is pinned via the Firefox UI (with `browser.taskbarTabs.enabled`), it creates exactly two artifacts,
+  # which we instead generate from the list below:
+  # - `taskbartabs/taskbartabs.json` in the profile, registering each app's id, scope and start URL
+  # - a `.desktop` entry in `~/.local/share/applications`, whose `Exec` looks the app up by id
+  #   (ours go in the system profile instead - Firefox only reads its recorded shortcut path when unpinning,
+  #   which the read-only json rules out anyway, so nothing ever looks for them in the home directory)
+  # the ids are arbitrary UUIDs - iPlayer's is preserved from when it was pinned manually,
+  # and the others come from `uuidgen`
+  # NB. since we symlink the json read-only, pinning/unpinning via the Firefox UI will no longer work
+  # (Firefox saves the registry with a plain non-atomic write, so it fails harmlessly against /etc)
+  #
+  # we select the profile by name (`-P`), unlike the `-profile <path>` Firefox itself bakes into shortcuts,
+  # because the profile's directory name is salted and random, whereas its name is stable -
+  # this saves us hardcoding per-install state, at the cost of a slight divergence from Firefox's own format
+  # explicit selection one way or the other is essential, since implicit default-profile resolution
+  # depends on mutable state in `profiles.ini` (and Firefox's flaky per-install hashing),
+  # so could silently land the web apps (and their registry lookups) in the wrong profile
+  firefoxProfileName = "default";
+  webApps = [
+    { id = "b4b073df-4461-4c3c-91c4-d7459a35b2a7"; name = "BBC iPlayer"; url = "https://www.bbc.co.uk/iplayer"; hostname = "www.bbc.co.uk"; icon = ../assets/webapp-icons/bbc-iplayer.png; }
+    { id = "c6014a26-c9b2-494a-b529-f0c3cd4361b7"; name = "YouTube"; url = "https://www.youtube.com"; hostname = "www.youtube.com"; icon = ../assets/webapp-icons/youtube.png; }
+    { id = "de1c7718-3390-4960-bd76-c820be70374b"; name = "Netflix"; url = "https://www.netflix.com"; hostname = "www.netflix.com"; icon = ../assets/webapp-icons/netflix.png; }
+    { id = "8f8e4872-47f0-4d83-848f-0c066adc9abf"; name = "Channel 4"; url = "https://www.channel4.com"; hostname = "www.channel4.com"; icon = ../assets/webapp-icons/channel4.png; }
+    { id = "ac1b7698-0586-4a19-b630-6b129160b531"; name = "ITVX"; url = "https://www.itv.com/watch"; hostname = "www.itv.com"; icon = ../assets/webapp-icons/itvx.png; }
+  ];
+  webAppDesktopFile = app: "org.mozilla.firefox.webapp-${app.id}.desktop";
 in
 {
   # basics
@@ -70,10 +108,58 @@ in
 
   # programs
   environment.systemPackages = with pkgs; [
-    firefox
     kdePackages.plasma-bigscreen
     vlc
-  ];
+  ] ++ map
+    (app: pkgs.makeDesktopItem {
+      # `Exec` matches the format Firefox itself generates when pinning
+      name = lib.removeSuffix ".desktop" (webAppDesktopFile app);
+      desktopName = app.name;
+      icon = app.icon;
+      exec = ''"/run/current-system/sw/bin/firefox" "-P" "${firefoxProfileName}" "-taskbar-tab" "${app.id}" "-new-window" "${app.url}" "-container" "0"'';
+    })
+    webApps;
+  programs.firefox = {
+    enable = true;
+    preferences = {
+      "browser.taskbarTabs.enabled" = true;
+    };
+  };
+
+  # firefox web apps - see comment on `webApps` above
+  environment.etc."xdg/firefox-web-apps/taskbartabs.json".text = builtins.toJSON {
+    version = 1;
+    taskbarTabs = map
+      (app: {
+        inherit (app) id name;
+        scopes = [{ inherit (app) hostname; prefix = "/"; }];
+        userContextId = 0;
+        startUrl = app.url;
+        shortcutRelativePath = webAppDesktopFile app;
+      })
+      webApps;
+  };
+  system.activationScripts.firefox-web-apps = {
+    # ensures `install -d` below doesn't create root-owned dirs in the home directory - see comment in universal.nix
+    deps = [ "xdg-hack-symlinks" ];
+    text = ''
+      # resolve the profile's salted directory name at runtime - see comment on `firefoxProfileName` above
+      # if the profile doesn't exist yet (fresh install, Firefox never run), skip:
+      # the json will appear on the first switch/boot after Firefox creates its profile
+      # NB. assumes `IsRelative=1`, which holds for any profile Firefox created itself
+      firefox_dir=/home/gthomas/.config/mozilla/firefox
+      profile=$(awk -F= '
+        /^\[/ { name=""; path="" }
+        $1=="Name" { name=$2 }
+        $1=="Path" { path=$2 }
+        name=="${firefoxProfileName}" && path!="" { print path; exit }
+      ' "$firefox_dir/profiles.ini" 2>/dev/null || true)
+      if [[ -n "$profile" ]]; then
+        install -d -o gthomas -g users "$firefox_dir/$profile/taskbartabs"
+        ln -sf /etc/xdg/firefox-web-apps/taskbartabs.json "$firefox_dir/$profile/taskbartabs/taskbartabs.json"
+      fi
+    '';
+  };
 
   # custom services
   systemd.user.services = {
