@@ -93,7 +93,7 @@ main = do
         httpConnectionManager <- newManager defaultManagerSettings
         keySendSocket <- socket AF_INET Datagram defaultProtocol >>= \s -> bind s (SockAddrInet defaultPort 0) >> pure s
         -- TODO shift this in to the LIFX block below - currently awkward because this is needed to run the state monad
-        -- otherwise, what port to use? is it a bug that library doesn't release this soon enough? `* 2` is silly
+        -- otherwise, what port to use? is it a bug that library doesn't release this soon enough? formerly had silly `* 2`
         -- TODO use existing logging and failure mechanisms when no lights found, and DRY with `LightReScan`
         bulbs <-
             maybe (T.putStrLn "No valid LIFX devices found" >> exitFailure) (pure . Stream.cycle)
@@ -104,7 +104,7 @@ main = do
                          in T.putStrLn ("LIFX device " <> bool "ignored" "found" good <> ": " <> label) >> pure good
                     )
                 =<< either (\e -> T.putStrLn ("LIFX startup error: " <> showT e) >> exitFailure) pure
-                =<< Lifx.runLifxT (lifxTime opts.lifxTimeout) (Just $ fromIntegral opts.lifxPort * 2) discoverLifx
+                =<< Lifx.runLifxT (lifxTime opts.lifxTimeout) (Just $ fromIntegral opts.lifxPort) discoverLifx
         pure
             AppState
                 { activeLEDs = mempty
