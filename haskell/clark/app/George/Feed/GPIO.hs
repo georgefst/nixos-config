@@ -3,15 +3,15 @@ module George.Feed.GPIO (feed, Opts (..)) where
 import George.Core
 
 import Control.Monad.Freer (send)
-import Data.ByteString (ByteString)
 import Data.Foldable
 import Data.Time
 import Streamly.Data.Stream.Prelude qualified as S
+import System.OsString.Posix (PosixString)
 import Util.Streamly qualified as S
 import Util.Streamly.GPIO qualified as GPIO
 
 data Opts = Opts
-    { chip :: ByteString
+    { chip :: PosixString
     , pin :: Int
     , debounce :: NominalDiffTime
     , window :: NominalDiffTime

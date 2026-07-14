@@ -13,7 +13,6 @@ import Control.Monad.Freer
 import Control.Monad.Log (MonadLog, logMessage, runLoggingT)
 import Control.Monad.State.Strict
 import Data.Bool
-import Data.ByteString qualified as B
 import Data.List.Extra
 import Data.List.NonEmpty (nonEmpty)
 import Data.Map qualified as Map
@@ -27,15 +26,17 @@ import Network.HTTP.Client
 import Network.Socket
 import Network.Wai.Handler.Warp qualified as Warp
 import Optics
+import Options.Applicative qualified
 import Options.Generic
 import Streamly.Data.Stream.Prelude qualified as S
 import System.Exit
 import System.IO
+import System.OsString.Posix (PosixString, encodeUtf)
 import Text.Pretty.Simple
 import Util.Util
 
 data Opts = Opts
-    { gpioChip :: B.ByteString
+    { gpioChip :: PosixStringWrapped
     , buttonPin :: Int
     , ledErrorPin :: Int
     , ledIdleModePin :: Int
@@ -52,6 +53,14 @@ data Opts = Opts
     , irConfigDir :: Text
     }
     deriving (Show, Generic)
+newtype PosixStringWrapped = PosixStringWrapped {unwrap :: PosixString}
+    deriving newtype (Show)
+instance ParseRecord PosixStringWrapped where
+    parseRecord = getOnly <$> parseRecord
+instance ParseField PosixStringWrapped where
+    readField = maybe (fail "decode error") (pure . PosixStringWrapped) . encodeUtf =<< Options.Applicative.str
+    metavar _ = "PATH"
+instance ParseFields PosixStringWrapped
 instance ParseRecord Opts where
     parseRecord = parseRecordWithModifiers defaultModifiers{fieldNameModifier = fieldNameModifier lispCaseModifiers}
 
@@ -69,7 +78,7 @@ main = do
                     Nothing -> logMessage $ "LED is already off: " <> showT pin
                 )
                 ( use #activeLEDs <&> Map.lookup pin >>= \case
-                    Nothing -> GPIO.set opts.gpioChip [pin] >>= modifying #activeLEDs . Map.insert pin
+                    Nothing -> GPIO.set opts.gpioChip.unwrap [pin] >>= modifying #activeLEDs . Map.insert pin
                     Just _ -> logMessage $ "LED is already on: " <> showT pin
                 )
 

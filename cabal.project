@@ -17,8 +17,8 @@ allow-newer: lifx-lan:base
 source-repository-package
     type: git
     location: https://github.com/georgefst/georgefst-utils
-    tag: 182bc59a44beb7659ca1bab0523932c3fcfb2710
-    --sha256: 0vnnsfjxn3r4fa2w5qfb1mrvpmilv4niv19ys6ax0vrg70qsjlwz
+    tag: 0531ef8b472db26957b428bf41ac67c0d6006dc2
+    --sha256: g5UlNmBomq/MR3glhH10y+egy5MQC9GyDla2056UysU=
 
 -- not yet on Hackage
 source-repository-package
