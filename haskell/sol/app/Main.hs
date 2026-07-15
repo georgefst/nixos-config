@@ -100,6 +100,8 @@ main = do
             Keyboard.TV -> Just opts.ledTvModePin
         initialMode = Keyboard.Idle
 
+        isKeyboardName s = any (`T.isInfixOf` s) ("Keyboard" : opts.keyboardNames)
+
     initialState <- do
         httpConnectionManager <- newManager defaultManagerSettings
         keySendSocket <- socket AF_INET Datagram defaultProtocol >>= \s -> bind s (SockAddrInet defaultPort 0) >> pure s
@@ -143,7 +145,7 @@ main = do
             )
         $ S.parList
             id
-            [ Keyboard.feed (\s -> any (`T.isInfixOf` s) ("Keyboard" : opts.keyboardNames)) initialMode Keyboard.Opts{..}
+            [ Keyboard.feed Keyboard.Opts{..}
             , WebServer.feed WebServer.Opts{port = opts.httpPort, curlDocsCallback = T.putStrLn}
             -- TODO disabled until logging is better
             -- it's easier to see events when monitoring through a separate script

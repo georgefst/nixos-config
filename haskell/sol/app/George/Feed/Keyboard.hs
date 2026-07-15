@@ -35,8 +35,10 @@ import Util.Streamly qualified as S
 import Util.Util
 import Prelude hiding (log)
 
-newtype Opts = Opts
-    { modeLED :: Mode -> Maybe Int
+data Opts = Opts
+    { initialMode :: Mode
+    , modeLED :: Mode -> Maybe Int
+    , isKeyboardName :: Text -> Bool
     }
     deriving (Generic)
 
@@ -297,12 +299,12 @@ dispatchKeys opts = wrap \case
     speakerName = "sol" :: Text
 
 -- TODO I can't find a reliable heuristic for "basically a keyboard", so we take `isKeyboardName` predicate for now
-feed :: (Text -> Bool) -> Mode -> Opts -> S.Stream IO [Event]
-feed isKeyboardName initialMode opts =
+feed :: Opts -> S.Stream IO [Event]
+feed opts =
     (((S.parConcat id . fmap snd) .) . S.runStateT . pure)
         ( KeyboardState
             { keyboards = mempty
-            , mode = initialMode
+            , mode = opts.initialMode
             , previousMode = Normal
             , shift = False
             , ctrl = False
@@ -333,7 +335,7 @@ feed isKeyboardName initialMode opts =
                         (StateT . dispatchKeys opts . Evdev.eventData)
                 )
                 . S.morphInner lift
-                . S.filterM (liftIO . fmap (isKeyboardName . decodeUtf8) . Evdev.deviceName . fst)
+                . S.filterM (liftIO . fmap (opts.isKeyboardName . decodeUtf8) . Evdev.deviceName . fst)
                 . readEventsMany
             )
         -- TODO I'm a bit worried about what this might do to fusion - generalise `readEventsMany` instead?
