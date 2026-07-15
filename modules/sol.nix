@@ -5,7 +5,7 @@ let
   spotifyd-port = 56702;
   sol-script-lifx-port = 56710;
   sol-script-http-port = 8000;
-  evdev-share-name = "evdev-share";
+  evdev-share-name = "Remote";
 
   # basic user service helper
   mkService =
