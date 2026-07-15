@@ -47,6 +47,7 @@ data Opts = Opts
     , lifxIgnore :: [Text]
     , lifxPort :: Word16
     , httpPort :: Warp.Port
+    , keyboardNames :: [Text]
     , keySendPort :: PortNumber
     , keySendIps :: [IP]
     , hifiPlugIp :: IP
@@ -142,7 +143,7 @@ main = do
             )
         $ S.parList
             id
-            [ Keyboard.feed ("Keyboard" `T.isInfixOf`) initialMode Keyboard.Opts{..}
+            [ Keyboard.feed (\s -> any (`T.isInfixOf` s) ("Keyboard" : opts.keyboardNames)) initialMode Keyboard.Opts{..}
             , WebServer.feed WebServer.Opts{port = opts.httpPort, curlDocsCallback = T.putStrLn}
             -- TODO disabled until logging is better
             -- it's easier to see events when monitoring through a separate script

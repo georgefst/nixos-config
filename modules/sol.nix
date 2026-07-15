@@ -5,6 +5,7 @@ let
   spotifyd-port = 56702;
   sol-script-lifx-port = 56710;
   sol-script-http-port = 8000;
+  evdev-share-name = "evdev-share";
 
   # basic user service helper
   mkService =
@@ -90,6 +91,7 @@ in
           --lifx-ignore Ceiling \
           --lifx-port ${toString sol-script-lifx-port} \
           --http-port ${toString sol-script-http-port} \
+          --keyboard-names ${evdev-share-name} \
           --key-send-port 56702 \
           --key-send-ips 192.168.178.20 \
           --hifi-plug-ip 192.168.178.28 \
@@ -118,7 +120,7 @@ in
     evdev-share = mkService { } {
       description = "evdev share server";
       script = ''
-        evdev-share-server -p ${toString evdev-share-port} -n evdev-share
+        evdev-share-server -p ${toString evdev-share-port} -n ${evdev-share-name}
       '';
       path = [ pkgs.evdev-share ];
     };
