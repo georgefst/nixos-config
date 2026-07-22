@@ -351,7 +351,13 @@ in
       ghc = haskellPackages.ghcWithPackages (import ./haskell-libs.nix pkgs);
       vscode = vscode-with-extensions.override {
         vscode = pkgs.vscode;
-        vscodeExtensions = import ./vscode-extensions.nix nix-vscode-extensions.vscode-marketplace-release;
+        vscodeExtensions = import ./vscode-extensions.nix nix-vscode-extensions.vscode-marketplace-release
+          ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [{
+          name = "daml";
+          publisher = "DigitalAssetHoldingsLLC";
+          version = "2.8.0";
+          sha256 = "sha256-64bK8Q0r2f6SSmgVUORJGXt2rG165DWh6c8QAUfu+qA=";
+        }];
       };
     in
     [
