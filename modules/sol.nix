@@ -86,6 +86,10 @@ in
 
   # desktop (Plasma Bigscreen)
   services.desktopManager.plasma6.enable = true;
+  # pulls in the whole legacy KF5 stack (~30 derivations) via `plasma6.nix`'s `kio5-plugins-only`,
+  # which is never cached because our unstable `kdePackages` shifts `extra-cmake-modules`.
+  # nothing here is Qt5 - Bigscreen is Qt6, Firefox is GTK.
+  services.desktopManager.plasma6.enableQt5Integration = false;
   services.displayManager = {
     sddm = {
       enable = true;

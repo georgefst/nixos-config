@@ -120,7 +120,20 @@
         ];
       };
       mkPiSdAndVm = hardwareModules: modules:
-        let overlays = system: [ (_: _: extraPackages.${system}) ]; in {
+        let
+          pkgs-unstable-aarch64 = import inputs.nixpkgs-unstable { system = "aarch64-linux"; };
+          overlays = system: [
+            (_: _: extraPackages.${system})
+            # `kdePackages` comes from unstable (see `extraPackages`), so anything loaded into the
+            # same process as Plasma must be built against the *same* qtbase. The only place a
+            # NixOS module reads `pkgs.qt6` for that is `sddm.nix`'s Wayland greeter
+            # (`pkgs.qt6.qtwayland`) - everything else Plasma-side already comes via `kdePackages`.
+            # Overriding the whole `qt6`/`qt6Packages` scope instead (as we used to) also drags
+            # `v4l-utils` -> `libdisplay-info` -> `mesa` off cache.nixos.org, which is a very
+            # expensive aarch64 rebuild for packages that have no business caring about Plasma's Qt.
+            (_: prev: { qt6 = prev.qt6 // { inherit (pkgs-unstable-aarch64.qt6) qtwayland; }; })
+          ];
+        in {
           system = inputs.nixos-raspberrypi.lib.nixosSystem {
             modules = modules ++ hardwareModules ++ [
               inputs.nixos-raspberrypi.nixosModules.sd-image
