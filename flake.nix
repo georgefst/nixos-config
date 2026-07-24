@@ -33,6 +33,7 @@
       inputs.haskell-nix.follows = "haskell-nix";
       inputs.nixpkgs.follows = "nixpkgs-haskell";
     };
+    hls = { url = "github:haskell/haskell-language-server"; flake = false; }; # https://github.com/haskell/haskell-language-server/pull/5009
     self.submodules = true;
   };
   outputs = inputs@{ self, nixos-hardware, flake-utils, ... }:
@@ -54,11 +55,11 @@
                 hixProject =
                   final.haskell-nix.hix.project {
                     src = ./.;
-                    compiler-nix-name = "ghc912";
+                    compiler-nix-name = "ghc9141";
                     inherit evalSystem;
                     shell.tools = {
                       cabal = "latest";
-                      haskell-language-server = "latest";
+                      haskell-language-server.src = inputs.hls;
                     };
                   };
               })
