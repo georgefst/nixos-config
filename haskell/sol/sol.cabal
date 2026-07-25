@@ -83,5 +83,4 @@ executable sol
         ViewPatterns
     ghc-options:
         -Wall
-        -Wredundant-constraints
         -threaded
