@@ -21,6 +21,8 @@ import Data.Stream.Infinite qualified as Stream
 import Data.Text qualified as T
 import Data.Text.IO qualified as T
 import Data.Word
+import Evdev.Codes (Key (..))
+import Evdev.Uinput qualified as Uinput
 import Lifx.Lan qualified as Lifx
 import Network.HTTP.Client
 import Network.Socket
@@ -47,6 +49,7 @@ data Opts = Opts
     , lifxIgnore :: [Text]
     , lifxPort :: Word16
     , httpPort :: Warp.Port
+    , webRoot :: FilePath
     , keyboardNames :: [Text]
     , keySendPort :: PortNumber
     , keySendIps :: [IP]
@@ -112,12 +115,34 @@ main = do
             maybe (T.putStrLn "No valid LIFX devices found" >> exitFailure) (pure . Stream.cycle)
                 . nonEmpty
                 =<< filterM
-                    ( \(_, Lifx.LightState{label}, _) ->
+                    ( \(_, Lifx.LightState{label}, _, _) ->
                         let good = label `notElem` opts.lifxIgnore
                          in T.putStrLn ("LIFX device " <> bool "ignored" "found" good <> ": " <> label) >> pure good
                     )
                 =<< either (\e -> T.putStrLn ("LIFX startup error: " <> showT e) >> exitFailure) pure
                 =<< Lifx.runLifxT (lifxTime opts.lifxTimeout) (Just $ fromIntegral opts.lifxPort) discoverLifx
+        uinput <-
+            liftIO $
+                Uinput.newDevice
+                    "sol-hs"
+                    Uinput.defaultDeviceOpts
+                        { Uinput.keys =
+                            -- TODO copied from WebServer.hs
+                            -- this is essentially:
+                            -- map apiToEvdevKey enumerate
+                            -- we can't even import that due to cyclicity
+                            -- but we should rethink this anyway
+                            [ KeyEnter
+                            , KeyUp
+                            , KeyDown
+                            , KeyLeft
+                            , KeyRight
+                            , KeyEsc
+                            , KeySpace
+                            , KeyTab
+                            , KeyLeftmeta
+                            ]
+                        }
         pure
             AppState
                 { activeLEDs = mempty
@@ -146,7 +171,7 @@ main = do
         $ S.parList
             id
             [ Keyboard.feed Keyboard.Opts{..}
-            , WebServer.feed WebServer.Opts{port = opts.httpPort, curlDocsCallback = T.putStrLn}
+            , WebServer.feed WebServer.Opts{port = opts.httpPort, curlDocsCallback = T.putStrLn, webRoot = opts.webRoot}
             -- TODO disabled until logging is better
             -- it's easier to see events when monitoring through a separate script
             -- , GPIO.feed (opts & \Opts{..} -> GPIO.Opts{..})

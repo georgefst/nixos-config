@@ -1,50 +1,90 @@
 packages:
-    haskell/clark
-    haskell/magic-mouse
-    haskell/qr
     haskell/sol
-    haskell/utils
 
--- https://github.com/georgefst/lifx-lan/pull/27
+-- TODO hmm...
+-- maybe use `buildable: False` on each component like in Sol instead
+if !os(wasi)
+    packages:
+        haskell/clark
+        haskell/magic-mouse
+        haskell/qr
+        haskell/utils
+
+    -- https://github.com/georgefst/lifx-lan/pull/27
+    source-repository-package
+        type: git
+        location: https://github.com/georgefst/lifx-lan
+        tag: d1672919e4d07edd4fbf0b90ae051d360532c21d
+        --sha256: aFnxYTY83yzTktxtyHFBw1L4QgInXeiRNzJQnNKX9YM=
+    allow-newer: lifx-lan:base
+
+    -- not on Hackage
+    source-repository-package
+        type: git
+        location: https://github.com/georgefst/georgefst-utils
+        tag: 0531ef8b472db26957b428bf41ac67c0d6006dc2
+        --sha256: g5UlNmBomq/MR3glhH10y+egy5MQC9GyDla2056UysU=
+
+    -- not yet on Hackage
+    source-repository-package
+        type: git
+        location: https://github.com/georgefst/spotify
+        tag: df58bc24f2cf852ffe3eb1737ec983a8f3d4d848
+        --sha256: 1k6xzlypwmb0wilacp6i56b8brjgfgxqpdmqwf833cagzwfr8k15
+
+    -- https://github.com/lexi-lambda/freer-simple/pull/45
+    source-repository-package
+        type: git
+        location: https://github.com/georgefst/freer-simple
+        tag: e1d88c1ee036115ef527bda8c66da997962b3f34
+        --sha256: /AnRoCx5IRf9Q8+fLk+Wilo16LNxhRxYvCLkuBIWIy0=
+
+    -- see Util.Servant.Curl
+    source-repository-package
+        type: git
+        location: https://github.com/georgefst/servant
+        tag: 48adbe3f4f1dc8b8f9bfed4c1642fad35fba33db
+        subdir: servant-foreign
+        --sha256: 0lhlg91pkch74rwj3k48bdam5a32piki8d09w47f1gizk9gqkhv7
+
 source-repository-package
     type: git
-    location: https://github.com/georgefst/lifx-lan
-    tag: d1672919e4d07edd4fbf0b90ae051d360532c21d
-    --sha256: aFnxYTY83yzTktxtyHFBw1L4QgInXeiRNzJQnNKX9YM=
-allow-newer: lifx-lan:base
+    location: https://github.com/haskell-miso/servant-miso-client
+    tag: d3448a2a2b6aee4155273a3d02b828b026796b8a
+    --sha256: 1kcnx8552ks9khd6y5w4b56560h0fryx693lc2pbxwc8hrmijp6b
 
--- not on Hackage
 source-repository-package
     type: git
-    location: https://github.com/georgefst/georgefst-utils
-    tag: 0531ef8b472db26957b428bf41ac67c0d6006dc2
-    --sha256: g5UlNmBomq/MR3glhH10y+egy5MQC9GyDla2056UysU=
+    location: https://github.com/georgefst/servant-client-js
+    tag: d0d914cdb8e8aa8124a6aebb6a901f4ef21dffd6
+    --sha256: 1j13xk340brbpd4cai210xx15dy4bs5llw5ww1bp3plzcsplz0p3
 
--- not yet on Hackage
+-- the commit after this doesn't work with our GHC
+-- https://github.com/haskell-wasm/jsaddle-wasm/commit/f81acd7bc0d05fd79205bcb0d9cac17a163dc86a
+-- we'd need to add another GHC patch: f69c5f1492b2 ("wasm: fix handling of ByteArray#/MutableByteArray# arguments in JSFFI imports", Dec 2025)
+-- nix shell nixpkgs#patchutils
+-- curl -sL https://github.com/ghc/ghc/commit/f69c5f1492b2.patch | filterdiff -p1 -i 'compiler/*' > haskell/sol/ghc-wasm-patches/jsffi-bytearray-args.patch
 source-repository-package
     type: git
-    location: https://github.com/georgefst/spotify
-    tag: df58bc24f2cf852ffe3eb1737ec983a8f3d4d848
-    --sha256: 1k6xzlypwmb0wilacp6i56b8brjgfgxqpdmqwf833cagzwfr8k15
+    location: https://github.com/haskell-wasm/jsaddle-wasm
+    tag: 8d019e388e7dc7d31a884a06c10fd7bbd3f9b55f
+    --sha256: fYu/yI+PEjCzKsifPHw6DNoAeFWfNJdCkZqxuv4Ekp4=
 
--- https://github.com/lexi-lambda/freer-simple/pull/45
-source-repository-package
-    type: git
-    location: https://github.com/georgefst/freer-simple
-    tag: e1d88c1ee036115ef527bda8c66da997962b3f34
-    --sha256: /AnRoCx5IRf9Q8+fLk+Wilo16LNxhRxYvCLkuBIWIy0=
+if os(wasi)
+  shared: True
 
--- see Util.Servant.Curl
-source-repository-package
-    type: git
-    location: https://github.com/georgefst/servant
-    tag: 48adbe3f4f1dc8b8f9bfed4c1642fad35fba33db
-    subdir: servant-foreign
-    --sha256: 0lhlg91pkch74rwj3k48bdam5a32piki8d09w47f1gizk9gqkhv7
-
-if impl(ghc >= 9.10)
-    allow-newer:
-        -- https://github.com/phadej/aeson-optics/issues/20
-        aeson-optics:base,
-        -- deprecated library - can be removed once `evdev` stops depending on it
-        filepath-bytestring:base,
+-- TODO go more fine-grained with these
+allow-newer:
+    *:base,
+    *:containers,
+    *:template-haskell,
+    *:text,
+    *:time,
+    -- https://github.com/phadej/aeson-optics/issues/20
+    aeson-optics:base,
+    -- deprecated library - can be removed once `evdev` stops depending on it
+    filepath-bytestring:base,
+constraints:
+    containers installed,
+    text installed,
+    time installed,

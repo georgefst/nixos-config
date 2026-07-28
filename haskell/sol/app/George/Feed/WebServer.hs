@@ -1,77 +1,90 @@
 module George.Feed.WebServer (feed, Opts (..)) where
 
 import George.Core
-import Util.Servant.Curl
 
+import API
 import Control.Concurrent
 import Control.Monad
 import Control.Monad.Freer
 import Control.Monad.IO.Class
 import Data.Functor
-import Data.Proxy
 import Data.Text (Text)
-import Data.Text qualified as T
-import GHC.Generics (Generic)
+import Evdev.Codes qualified as Evdev
+import Lifx.Lan hiding (SetLightPower)
 import Network.HTTP.Types
+import Network.Wai.Application.Static (defaultWebAppSettings, staticApp)
 import Network.Wai.Handler.Warp qualified as Warp
 import Servant
-import Servant.Client (BaseUrl (..), Scheme (Http))
 import Streamly.Data.Stream.Prelude qualified as S
 import Util.Servant.Streamly qualified as Servant
-import Util.Util
 
 data Opts = Opts
     { port :: Warp.Port
     , curlDocsCallback :: Text -> IO ()
+    , webRoot :: FilePath
     }
-
-type R = Get '[PlainText] Text
-data Routes mode = Routes
-    { resetError :: mode :- "tmp" :> R
-    , getCurrentLight :: mode :- "light" :> R
-    , spotifyTransfer :: mode :- "spotify" :> Capture "device" Text :> R
-    }
-    deriving (Generic)
 
 feed :: Opts -> S.Stream IO [Event]
 feed opts =
     S.catMaybes $
-        Servant.stream @(NamedRoutes Routes)
+        Servant.stream @(NamedRoutes API.Routes :<|> Raw)
             Servant.Opts
-                { warpSettings =
-                    Warp.setBeforeMainLoop
-                        (opts.curlDocsCallback $ curlDocs opts.port)
-                        $ Warp.setPort opts.port Warp.defaultSettings
+                { warpSettings = Warp.setPort opts.port Warp.defaultSettings
                 , routes = \act ->
                     Routes
-                        { resetError = f showT act $ send ResetError
-                        , getCurrentLight = f showT act $ send . GetLightName =<< send GetCurrentLight
-                        , spotifyTransfer = f showT act . (send . flip SpotifyTransfer True <=< send . SpotifyGetDevice)
+                        { exit = f noContent act $ send Exit
+                        , resetError = f noContent act $ send ResetError
+                        , powerOff = f noContent act $ send PowerOff
+                        , reboot = f noContent act $ send Reboot
+                        , pressKey = f noContent act . send . PressKey . toEvdevKey
+                        , getBulbs = \rescan -> f id act $ when rescan (send LightReScan) >> send GetAllLights
+                        , getBulbStatus = \(BulbGroup group) (BulbName name) -> f id act do
+                            -- TODO repetitive...
+                            dev <- send $ GetLightByGroupAndName group name
+                            ls <- send $ GetLightState dev
+                            pure BulbStatus{power = ls.power /= 0, colour = fromHSBK ls.hsbk}
+                        , setBulbPower = \(BulbGroup group) (BulbName name) power -> f noContent act do
+                            dev <- send $ GetLightByGroupAndName group name
+                            send $ SetLightPower dev power
+                        , setBulbColour = \(BulbGroup group) (BulbName name) colour -> f noContent act do
+                            dev <- send $ GetLightByGroupAndName group name
+                            send . SetLightColour False dev 0 $ toHSBK colour
+                        , getSpotifyDevices = f id act $ send SpotifyGetDevices
+                        , spotifyTransfer = f noContent act . (send . flip SpotifyTransfer True <=< send . SpotifyGetDevice)
+                        , getHifiPower = f id act $ send GetHifiPlugPower
+                        , setHifiPower = f noContent act . send . SetHifiPlugPower
+                        , -- TODO I really don't like this string being duplicated - we need to rethink our IR types
+                          toggleTvPower = f noContent act $ send $ SendIR IRTV "KEY_POWER"
                         }
+                        -- TODO disable cache headers?
+                        -- or is there some way we can force a full refresh on mobile Firefox?
+                        -- could we force a cache clear only when the content (or NixOS hash) doesn't match?
+                        :<|> Tagged (staticApp $ defaultWebAppSettings opts.webRoot)
                 }
             <&> \case
                 Servant.Event x -> Just [x]
                 Servant.WarpLog r s i ->
                     guard (not $ statusIsSuccessful s) $> [ErrorEvent (Error "HTTP error" (r, s, i))]
   where
+    noContent () = NoContent
     f show' (act :: Event -> IO ()) a = liftIO do
         m <- newEmptyMVar
         act $ ActionEvent (putMVar m) a
-        (<> "\n") . show' <$> takeMVar m
+        show' <$> takeMVar m
 
-curlDocs :: Int -> Text
-curlDocs port =
-    T.intercalate "\n" $
-        zipWith
-            (\v es -> T.unlines $ v : es)
-            (curlFunctions host api)
-            (curlExamples host api)
-  where
-    api = Proxy @(NamedRoutes Routes)
-    host =
-        BaseUrl
-            { baseUrlScheme = Http
-            , baseUrlHost = "sol"
-            , baseUrlPort = port
-            , baseUrlPath = ""
-            }
+toEvdevKey :: API.Key -> Evdev.Key
+toEvdevKey = \case
+    API.KeyEnter -> Evdev.KeyEnter
+    API.KeyUp -> Evdev.KeyUp
+    API.KeyDown -> Evdev.KeyDown
+    API.KeyLeft -> Evdev.KeyLeft
+    API.KeyRight -> Evdev.KeyRight
+    API.KeyEsc -> Evdev.KeyEsc
+    API.KeySpace -> Evdev.KeySpace
+    API.KeyTab -> Evdev.KeyTab
+    API.KeySuper -> Evdev.KeyLeftmeta
+
+toHSBK :: BulbColour -> HSBK
+toHSBK BulbColour{kelvin = Kelvin kelvin, ..} = HSBK{..}
+fromHSBK :: HSBK -> BulbColour
+fromHSBK HSBK{..} = BulbColour{kelvin = Kelvin kelvin, ..}

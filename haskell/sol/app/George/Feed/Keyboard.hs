@@ -42,6 +42,8 @@ data Opts = Opts
     }
     deriving (Generic)
 
+-- TODO could this include "current light" instead of having that in global state?
+-- maybe light colour cache as well and more
 data KeyboardState = KeyboardState
     { keyboards :: Set Evdev.Device
     , mode :: Mode

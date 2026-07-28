@@ -178,9 +178,9 @@ in
           --led-normal-mode-pin 16 \
           --led-tv-mode-pin 6 \
           --lifx-timeout 10 \
-          --lifx-ignore Ceiling \
           --lifx-port ${toString sol-script-lifx-port} \
           --http-port ${toString sol-script-http-port} \
+          --web-root ${pkgs.sol-web-dist} \
           --keyboard-names ${evdev-share-name} \
           --key-send-port 56702 \
           --key-send-ips 192.168.178.20 \

@@ -44,8 +44,8 @@ runLifxUntilSuccess p t n x =
   where
     p' e = p e >> liftIO (threadDelay t) >> runLifxUntilSuccess p t n x
 
-discoverLifx :: (MonadLifx m) => m [(Device, LightState, StateGroup)]
+discoverLifx :: (MonadLifx m) => m [(Device, LightState, StateGroup, Product)]
 discoverLifx =
     traverse
-        (\d -> (d,,) <$> sendMessage d GetColor <*> sendMessage d GetGroup)
+        (\d -> (d,,,) <$> sendMessage d GetColor <*> sendMessage d GetGroup <*> getProductInfo d)
         =<< discoverDevices Nothing

@@ -12,6 +12,7 @@ module George.Core where
 import Util
 import Util.Lifx
 
+import API hiding (Key (..))
 import Control.Exception (IOException)
 import Control.Monad
 import Control.Monad.Catch
@@ -34,9 +35,9 @@ import Data.Stream.Infinite qualified as Stream
 import Data.Text qualified as T
 import Data.Text.Encoding (encodeUtf8)
 import Data.Time
-import Data.Tuple.Extra (fst3, thd3)
-import Evdev (KeyEvent (..))
+import Evdev (EventData (KeyEvent), KeyEvent (..))
 import Evdev.Codes (Key (..))
+import Evdev.Uinput qualified as Uinput
 import GHC.Records (HasField)
 import Lifx.Lan (HSBK, MonadLifx)
 import Lifx.Lan qualified as Lifx
@@ -59,10 +60,12 @@ import Util.Util
 
 data AppState = AppState
     { activeLEDs :: Map Int GPIO.Handle
-    , bulbs :: Stream.Stream (Lifx.Device, Lifx.LightState, Lifx.StateGroup)
+    , bulbs :: Stream.Stream (Lifx.Device, Lifx.LightState, Lifx.StateGroup, Lifx.Product)
     , httpConnectionManager :: Manager
     , keySendSocket :: Socket
     , lightColourCache :: Maybe HSBK
+    , -- TODO this should be reader rather than state
+      uinput :: Uinput.Device
     }
     deriving (Generic)
 
@@ -120,6 +123,7 @@ data Action a where
     SetLED :: Int -> Bool -> Action ()
     SetSystemLEDs :: Bool -> Action ()
     LaunchProgram :: FilePath -> Action ProcessID
+    PressKey :: Key -> Action ()
     SendKey :: Key -> KeyEvent -> Action ()
     GetCurrentLight :: Action Lifx.Device
     GetCurrentLightGroup :: Action ByteString
@@ -137,7 +141,10 @@ data Action a where
     SendIR :: IRDev -> Text -> Action ()
     GetHifiPlugPower :: Action Bool
     SetHifiPlugPower :: Bool -> Action ()
-    ToggleHifiPlug :: Action ()
+    ToggleHifiPlug :: Action () -- TODO why isn't this just a compound action?
+    GetAllLights :: Action [BulbInfo]
+    GetLightByGroupAndName :: Text -> Text -> Action Lifx.Device
+    SpotifyGetDevices :: Action [SpotifyDevice]
     SpotifyGetDevice :: Text -> Action Spotify.DeviceID
     SpotifyTransfer :: Spotify.DeviceID -> Bool -> Action ()
     SpotifySearchAndPlay :: Spotify.SearchType -> Text -> Spotify.DeviceID -> Action ()
@@ -176,6 +183,9 @@ runAction opts@ActionOpts{setLED {- TODO GHC doesn't yet support impredicative f
             (\(l, v) -> liftIO $ readProcess "sudo" ["tee", "/sys/class/leds/" <> l <> "/trigger"] (v <> "\n"))
             (if b then [("ACT", "mmc0"), ("PWR", "default-on")] else [("ACT", "none"), ("PWR", "none")])
     LaunchProgram p -> liftIO $ forkProcess $ executeFile p True [] Nothing
+    PressKey k -> do
+        d <- use #uinput
+        liftIO $ Uinput.writeBatch d [KeyEvent k Pressed, KeyEvent k Released]
     SendKey k e -> do
         -- TODO DRY this with my `net-evdev` repo
         sock <- use #keySendSocket
@@ -183,15 +193,15 @@ runAction opts@ActionOpts{setLED {- TODO GHC doesn't yet support impredicative f
             void
                 . sendTo sock (B.pack [fromIntegral $ fromEnum k, fromIntegral $ fromEnum e])
                 . (SockAddrInet opts.keySendPort . (.unIP))
-    GetCurrentLight -> fst3 . Stream.head <$> use #bulbs
-    GetCurrentLightGroup -> (.group) . thd3 . Stream.head <$> use #bulbs
+    GetCurrentLight -> (\(d, _, _, _) -> d) . Stream.head <$> use #bulbs
+    GetCurrentLightGroup -> (\(_, _, g, _) -> g.group) . Stream.head <$> use #bulbs
     LightReScan ->
         maybe
             (logMessage "No valid LIFX devices found during re-scan - retaining old list")
             (\ds -> #bulbs .= Stream.cycle ds)
             . nonEmpty
             =<< filterM
-                ( \(_, Lifx.LightState{label}, _) ->
+                ( \(_, Lifx.LightState{label}, _, _) ->
                     let good = label `notElem` opts.lifxIgnore
                      in logMessage ("LIFX device " <> bool "ignored" "found" good <> ": " <> label) >> pure good
                 )
@@ -211,7 +221,7 @@ runAction opts@ActionOpts{setLED {- TODO GHC doesn't yet support impredicative f
     GetLightName l -> (.label) <$> Lifx.sendMessage l Lifx.GetColor
     GetLightsInGroup g -> do
         l Stream.:> ls <- use #bulbs
-        pure $ fst3 <$> filter ((== g) . (.group) . thd3) (l : Stream.takeWhile (/= l) ls)
+        pure $ (\(d, _, _, _) -> d) <$> filter (\(_, _, sg, _) -> sg.group == g) (l : Stream.takeWhile (/= l) ls)
     Mpris cmd -> do
         service <-
             maybe
@@ -251,6 +261,22 @@ runAction opts@ActionOpts{setLED {- TODO GHC doesn't yet support impredicative f
         maybe (throwError $ Error "Key \"output\" not found in HiFi plug response" response) pure $ responseBody response ^? key "output" % _Bool
     SetHifiPlugPower b -> void $ messageHifiPlug "Switch.Set" $ "&on=" <> B8.pack (map toLower $ show b)
     ToggleHifiPlug -> void $ messageHifiPlug "Switch.Toggle" ""
+    -- TODO ha, this is a total hack, but sort of impressive
+    -- same for next pattern
+    -- I guess storing lights as a stream has long outlived its purpose...
+    GetAllLights -> do
+        l Stream.:> ls <- use #bulbs
+        pure $ toBulbInfo <$> (l : Stream.takeWhile (/= l) ls)
+    GetLightByGroupAndName g b -> do
+        l Stream.:> ls <- use #bulbs
+        let allBulbs = l : Stream.takeWhile (/= l) ls
+        case find (\(_, ls', g', _) -> ls'.label == b && g'.label == g) allBulbs of
+            Just (d, _, _, _) -> pure d
+            Nothing -> throwError $ Error "Light not found" (g, b)
+    SpotifyGetDevices -> do
+        -- TODO does filtering for `isActive` make much sense?
+        ds <- liftIO Spotify.getAvailableDevices
+        pure [SpotifyDevice{name = d.name, isActive = d.isActive} | d <- ds]
     SpotifyGetDevice t -> do
         ds <- liftIO Spotify.getAvailableDevices
         maybe (throwError $ Error "Spotify device not found" (t, ds)) (pure . (.id)) $ find ((== t) . (.name)) ds
@@ -293,3 +319,12 @@ runAction opts@ActionOpts{setLED {- TODO GHC doesn't yet support impredicative f
         logMessage $ "HTTP response status code from HiFi plug: " <> showT (statusCode $ responseStatus response)
         -- TODO something to do with MonoLocalBinds, but I'm not sure _exactly_ why this type app is necessary
         pure @m response
+    toBulbInfo (_, ls, sg, prod) =
+        BulbInfo
+            { name = BulbName ls.label
+            , group = BulbGroup sg.label
+            , hasColour = prod.features.color
+            , hasKelvin = case prod.features.temperatureRange of
+                Just (lo, hi) -> lo /= hi
+                Nothing -> False
+            }

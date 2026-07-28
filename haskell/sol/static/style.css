@@ -1,0 +1,200 @@
+:root {
+  --sat: 52%;
+  --blue-hue: 218;
+  --blue-0: hsl(var(--blue-hue), var(--sat), 18%);
+  --blue-1: hsl(var(--blue-hue), var(--sat), 34%);
+  --blue-2: hsl(var(--blue-hue), var(--sat), 45%);
+  --red: hsl(2, var(--sat), 46%);
+  --green: hsl(85, var(--sat), 32%);
+  --font-colour: white;
+  --spacing: 0.2rem;
+  --button-size: 3em;
+  --rounding: 0.2em;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Helvetica, Arial, sans-serif;
+  background: var(--blue-0);
+  color: var(--font-colour);
+  margin: 0;
+  padding: 1rem;
+  display: flex;
+  justify-content: center;
+  > * {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    > * {
+      padding: 1rem;
+    }
+  }
+}
+
+button,
+select,
+input {
+  padding: 0;
+  border: none;
+  font-size: inherit;
+  cursor: pointer;
+}
+button,
+select,
+input,
+.widget {
+  border-radius: var(--rounding);
+}
+button,
+select,
+input,
+.widget {
+  margin: var(--spacing);
+}
+button,
+select,
+input {
+  color: inherit;
+  height: var(--button-size);
+  background: var(--blue-2);
+  &.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  &:hover:not(.disabled) {
+    opacity: 0.6;
+  }
+}
+button {
+  min-width: var(--button-size);
+  &.on {
+    background-color: var(--green);
+  }
+  &.off {
+    background-color: var(--red);
+  }
+  > .icon {
+    font-size: 1.5em;
+  }
+}
+
+#system {
+  display: flex;
+  justify-content: center;
+  > * {
+    border-radius: 50%;
+  }
+  > #power-off {
+    background-color: var(--red);
+  }
+  > #reboot {
+    background-color: var(--green);
+  }
+  > #refresh {
+    background-color: var(--blue-1);
+  }
+}
+
+#key-grid {
+  display: flex;
+  flex-direction: column;
+  > * {
+    display: flex;
+    justify-content: center;
+    > * {
+      padding: 0;
+    }
+    > .enter {
+      background-color: var(--blue-1);
+      padding-bottom: 0.2rem;
+    }
+    > .super {
+      padding-bottom: 0.2rem;
+    }
+    > .hifi {
+      padding-bottom: 0.15rem;
+      padding-left: 0.15rem;
+    }
+    > .tv {
+      padding-bottom: 0.5rem;
+    }
+  }
+}
+
+#bulbs {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  > .group {
+    display: contents;
+    > .title {
+      padding-right: 0.5rem;
+      text-align: right;
+    }
+    > .widgets {
+      display: flex;
+      flex-wrap: wrap;
+      > .widget {
+        width: 10rem;
+        background-color: var(--colour);
+        display: flex;
+        flex-direction: column;
+        > button {
+          margin: 0;
+          border-bottom-left-radius: 0;
+          border-bottom-right-radius: 0;
+        }
+        > .sliders {
+          display: flex;
+          flex-direction: column;
+          padding: var(--spacing);
+          font-size: 0.7rem;
+          > .no-slider {
+            height: var(--button-size);
+            margin: var(--spacing);
+          }
+          > input[type="range"] {
+            accent-color: var(--blue-2); /* fallback for non-Firefox */
+            /* TODO switch to standardised selectors if ever available */
+            &::-moz-range-track {
+              height: 100%;
+              border-radius: var(--rounding);
+              background: linear-gradient(
+                to right in hsl,
+                var(--colour-0),
+                var(--colour-10),
+                var(--colour-20),
+                var(--colour-30),
+                var(--colour-40),
+                var(--colour-50),
+                var(--colour-60),
+                var(--colour-70),
+                var(--colour-80),
+                var(--colour-90),
+                var(--colour-100)
+              );
+            }
+            &::-moz-range-thumb {
+              /* TODO huh this never actually gets centered on the very ends of the range
+              which probably means that colour under the cursor is always slightly off */
+              --diameter: calc(var(--button-size) - 0.1em);
+              height: var(--diameter);
+              width: var(--diameter);
+              background-color: hsla(0, 0%, 100%, 10%);
+              border-color: hsla(0, 0%, 10%, 80%);
+              /* border-color: color-mix(in srgb, var(--colour) 90%, black); */
+              /* border-width: 0.1em; */
+              border-width: 0.2em;
+              border-radius: 50%;
+              /* border-style: none; */
+            }
+          }
+        }
+      }
+    }
+  }
+}

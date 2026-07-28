@@ -109,7 +109,7 @@ main = do
                                 enumerateRoomLights <&> \(Exists (RoomLightPair (roomName -> r) (lightName -> l))) ->
                                     let rl = (r, l)
                                      in maybeToEither rl $
-                                            ds & firstJust \(d, s, g) -> guard (g.label == r && s.label == l) $> (rl, d)
+                                            ds & firstJust \(d, s, g, _) -> guard (g.label == r && s.label == l) $> (rl, d)
                     maybe (pure $ Map.fromList ds') (throwError @(NonEmpty (Text, Text))) $ nonEmpty notFound
                 let getLight :: forall c. RoomLightPair c -> Lifx.Device
                     getLight (RoomLightPair r l) =
