@@ -75,7 +75,11 @@
                     inherit evalSystem;
                     crossPlatforms = p:
                       final.lib.optionals final.stdenv.hostPlatform.isx86_64
-                        [ p.wasi32 ];
+                        # aarch64 is cross-compiled rather than built natively because
+                        # `cache.zw3rk.com` has the cross GHC (`aarch64-unknown-linux-gnu-ghc-9.14.1`)
+                        # but no native `aarch64-linux` paths at all, so a native build means
+                        # compiling GHC itself from source under qemu.
+                        [ p.wasi32 p.aarch64-multiplatform ];
                     shell.nativeBuildInputs =
                       [
                         haskellPkgs.simple-http-server
@@ -215,6 +219,10 @@
               qr = haskell.packages."qr:exe:qr";
               sol = haskell.packages."sol:exe:sol";
             } // lib.optionalAttrs (system == "x86_64-linux") {
+              # cross-compiled for the Pis - see `crossPlatforms` above, and `mkPiSdAndVm`
+              # (only the exes the Pi configs actually reference - `qr` and `magic-mouse` are desktop-only)
+              clark-cross-aarch64 = haskell.packages."aarch64-unknown-linux-gnu:clark:exe:clark";
+              sol-cross-aarch64 = haskell.packages."aarch64-unknown-linux-gnu:sol:exe:sol";
               sol-web-dist =
                 let
                   sol-web-wasm = haskell.packages."wasm32-unknown-wasi:sol:exe:sol-web";
@@ -266,7 +274,14 @@
         let
           pkgs-unstable-aarch64 = import inputs.nixpkgs-unstable { system = "aarch64-linux"; };
           overlays = system: [
-            (_: _: extraPackages.${system} // { inherit (extraPackages.${buildSystem}) sol-web-dist; })
+            (_: _: extraPackages.${system}
+              // { inherit (extraPackages.${buildSystem}) sol-web-dist; }
+              # cross-compile from `buildSystem` rather than building natively under qemu
+              # (the shadowed `extraPackages.aarch64-linux.*` are never forced)
+              // lib.optionalAttrs (system == "aarch64-linux") {
+              clark = extraPackages.${buildSystem}.clark-cross-aarch64;
+              sol = extraPackages.${buildSystem}.sol-cross-aarch64;
+            })
             # `kdePackages` comes from unstable (see `extraPackages`), so anything loaded into the
             # same process as Plasma must be built against the *same* qtbase. The only place a
             # NixOS module reads `pkgs.qt6` for that is `sddm.nix`'s Wayland greeter
