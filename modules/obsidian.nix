@@ -12,5 +12,4 @@
     enable = true;
     interval = "monthly";
   };
-  boot.zfs.forceImportRoot = false;
 }

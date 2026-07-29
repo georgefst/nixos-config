@@ -10,6 +10,27 @@ in
   system.nixos.tags = [ flake.shortRev or flake.dirtyShortRev ];
   i18n.defaultLocale = "en_GB.UTF-8";
   time.timeZone = "Europe/London";
+
+  # only Fry actually boots from ZFS (this setting used to live in `obsidian.nix` alongside the rest
+  # of its ZFS config), but it has to be set for *every* machine, because the Pi configs pull in
+  # `nixos/modules/profiles/base.nix` - `nixos-raspberrypi`'s `sd-image` module inherits it from
+  # Nixpkgs' own `sd-image-aarch64.nix` - and that profile puts `zfs` in `boot.supportedFilesystems`
+  # so that installer media can mount anything. that alone is enough to activate the ZFS module and
+  # make it warn that we're relying on the default value.
+  #
+  # this looks like a Nixpkgs bug. the warning is emitted under `mkIf cfgZfs.enabled` (zfs.nix:666,
+  # :702), where `enabled = inInitrd || inSystem`, but `forceImportRoot` is only ever *read* when
+  # importing a root pool: `boot.initrd = mkIf inInitrd` (:725, :744) and `createImportService`
+  # mapped over `rootPools` (:800). so it fires on any system that merely has the ZFS tools
+  # available with no pool to import - which is every NixOS installer ISO and every sd-image.
+  # (verified: a minimal system with an ext4 root and no ZFS whatsoever starts warning as soon as
+  # `profiles/base.nix` is imported, and is silent without it.) the fix upstream would be to gate
+  # the warning on `rootPools != [ ]`, or at least on `inInitrd`, rather than on `cfgZfs.enabled`.
+  #
+  # `false` is the new default from 26.11 anyway, and is what Fry was already set to, so moving it
+  # here changes nothing for the machine where it actually does something
+  boot.zfs.forceImportRoot = false;
+
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
   nix.settings.allow-import-from-derivation = true;
   nix.settings.trusted-public-keys = [
