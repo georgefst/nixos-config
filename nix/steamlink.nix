@@ -74,6 +74,93 @@
 #    note that every entry in SDL's `.note.dlopen` is `"priority":"suggested"`, but
 #    `autoPatchelfHook` ignores priority and hard-fails on any it can't resolve - hence both the
 #    explicit backend libraries in `buildInputs` and `autoPatchelfIgnoreMissingDeps`
+#
+#
+# ── possible future directions ───────────────────────────────────────────────────────────────────
+#
+# none of this is needed for it to work - it works now, over X11, with decent latency even on WiFi.
+# recorded because the reasoning was expensive to reconstruct, not because it needs doing
+#
+# 1. LOWER LATENCY, BY GOING STRAIGHT TO A DRM PLANE. the console/KMS output (`CVideoDisplayDRM`)
+#    hands the `YU12` dmabuf directly to a hardware overlay plane, so the display hardware does the
+#    YUV->RGB and the scaling: no conversion pass and no compositing at all. `modetest -p` on Sol
+#    shows all 56 planes (4 primary, 52 overlay) accept `YU12`, and KWin reports atomic modesetting,
+#    so this should just work. the catch is DRM master: only one process can hold it, and KWin does,
+#    so Steam Link can't run inside the Plasma session.
+#    it does *not* require logging out, though - concurrent sessions on separate VTs are the normal
+#    mechanism, and when Bigscreen's VT goes inactive logind pauses KWin's devices and it drops DRM
+#    master. what's missing is a clean one-click launch: starting a second session means going via
+#    the greeter, and while SDDM does implement `org.freedesktop.DisplayManager.Seat0.SwitchToGreeter`
+#    so a Bigscreen entry could call it, you'd still pick the session by hand. worth it only if the
+#    X11 path's conversion cost ever actually shows up as latency
+#
+# 2. WHAT NOT TO BOTHER WITH. a nested single-app wlroots compositor (`cage -- steamlink`) looks
+#    appealing - it would keep everything inside Bigscreen with no X11, and wlroots advertises
+#    external-only dmabuf formats where KWin doesn't, which is plausibly why upstream works on
+#    Raspberry Pi OS (labwc) - but it's strictly worse than what we have: KWin can direct-scanout a
+#    fullscreen XWayland surface, so the X11 path pays a conversion pass and probably no composite,
+#    whereas cage pays a conversion pass *and* a composite. it also needs the nested compositor to
+#    provide XWayland, since the bundled Qt 5.14 has no Wayland QPA plugin and the UI and the video
+#    would otherwise land in different compositors. and see the FFmpeg note for why the Pi's FFmpeg
+#    fork is not the answer either
+#
+# 3. RESOLUTION AND ASPECT RATIO. Remote Play captures a real output, so the stream takes its
+#    geometry from the *host*: Fry is 2880x1920 at scale 2.0, so it renders ~5.5Mpx to send 1.75Mpx,
+#    and Sol pillarboxes the 3:2 result into 16:9 (`Video rect: 1620x1080 at 150,0`). Steam's own
+#    "change desktop resolution to match streaming client" drives a mode switch, which it can do on
+#    Windows and under X11 but not through the Wayland screencast portal - so Wayland is *worse* here,
+#    and this is a Steam limitation rather than a protocol one.
+#    we can do the mode switch ourselves, at least on Gnome: Mutter ships `gdctl`, and Fry's panel has
+#    a native 1920x1080 mode (`gdctl show --modes`), so setting eDP-1 to 1920x1080 at scale 1.0 before
+#    streaming would match Sol exactly, drop the pillarboxing and stop Fry rendering pixels nobody
+#    sees. `vkms` plus the portal's monitor picker is the fancier alternative; `gnome-remote-desktop`
+#    is the better tool if the goal is ever general remote desktop rather than game streaming
+#
+# 4. STARTING THE HOST'S STEAM FROM SOL. the app has no pre-launch hook, so this would be a wrapper
+#    around `steamlink` that starts Steam on the host, waits for it to answer discovery, then execs
+#    the app - and it may as well do (3) at the same time, restoring on exit. Steam has to run inside
+#    an existing graphical session (it needs an output to capture), so:
+#
+#      ssh fry 'systemd-run --user --collect --unit=steam-remote-play steam'
+#
+#    `systemd-run --user` hands it to the user manager, whose environment already carries `DISPLAY`
+#    and `WAYLAND_DISPLAY`, and the transient unit outlives the SSH connection. Sol's key is already
+#    authorised everywhere (`modules/universal.nix`), but `programs.ssh.knownHosts` currently only
+#    exists in `modules/desktop.nix`, so Sol would need it too - the keys are already in
+#    `nix/devices.nix`, whose TODO anticipates exactly this.
+#    the open question is the portal: if `xdg-desktop-portal-gnome` re-prompts for screen capture
+#    every launch, none of this can be unattended. test by starting Steam, sharing, quitting and
+#    starting again - if it only asks once, it's persisting a restore token and this is viable
+#
+# 5. WIRE SOL UP. latency is already decent, but Sol is on WiFi (`wld0`) with its gigabit `end0`
+#    sitting `DOWN`, and Remote Play cares far more about jitter than about bandwidth - a stall shows
+#    up as a dropped frame immediately, and the host's encoder reacts by dropping the bitrate. this is
+#    the cheapest available improvement by a wide margin, and worth doing before any of the more
+#    interesting ideas above, if only so that they're measured against a stable baseline
+#
+# 6. WHETHER A PI IS THE RIGHT BOX AT ALL. everything painful here traces back to one fact: this
+#    machine has to decode H.264 in software, because the Pi 5 has no H.264 block and Valve's client
+#    speaks nothing else. that's survivable - reportedly the Pi 5 in software beats the Pi 4's decoder
+#    outright - but it spends four cores' worth of power on something fixed-function silicon does for
+#    a fraction of it, and it's what forces the X11 detour, since the `yuv420p` it produces is the one
+#    format the compositor won't take.
+#    a small x86 box would dissolve the whole problem rather than work around it: hardware H.264 *and*
+#    HEVC decode through VAAPI, and no need for this package at all, since `programs.steam` gives you
+#    the real client with Big Picture and Remote Play built in - the same thing Fry is already running
+#    as the host. no blob to pin, no soname to match, no update ritual, no format negotiation.
+#    the Pi's case here used to be price, and that's much weaker now: by the time a Pi 5 has PSU,
+#    case, cooler and storage it's within reach of an N100-class mini PC that draws similar idle power
+#    and is several times quicker. worth remembering before sinking more effort into (1)-(4) - most of
+#    that work exists only to compensate for the hardware
+#
+# 7. `Hardware: Unknown`, logged at startup, is read from the `Hardware` field of `/proc/cpuinfo`,
+#    which arm64 never emits - it's an arm32 field, and Sol reports `Model`/`Revision` instead. so no
+#    64-bit Pi can satisfy it. whether it feeds anything beyond the telemetry blob is unchecked, but
+#    it can't matter here: we know from Fry's log which path was taken, and there is no better one
+#    available to choose. to check anyway, grep the binary for `cpuinfo` near a `BCM2*` model table:
+#
+#     tr -c '[:print:]' '\n' < /run/current-system/sw/share/steamlink/bin/shell | grep -E '.{6,}' \
+#       | grep -niE 'cpuinfo|BCM2|Raspberry Pi [0-9]'
 # ─────────────────────────────────────────────────────────────────────────────────────────────────
 { lib
 , stdenv
@@ -149,14 +236,32 @@ stdenv.mkDerivation (finalAttrs: {
     dbus
     double-conversion
     # `shell` wants libavcodec.so.61/libavutil.so.59, i.e. FFmpeg 7, not the default 8.
-    # note this is vanilla Nixpkgs FFmpeg, where a Debian install would get Raspberry Pi's fork,
-    # so video is decoded in *software*. that costs us nothing on a Pi 5 for the H.264 that Remote
-    # Play defaults to, because the Pi 5 dropped the H.264 decode block entirely (`/dev/v4l/by-path`
-    # has only `1000800000.codec`, i.e. rpivid, and no `/dev/video1{0,1,2}` `bcm2835-codec` nodes).
-    # rpivid is HEVC-only and driven through the V4L2 request API, whose `hevc_v4l2request` decoder
-    # exists only in the Pi's fork - vanilla FFmpeg has no `--enable-v4l2-request` - so enabling HEVC
-    # (`steamlink --enable-hevc`) would not buy hardware decode either. packaging the fork is the
-    # only route to it, and worth it only if software 1080p60 turns out not to keep up
+    # this is vanilla Nixpkgs FFmpeg, where a Debian install would get Raspberry Pi's fork, so video
+    # is decoded in *software*. `nixos-raspberrypi` does package the fork we'd otherwise want, as
+    # `pkgs/ffmpeg_7-rpi.nix` (jc-kynesim/rpi-ffmpeg 7.1.2, `--enable-v4l2-request --enable-sand`,
+    # and conveniently the same sonames), and we could pass it here alone without taking their
+    # overlay over the whole graphical stack - but it would buy us precisely nothing:
+    #   - the Pi 5 dropped the H.264 decode block entirely (`/dev/v4l/by-path` has only
+    #     `1000800000.codec`, i.e. rpivid, and no `/dev/video1{0,1,2}` `bcm2835-codec` nodes)
+    #   - rpivid is HEVC-only, and the app has no HEVC decoder: its RTTI lists exactly
+    #     `CStreamDecoder{Video,H264,H264AVCodec,H264Standalone,Opus,RawAudio,RawVideo}`, and the
+    #     H.264 NAL handling in `streamdecoderh264.cpp` isn't secretly generic. the `--enable-hevc`,
+    #     `--enable-av1` and `k_EStreamVideoCodecHEVC` strings are from Steam's shared cross-platform
+    #     codebase - the same flag table also has `--d3d9`/`--d3d11` - so they prove nothing. Fry's
+    #     host log agrees: `Allowed Codecs: 4` (`k_EStreamVideoCodecH264`), then
+    #     `Created encoder VAAPI for codec 4` and `Client video decoder set to Raspberry Pi software
+    #     decoding on ...`
+    #   - and it wouldn't fix the *display* blocker either (see the wrapper below): the software
+    #     H.264 decoder emits `yuv420p` whichever FFmpeg it's linked against; `--enable-sand` only
+    #     changes what the fork's own hardware decoders produce
+    # so: software H.264 forever on this box. note that a Pi *4* would sidestep all of this - its
+    # `bcm2835-codec` is a stateful V4L2 M2M device, which stock Nixpkgs FFmpeg already drives
+    # (`--enable-v4l2-m2m`, and `h264_v4l2m2m` is present), and it decodes to NV12, which KWin *does*
+    # advertise - so it would work under Bigscreen with no extra packaging, no X11 and no copies.
+    # that's an elegance win rather than a speed one, though: the Pi 5's cores are quick enough that
+    # software H.264 is reportedly *faster* than the Pi 4's decode block, just far less efficient -
+    # four cores burning watts to do what fixed-function silicon does for milliwatts. see (6) in the
+    # notes at the top of this file
     ffmpeg_7
     fontconfig
     freetype
@@ -263,8 +368,43 @@ stdenv.mkDerivation (finalAttrs: {
     # `autoPatchelfHook` can't reach it via RUNPATH - hence `LD_LIBRARY_PATH`, as upstream does
     # (`QT_PLUGIN_PATH` likewise, since a Qt 5.14 with no `qt.conf` won't find plugins under `$out`).
     # `bin` holds helper scripts and the `vhusbdarmslpi{4,5}` USB-sharing daemons, invoked by name.
-    # the platform selection is upstream's: `xcb` under a display server (for us, XWayland - see the
-    # note on the X11 dependencies above), otherwise the framebuffer on a bare console
+    # the Qt platform selection is upstream's: `xcb` under a display server (for us, XWayland - see
+    # the note on the X11 dependencies above), otherwise the framebuffer on a bare console.
+    #
+    # `SDL_VIDEO_DRIVER=x11` is ours, and it is what makes video appear at all on a Pi 5. the app has
+    # three display outputs, and picks one according to the video driver SDL initialises - its RTTI
+    # names them `CVideoDisplayWayland`, `CVideoDisplayEGL` (the X11 one) and `CVideoDisplayDRM`
+    # (console/KMS). the Wayland one presents frames as dmabufs via `zwp_linux_dmabuf_v1` (the
+    # embedded copy of jc-kynesim's `hello_wayland`/`drmu`, from `testffmpeg_rpi`) and drops any frame
+    # whose format the compositor doesn't advertise. that can never work here:
+    #   - the Pi 5 has no H.264 decode block at all (only HEVC, via rpivid at
+    #     /dev/v4l/by-path/platform-1000800000.codec-video-index0), and the app has no HEVC decoder
+    #     anyway - only `CStreamDecoderH264{,AVCodec,Standalone}` - so it always software-decodes
+    #   - software decode yields `yuv420p`, i.e. DRM format `YU12` (3-plane planar)
+    #   - KWin on V3D advertises NV12, P010, XYUV and the RGB formats, but *not* YU12 (checked with
+    #     `wayland-info`, which is in Nixpkgs as `wayland-utils`)
+    # so every frame is dropped with `No support for format YU12 mod 0`: perfect audio, black screen.
+    # forcing SDL to X11 selects `CVideoDisplayEGL` instead, which takes `yuv420p` without complaint.
+    # the app itself notes X11 is slower ("performance is better under Wayland or the console"), but
+    # slower beats invisible. only set when there's actually an X display, so a bare console still
+    # gets SDL's `kmsdrm` and the direct-to-KMS output, and always overridable for comparing paths.
+    #
+    # NB. two things here are inference rather than measurement, and both are recorded as such
+    # deliberately, since a wrong "why" is worse than an admitted gap:
+    #  1. *why* KWin doesn't advertise YU12. "V3D can't import 3-plane planar" is one explanation and
+    #     may well have been observed rather than assumed, but that isn't clear, and the competing one
+    #     fits the evidence just as well: Mesa reports YU12 as *external-only* (samplable only as
+    #     `GL_TEXTURE_EXTERNAL_OES`) and KWin filters external-only formats out of its advertised set.
+    #     KWin's list containing R8/GR88/R16/RG16 - exactly the per-plane formats Mesa uses for YUV
+    #     lowering - is mildly suggestive of the latter
+    #  2. *how* `CVideoDisplayEGL` gets away with YU12: either it imports the dmabuf via EGL as an
+    #     external texture (near zero-copy), or it falls back to `SDL_UpdateYUVTexture` (a real CPU
+    #     copy, ~2.6MB/frame, ~160MB/s at 1080p60). the binary imports both, and the log is identical
+    #     either way, so this is open
+    # one command settles both at once - while a stream is running, on Sol:
+    #   p=$(pgrep -x shell); ls -l /proc/$p/fd | grep -Ec 'dma_heap|dmabuf'; top -b -n1 -p $p | tail -2
+    # dmabuf fds open => EGL import, so (2) is zero-copy and (1) is the external-only explanation
+    # (V3D *can* import it, KWin just won't say so). none => the CPU upload, and (1) stands as written
     makeWrapper $out/share/steamlink/bin/shell $out/bin/steamlink \
       --prefix PATH : $out/share/steamlink/bin \
       --prefix LD_LIBRARY_PATH : $out/share/steamlink/lib:$qtDir/lib \
@@ -272,6 +412,7 @@ stdenv.mkDerivation (finalAttrs: {
       --set QT_PLUGIN_PATH $qtDir/plugins \
       --run 'export QT_QPA_PLATFORM="''${QT_QPA_PLATFORM:-''${DISPLAY:+xcb}}"' \
       --run 'export QT_QPA_PLATFORM="''${QT_QPA_PLATFORM:-linuxfb}"' \
+      --run 'export SDL_VIDEO_DRIVER="''${SDL_VIDEO_DRIVER:-''${DISPLAY:+x11}}"' \
       --run 'export SDL_GAMECONTROLLERCONFIG_FILE="''${XDG_DATA_HOME:-$HOME/.local/share}/Valve Corporation/SteamLink/controller_map.txt"'
 
     runHook postInstall
