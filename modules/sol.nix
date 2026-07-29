@@ -82,6 +82,23 @@ in
     27036 # Steam Remote Play
     27037 # Steam Remote Play
   ];
+  # Steam Remote Play peer discovery: the above (Valve's documented port list) is not sufficient here,
+  # because it only describes the *host* side. Steam Link probes for hosts by sending a UDP broadcast
+  # to 255.255.255.255:27036 from an *ephemeral* source port, and the host replies unicast from its
+  # 27036 back to that port. Conntrack tracks the outgoing packet against the broadcast address, so
+  # the reply - which comes from the host's own unicast address - doesn't match, isn't `ESTABLISHED`,
+  # and gets dropped, leaving Steam Link showing no computers. Nothing above helps: the port that
+  # needs to be open is the random one Steam Link happened to bind, so we have to match on the
+  # reply's source port instead. Unicast discovery ("add computer by IP") is unaffected, and works.
+  #
+  # (`extraCommands`, not `extraInputRules`, since we're on the default iptables backend, not nftables.
+  # these run on reload too, after `nixos-fw` is flushed, hence also the matching `extraStopCommands`)
+  networking.firewall.extraCommands = ''
+    iptables -A nixos-fw -p udp --sport 27036 -j nixos-fw-accept
+  '';
+  networking.firewall.extraStopCommands = ''
+    iptables -D nixos-fw -p udp --sport 27036 -j nixos-fw-accept || true
+  '';
   users.groups.gpio = { members = [ "gthomas" ]; };
   users.groups.lirc = { members = [ "gthomas" ]; };
   users.groups.uinput = { members = [ "gthomas" ]; };
