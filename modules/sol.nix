@@ -71,9 +71,16 @@ in
     spotifyd-port
     5353 # mDNS
   ];
+  networking.firewall.allowedUDPPortRanges = [
+    # Steam Remote Play - peer discovery (27036) and streaming
+    # https://help.steampowered.com/en/faqs/view/3E3D-BE6B-787D-A5D2
+    { from = 27031; to = 27036; }
+  ];
   networking.firewall.allowedTCPPorts = [
     sol-script-http-port
     spotifyd-port
+    27036 # Steam Remote Play
+    27037 # Steam Remote Play
   ];
   users.groups.gpio = { members = [ "gthomas" ]; };
   users.groups.lirc = { members = [ "gthomas" ]; };
@@ -83,6 +90,11 @@ in
     SUBSYSTEM=="lirc", GROUP="lirc", MODE="0660"
     KERNEL=="uinput", GROUP="uinput", MODE:="0660", OPTIONS+="static_node=uinput"
   '';
+  # `uaccess` rules for game controllers, from Valve's `steam-devices`, needed by Steam Link.
+  # this supersedes the three-line `udev/rules.d/56-steamlink.rules` that the app's own launcher
+  # otherwise tries to `sudo cp` into `/lib/udev/rules.d` on first run (and which we drop -
+  # it hands whole subsystems to `plugdev`/`input`, where these are per-device and seat-aware)
+  hardware.steam-hardware.enable = true;
 
   # desktop (Plasma Bigscreen)
   services.desktopManager.plasma6.enable = true;
@@ -114,7 +126,12 @@ in
   environment.systemPackages = with pkgs; [
     kdePackages.plasma-bigscreen
     vlc
-  ] ++ map
+  ]
+  # Valve's Raspberry Pi build of Steam Link - see `nix/steamlink.nix`, in particular for why
+  # `programs.steam` (the full x86-only Steam client) isn't an option here.
+  # aarch64-only, so it stays out of the x86_64 VM build (`vms.sol`) - see `mkPiSdAndVm`
+  ++ lib.optional stdenv.hostPlatform.isAarch64 steamlink
+  ++ map
     (app: pkgs.makeDesktopItem {
       # `Exec` matches the format Firefox itself generates when pinning
       name = lib.removeSuffix ".desktop" (webAppDesktopFile app);

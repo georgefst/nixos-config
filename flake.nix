@@ -196,8 +196,13 @@
           };
           haskell = haskellPkgs.hixProject.flake { };
           extraPackages =
-            let pkgs-unstable = import inputs.nixpkgs-unstable { inherit system; config = nixpkgs-config; };
-            in {
+            let
+              pkgs-unstable = import inputs.nixpkgs-unstable { inherit system; config = nixpkgs-config; };
+              # plain Nixpkgs, for packaging things which aren't in it at all
+              # (`packages.${system}` would be circular here, since it's the one we overlay this set onto)
+              pkgs = import inputs.nixpkgs { inherit system; config = nixpkgs-config; };
+            in
+            {
               # frequent updates are desirable
               claude-code = pkgs-unstable.claude-code;
               nixd = pkgs-unstable.nixd;
@@ -218,6 +223,9 @@
               magic-mouse = haskell.packages."magic-mouse:exe:magic-mouse";
               qr = haskell.packages."qr:exe:qr";
               sol = haskell.packages."sol:exe:sol";
+            } // lib.optionalAttrs (system == "aarch64-linux") {
+              # prebuilt aarch64 blobs from Valve, not in Nixpkgs at all - see `nix/steamlink.nix`
+              steamlink = pkgs.callPackage ./nix/steamlink.nix { };
             } // lib.optionalAttrs (system == "x86_64-linux") {
               # cross-compiled for the Pis - see `crossPlatforms` above, and `mkPiSdAndVm`
               # (only the exes the Pi configs actually reference - `qr` and `magic-mouse` are desktop-only)
