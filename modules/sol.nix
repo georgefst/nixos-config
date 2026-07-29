@@ -10,11 +10,36 @@ let
   # basic user service helper
   mkService =
     { atStartup ? true
+    , needsNetwork ? false
     }: service:
     lib.mkMerge ([
       service
     ] ++ lib.optional atStartup {
       wantedBy = [ "default.target" ];
+    } ++ lib.optional needsNetwork {
+      # nothing orders the user manager against the network: we're started by SDDM autologin,
+      # which is pulled in by `graphical.target` and races wifi association and DHCP.
+      # so a service which needs the network at startup (e.g. LIFX discovery, which broadcasts
+      # to 255.255.255.255 and dies with ENETUNREACH if there's no route yet) has to wait itself.
+      #
+      # `clark.nix`'s equivalent just sets `wants`/`after = [ "network-online.target" ]`,
+      # but that target only exists in the system manager - in a user unit it's silently ignored.
+      # so instead we replicate `NetworkManager-wait-online.service` by hand. `-s` is the flag
+      # that unit passes, waiting for NM to log "startup complete" rather than for mere
+      # connectivity, and it returns immediately once that's happened, so this costs nothing
+      # outside of boot. a timeout exits non-zero, which we swallow: if the network really never
+      # arrives, we'd rather start and let the service report the actual problem.
+      #
+      # in the long run it would probably make more sense for the Haskell script to be a *system*
+      # service, as on clark, where `network-online.target` works properly and we aren't
+      # reimplementing chunks of systemd's ordering (nor tying the lights and IR to a desktop
+      # session). the blocker is the session bus: the `Mpris` action in `George/Core.hs` drives
+      # spotifyd over it via `qdbus`/`dbus-send`, and spotifyd has to be a user service because it
+      # needs the session's PulseAudio. a system service would therefore have to reach into the
+      # logged-in user's bus via `DBUS_SESSION_BUS_ADDRESS`, which is fragile and reintroduces the
+      # dependency on the graphical session regardless. doing it properly means system-wide audio,
+      # so that spotifyd and the script can both leave the session behind.
+      preStart = "${pkgs.networkmanager}/bin/nm-online -s -q -t 30 || true";
     });
 
   # Firefox web apps ("taskbar tabs"), managed declaratively
@@ -213,7 +238,7 @@ in
 
   # custom services
   systemd.user.services = {
-    sol = mkService { } {
+    sol = mkService { needsNetwork = true; } {
       script = ''
         sol \
           --gpio-chip 0 \
