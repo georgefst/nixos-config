@@ -180,6 +180,10 @@ in
   environment.systemPackages = with pkgs; [
     kdePackages.plasma-bigscreen
     vlc
+    # TODO really there's probably a lot more from desktop.nix that we should copy here
+    # this is sort of a desktop, in that it's not headless
+    # but of course it isn't Gnome, and Fry and Crow are meant to be almost identical apart from hardware
+    wl-clipboard
   ]
   # Valve's Raspberry Pi build of Steam Link - see `nix/steamlink.nix`, in particular for why
   # `programs.steam` (the full x86-only Steam client) isn't an option here.
