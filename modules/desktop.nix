@@ -416,6 +416,23 @@ in
     remotePlay.openFirewall = true;
     dedicatedServer.openFirewall = true;
     localNetworkGameTransfers.openFirewall = true;
+    # without this, Remote Play hosting is useless under a Wayland session: Steam falls back to
+    # grabbing the X11 root window, which under XWayland can't see any native Wayland client, so the
+    # client (e.g. Steam Link on Sol) gets `Capture method set to Desktop Black Frame`. Steam's own
+    # `~/.local/share/Steam/logs/streaming_log.txt` spells it out:
+    #   WARNING: Desktop capture unavailable, try running Steam with -pipewire
+    #   Steam needs to be restarted with -pipewire as a parameter in order to be able to capture
+    #   video. Be certain to select any monitors you wish to share and click 'Share' in the dialog
+    #   that appears when Steam starts.
+    # with the flag, capture goes through `org.freedesktop.portal.ScreenCast` and frames arrive over
+    # PipeWire. the cost is that dialog - a Wayland client can't capture the screen (nor synthesise
+    # input, which is `org.freedesktop.portal.RemoteDesktop`) without the user consenting via the
+    # portal, and `xdg-desktop-portal-gnome` asks every time it has no restore token.
+    # `extraArgs` is a supported argument of the `steam` package (`exec steam ${extraArgs} "$@"` in
+    # its `runScript`), and `steam.desktop`'s `Exec=steam %U` resolves to that wrapper, so this
+    # applies to launches from the Gnome menu too. the NixOS module `.override`s `package` itself to
+    # inject `extraLibraries`/`extraPkgs`, and override arguments merge, so the chaining is fine
+    package = pkgs.steam.override { extraArgs = "-pipewire"; };
   };
 
   # firefox
