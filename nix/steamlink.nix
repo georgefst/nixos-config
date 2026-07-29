@@ -148,7 +148,16 @@ stdenv.mkDerivation (finalAttrs: {
     alsa-lib
     dbus
     double-conversion
-    ffmpeg_7 # `shell` wants libavcodec.so.61/libavutil.so.59, i.e. FFmpeg 7, not the default 8
+    # `shell` wants libavcodec.so.61/libavutil.so.59, i.e. FFmpeg 7, not the default 8.
+    # note this is vanilla Nixpkgs FFmpeg, where a Debian install would get Raspberry Pi's fork,
+    # so video is decoded in *software*. that costs us nothing on a Pi 5 for the H.264 that Remote
+    # Play defaults to, because the Pi 5 dropped the H.264 decode block entirely (`/dev/v4l/by-path`
+    # has only `1000800000.codec`, i.e. rpivid, and no `/dev/video1{0,1,2}` `bcm2835-codec` nodes).
+    # rpivid is HEVC-only and driven through the V4L2 request API, whose `hevc_v4l2request` decoder
+    # exists only in the Pi's fork - vanilla FFmpeg has no `--enable-v4l2-request` - so enabling HEVC
+    # (`steamlink --enable-hevc`) would not buy hardware decode either. packaging the fork is the
+    # only route to it, and worth it only if software 1080p60 turns out not to keep up
+    ffmpeg_7
     fontconfig
     freetype
     glib

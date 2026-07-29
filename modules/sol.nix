@@ -112,6 +112,18 @@ in
   # otherwise tries to `sudo cp` into `/lib/udev/rules.d` on first run (and which we drop -
   # it hands whole subsystems to `plugdev`/`input`, where these are per-device and seat-aware)
   hardware.steam-hardware.enable = true;
+  # Steam Link needs to open the DMA heaps (`/dev/dma_heap/*`), which `nixos-raspberrypi`'s
+  # `60-dma-heap.rules` leaves as `video`-group-only, with no `uaccess` tag and hence no ACL.
+  # its video path is Valve's vendored copy of jc-kynesim's Raspberry Pi zero-copy code
+  # (`testffmpeg_rpi`/`hello_wayland`/`drmu`), which installs a custom libavcodec `get_buffer2` -
+  # note the `(s->codec->capabilities & AV_CODEC_CAP_DR1) != 0` assert in the binary - so frames are
+  # decoded straight into dma-buf memory for import into Wayland/EGL. that applies to *software*
+  # decoding too, so this isn't only about hardware decode, and without it the app segfaults on
+  # `Assert( pVideoAccel )` in `streamplayer.cpp` the moment you start streaming, right after
+  # logging `Effective refresh rate`, with no error of its own.
+  # NB. this is broader than the `uaccess` approach preferred above, since `video` also gates every
+  # DRM and V4L2 node, but unlike an ACL it doesn't depend on holding the active seat's session
+  users.groups.video = { members = [ "gthomas" ]; };
 
   # desktop (Plasma Bigscreen)
   services.desktopManager.plasma6.enable = true;
