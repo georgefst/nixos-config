@@ -1,5 +1,7 @@
 packages:
     haskell/sol
+    -- vendored fork - see `haskell/servant-client-js` (git submodule)
+    haskell/servant-client-js
 
 -- TODO hmm...
 -- maybe use `buildable: False` on each component like in Sol instead
@@ -53,11 +55,8 @@ source-repository-package
     tag: d3448a2a2b6aee4155273a3d02b828b026796b8a
     --sha256: 1kcnx8552ks9khd6y5w4b56560h0fryx693lc2pbxwc8hrmijp6b
 
-source-repository-package
-    type: git
-    location: https://github.com/georgefst/servant-client-js
-    tag: d0d914cdb8e8aa8124a6aebb6a901f4ef21dffd6
-    --sha256: 1j13xk340brbpd4cai210xx15dy4bs5llw5ww1bp3plzcsplz0p3
+-- `servant-client-js` is now a local submodule (see `packages:` above)
+-- (previously: source-repository-package from github.com/georgefst/servant-client-js @ d0d914c)
 
 -- the commit after this doesn't work with our GHC
 -- https://github.com/haskell-wasm/jsaddle-wasm/commit/f81acd7bc0d05fd79205bcb0d9cac17a163dc86a

@@ -59,6 +59,9 @@ feed opts =
                         -- TODO disable cache headers?
                         -- or is there some way we can force a full refresh on mobile Firefox?
                         -- could we force a cache clear only when the content (or NixOS hash) doesn't match?
+                        -- TODO maybe `Raw` shouldn't just be a fallback
+                        -- move the web app to a `/web` subroute or something to avoid collisions?
+                        -- not a huge priority since static files are under the "assets" path anyway?
                         :<|> Tagged (staticApp $ defaultWebAppSettings opts.webRoot)
                 }
             <&> \case
