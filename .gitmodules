@@ -4,3 +4,6 @@
 [submodule "haskell/servant-client-js"]
 	path = haskell/servant-client-js
 	url = https://github.com/georgefst/servant-client-js
+[submodule "haskell/lifx-lan"]
+	path = haskell/lifx-lan
+	url = https://github.com/georgefst/lifx-lan

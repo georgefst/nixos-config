@@ -5,44 +5,47 @@
 module Util.Lifx where
 
 import Lifx.Lan
-import Lifx.Lan.Internal
 
-import Control.Concurrent (threadDelay)
-import Control.Monad.Catch (MonadCatch (..), MonadMask, MonadThrow (..))
-import Control.Monad.Except (ExceptT, runExceptT)
-import Control.Monad.Log (LoggingT, MonadLog)
-import Control.Monad.Trans (MonadIO (liftIO), lift)
-import Network.Socket (PortNumber)
+import Control.Monad (filterM)
+import Control.Monad.Catch (MonadCatch, try)
+import Control.Monad.Log (LoggingT, MonadLog, logMessage)
+import Control.Monad.Trans (MonadIO (liftIO))
+import Data.Bool (bool)
+import Data.Text (Text)
+import Data.Time (NominalDiffTime)
+import Util.Util (threadDelay')
 
--- I really don't know where this belongs - standalone package?
-instance (MonadLifx m) => MonadLifx (LoggingT t m) where
-    type MonadLifxError (LoggingT t m) = MonadLifxError m
-    liftProductLookupError = liftProductLookupError @m
-    sendMessage = let (.:) = (.) . (.) in lift .: sendMessage
-    broadcastMessage = lift . broadcastMessage
-    discoverDevices = lift . discoverDevices
-    lifxThrow = lift . lifxThrow
+-- I really don't know where these belong - standalone package?
+-- (both are one-liners because each class provides defaults for monad transformers)
+instance (MonadLifx m) => MonadLifx (LoggingT t m)
 instance (MonadLog s m) => MonadLog s (LifxT m)
-
-instance (MonadThrow m) => MonadThrow (LifxT m) where
-    throwM = lift . throwM
-instance (MonadCatch m) => MonadCatch (LifxT m) where
-    catch (LifxT m) f = LifxT $ catch m $ (.unwrap) . f
 
 statePowerToBool :: StatePower -> Bool
 statePowerToBool = (/= StatePower 0)
 
--- lifx-lan should probably use a time library type, rather than Int
-lifxTime :: Double -> Int
-lifxTime = round . (* 1_000_000)
+{- | Repeatedly run the action until it succeeds, reporting each failure and pausing in between.
 
--- | Run the action. If it fails then just print the error and go again.
-runLifxUntilSuccess :: (MonadIO m, MonadMask m) => (Either e LifxError -> m ()) -> Int -> Maybe PortNumber -> ExceptT e (LifxT m) a -> m a
-runLifxUntilSuccess p t n x =
-    either (p' . Right) (either (p' . Left) pure)
-        =<< runLifxT t n (runExceptT x)
+A `Left` is a failure which the action itself diagnosed, a `LifxError` one thrown by `lifx-lan`.
+
+This is for startup steps which can't sensibly proceed without a result - e.g. finding the lights
+we're going to control, when we may well be starting before the network is up. Transient failures
+during normal operation are handled by `lifx-lan`'s own retries, and then by `catchActionErrors`.
+-}
+retryUntilSuccess ::
+    (MonadIO m, MonadCatch m) =>
+    -- | report a failure
+    (Either e LifxError -> m ()) ->
+    -- | wait this long before trying again
+    NominalDiffTime ->
+    m (Either e a) ->
+    m a
+retryUntilSuccess report delay x =
+    try x >>= \case
+        Left e -> again $ Right e
+        Right (Left e) -> again $ Left e
+        Right (Right y) -> pure y
   where
-    p' e = p e >> liftIO (threadDelay t) >> runLifxUntilSuccess p t n x
+    again e = report e >> liftIO (threadDelay' delay) >> retryUntilSuccess report delay x
 
 discoverLifx :: (MonadLifx m) => m [(Device, LightState, StateGroup, Product)]
 discoverLifx =

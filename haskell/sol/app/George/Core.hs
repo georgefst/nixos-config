@@ -106,12 +106,14 @@ deriving instance Show Error
 -- is there no good way to do this? maybe by catching all then re-throwing asyncs?
 -- it does seem to be difficult - https://www.tweag.io/blog/2020-04-16-exceptions-in-haskell
 -- TODO on the other hand, should the other exception types used here be made subtypes of `IOException`?
+-- note that `LifxError` here is what keeps a flaky bulb from killing the whole event loop:
+-- `lifx-lan` will already have retried, so by this point we just want to log it and carry on
 catchActionErrors :: forall m a. (MonadCatch m, MonadError Error m) => m a -> m a
 catchActionErrors = r $ throwClientError @IO
   where
     -- TODO this is just a cute/ugly trick to make up for the fact that Spotify library throws an unexported error type
     r :: forall x y. (Exception x) => (x -> y) -> m a -> m a
-    r _ = catchMany @[IOException, HttpException, x] $ throwError . Error "Error when running action"
+    r _ = catchMany @[IOException, HttpException, Lifx.LifxError, x] $ throwError . Error "Error when running action"
 
 type CompoundAction a = Eff '[Action] a
 data Action a where
@@ -200,6 +202,8 @@ runAction opts@ActionOpts{setLED {- TODO GHC doesn't yet support impredicative f
             (logMessage "No valid LIFX devices found during re-scan - retaining old list")
             (\ds -> #bulbs .= Stream.cycle ds)
             . nonEmpty
+            -- TODO these lines are duplicated with startup code
+            -- but then it's probably all changing soon anyway
             =<< filterM
                 ( \(_, Lifx.LightState{label}, _, _) ->
                     let good = label `notElem` opts.lifxIgnore

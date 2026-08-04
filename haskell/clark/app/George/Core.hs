@@ -85,8 +85,10 @@ data Error where
 -- is there no good way to do this? maybe by catching all then re-throwing asyncs?
 -- it does seem to be difficult - https://www.tweag.io/blog/2020-04-16-exceptions-in-haskell
 -- TODO on the other hand, should the other exception types used here be made subtypes of `IOException`?
+-- note that `LifxError` here is what keeps a flaky bulb from killing the whole event loop:
+-- `lifx-lan` will already have retried, so by this point we just want to log it and carry on
 catchActionErrors :: forall m a. (MonadCatch m, MonadError Error m) => m a -> m a
-catchActionErrors = catchMany @'[IOException] $ throwError . Error "Error when running action"
+catchActionErrors = catchMany @[IOException, Lifx.LifxError] $ throwError . Error "Error when running action"
 
 type CompoundAction a = Eff '[Action] a
 data Action a where

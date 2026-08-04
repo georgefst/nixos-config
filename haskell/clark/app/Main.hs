@@ -8,7 +8,7 @@ import Util.GPIO qualified as GPIO
 import Util.Lifx
 
 import Control.Monad
-import Control.Monad.Except (throwError)
+import Control.Monad.Error.Class (throwError)
 import Control.Monad.Log (MonadLog, logMessage, runLoggingT)
 import Control.Monad.State
 import Data.Bool
@@ -43,7 +43,8 @@ data Opts = Opts
     , buttonPin :: Int
     , ledErrorPin :: Int
     , ledOtherPin :: Int
-    , lifxTimeout :: Double
+    , lifxTimeout :: NominalDiffTime
+    , lifxRetryDelay :: NominalDiffTime
     , lifxPort :: Word16
     , httpPort :: Warp.Port
     , emailPipe :: FilePath
@@ -96,21 +97,35 @@ main = do
 
     flip evalStateT AppState{activeLEDs = mempty}
         . flip runLoggingT (liftIO . T.putStrLn)
-        $ runLifxUntilSuccess
-            (either (handleError . Error "Lights not found" . toList @NonEmpty) (handleError . Error "LIFX error"))
-            (lifxTime opts.lifxTimeout)
-            (Just $ fromIntegral opts.lifxPort)
+        $ Lifx.runLifxT
+            Lifx.defaultLifxConfig
+                { Lifx.timeout = opts.lifxTimeout
+                , Lifx.port = Just $ fromIntegral opts.lifxPort
+                }
             do
+                -- only the initial discovery is retried: we can't do anything at all until we've found
+                -- every light we're configured to control, and we may be starting before they're up.
+                -- transient failures later on are handled by `lifx-lan`'s retries and `catchActionErrors`
                 -- TODO this would be slightly cleaner if GHC were better about retaining polymorphism in do-bindings
-                lightMap <- do
-                    ds <- discoverLifx
-                    let (notFound, ds') =
-                            partitionEithers $
-                                enumerateRoomLights <&> \(Exists (RoomLightPair (roomName -> r) (lightName -> l))) ->
-                                    let rl = (r, l)
-                                     in maybeToEither rl $
-                                            ds & firstJust \(d, s, g, _) -> guard (g.label == r && s.label == l) $> (rl, d)
-                    maybe (pure $ Map.fromList ds') (throwError @(NonEmpty (Text, Text))) $ nonEmpty notFound
+                lightMap <-
+                    retryUntilSuccess
+                        ( handleError . \case
+                            Left ls -> Error "Lights not found" $ toList @NonEmpty ls
+                            Right e -> Error "LIFX error during startup" e
+                        )
+                        opts.lifxRetryDelay
+                        do
+                            ds <- discoverLifx
+                            let (notFound, ds') =
+                                    partitionEithers $
+                                        enumerateRoomLights <&> \(Exists (RoomLightPair (roomName -> r) (lightName -> l))) ->
+                                            let rl = (r, l)
+                                             in maybeToEither rl $
+                                                    ds & firstJust \(d, s, g, _) -> guard (g.label == r && s.label == l) $> (rl, d)
+                            pure $ maybe (Right $ Map.fromList ds') Left $ nonEmpty notFound
+                            -- hmm, we can make this line almost the same as before
+                            -- but something has changed in its effectfulness
+                            -- pure $ maybe (pure $ Map.fromList ds') (throwError @(NonEmpty (Text, Text))) $ nonEmpty notFound
                 let getLight :: forall c. RoomLightPair c -> Lifx.Device
                     getLight (RoomLightPair r l) =
                         fromMaybe (error "light map not exhaustive") $

@@ -11,14 +11,11 @@ if !os(wasi)
         haskell/magic-mouse
         haskell/qr
         haskell/utils
-
-    -- https://github.com/georgefst/lifx-lan/pull/27
-    source-repository-package
-        type: git
-        location: https://github.com/georgefst/lifx-lan
-        tag: d1672919e4d07edd4fbf0b90ae051d360532c21d
-        --sha256: aFnxYTY83yzTktxtyHFBw1L4QgInXeiRNzJQnNKX9YM=
-    allow-newer: lifx-lan:base
+        -- temporary, while we overhaul error handling - see `haskell/lifx-lan` (git submodule)
+        -- (previously: source-repository-package from github.com/georgefst/lifx-lan @ d167291,
+        -- i.e. https://github.com/georgefst/lifx-lan/pull/27)
+        haskell/lifx-lan
+        -- `allow-newer: lifx-lan:base` no longer needed - it now claims support for GHC 9.14
 
     -- not on Hackage
     source-repository-package

@@ -8,6 +8,7 @@ import Util
 import Util.GPIO.Persistent qualified as GPIO
 import Util.Lifx
 
+import Control.Exception (displayException)
 import Control.Monad
 import Control.Monad.Freer
 import Control.Monad.Log (MonadLog, logMessage, runLoggingT)
@@ -20,6 +21,7 @@ import Data.Maybe
 import Data.Stream.Infinite qualified as Stream
 import Data.Text qualified as T
 import Data.Text.IO qualified as T
+import Data.Time (NominalDiffTime)
 import Data.Word
 import Evdev.Codes (Key (..))
 import Evdev.Uinput qualified as Uinput
@@ -31,7 +33,6 @@ import Optics
 import Options.Applicative qualified
 import Options.Generic
 import Streamly.Data.Stream.Prelude qualified as S
-import System.Exit
 import System.IO
 import System.OsString.Posix (PosixString, encodeUtf)
 import Text.Pretty.Simple
@@ -45,7 +46,8 @@ data Opts = Opts
     , ledSendingModePin :: Int
     , ledNormalModePin :: Int
     , ledTvModePin :: Int
-    , lifxTimeout :: Double
+    , lifxTimeout :: NominalDiffTime
+    , lifxRetryDelay :: NominalDiffTime
     , lifxIgnore :: [Text]
     , lifxPort :: Word16
     , httpPort :: Warp.Port
@@ -105,22 +107,32 @@ main = do
 
         isKeyboardName s = any (`T.isInfixOf` s) ("Keyboard" : opts.keyboardNames)
 
+        lifxConfig =
+            Lifx.defaultLifxConfig
+                { Lifx.timeout = opts.lifxTimeout
+                , Lifx.port = Just $ fromIntegral opts.lifxPort
+                }
+
     initialState <- do
         httpConnectionManager <- newManager defaultManagerSettings
         keySendSocket <- socket AF_INET Datagram defaultProtocol >>= \s -> bind s (SockAddrInet defaultPort 0) >> pure s
-        -- TODO shift this in to the LIFX block below - currently awkward because this is needed to run the state monad
-        -- otherwise, what port to use? is it a bug that library doesn't release this soon enough? formerly had silly `* 2`
-        -- TODO use existing logging and failure mechanisms when no lights found, and DRY with `LightReScan`
+        -- TODO shift this in to the LIFX block below - currently awkward because this is needed to run the state monad.
+        -- it's at least no longer a problem to reuse the port, now that `runLifxT` closes its socket on the way out
         bulbs <-
-            maybe (T.putStrLn "No valid LIFX devices found" >> exitFailure) (pure . Stream.cycle)
-                . nonEmpty
-                =<< filterM
-                    ( \(_, Lifx.LightState{label}, _, _) ->
-                        let good = label `notElem` opts.lifxIgnore
-                         in T.putStrLn ("LIFX device " <> bool "ignored" "found" good <> ": " <> label) >> pure good
-                    )
-                =<< either (\e -> T.putStrLn ("LIFX startup error: " <> showT e) >> exitFailure) pure
-                =<< Lifx.runLifxT (lifxTime opts.lifxTimeout) (Just $ fromIntegral opts.lifxPort) discoverLifx
+            flip runLoggingT T.putStrLn
+                . retryUntilSuccess
+                    (logMessage . ("LIFX startup error: " <>) . either id (T.pack . displayException))
+                    opts.lifxRetryDelay
+                . Lifx.runLifxT lifxConfig
+                $ maybe (Left "no valid LIFX devices found") (Right . Stream.cycle)
+                    . nonEmpty
+                    <$> ( filterM
+                            ( \(_, Lifx.LightState{label}, _, _) ->
+                                let good = label `notElem` opts.lifxIgnore
+                                 in logMessage ("LIFX device " <> bool "ignored" "found" good <> ": " <> label) >> pure good
+                            )
+                            =<< discoverLifx
+                        )
         uinput <-
             liftIO $
                 Uinput.newDevice
@@ -152,10 +164,9 @@ main = do
 
     flip evalStateT initialState
         . flip runLoggingT (liftIO . T.putStrLn)
-        . (>>= either (handleError . Error "LIFX error") pure)
-        . Lifx.runLifxT
-            (lifxTime opts.lifxTimeout)
-            (Just $ fromIntegral opts.lifxPort)
+        -- no error handling here: `catchActionErrors` deals with LIFX failures per-action, so
+        -- anything reaching this point is unrecoverable and we may as well let systemd restart us
+        . Lifx.runLifxT lifxConfig
         . runEventStream handleError logMessage (runAction (opts & \Opts{..} -> ActionOpts{..}))
         . S.morphInner liftIO
         . S.append
