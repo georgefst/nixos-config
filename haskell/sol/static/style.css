@@ -125,6 +125,16 @@ button {
   }
 }
 
+/* re-scan for bulbs - sits below the bulb list, since that's what it affects */
+#rescan {
+  display: flex;
+  justify-content: center;
+  > button {
+    border-radius: 50%;
+    background-color: var(--blue-1);
+  }
+}
+
 #bulbs {
   display: grid;
   grid-template-columns: auto 1fr;

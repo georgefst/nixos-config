@@ -21,17 +21,16 @@ import Control.Monad.Freer
 import Control.Monad.Log (MonadLog, logMessage)
 import Control.Monad.State.Strict
 import Data.Aeson.Optics
-import Data.Bool
 import Data.ByteString (ByteString)
 import Data.ByteString qualified as B
 import Data.ByteString.Char8 qualified as B8
 import Data.Char (isSpace, toLower)
 import Data.Foldable
+import Data.Functor (($>))
 import Data.List
-import Data.List.NonEmpty (nonEmpty)
 import Data.Map (Map)
+import Data.Map qualified as Map
 import Data.Maybe
-import Data.Stream.Infinite qualified as Stream
 import Data.Text qualified as T
 import Data.Text.Encoding (encodeUtf8)
 import Data.Time
@@ -58,9 +57,38 @@ import System.Process.Extra
 import Util.GPIO.Persistent qualified as GPIO
 import Util.Util
 
+-- | Everything we know about one bulb, as of the last scan.
+data BulbEntry = BulbEntry
+    { device :: Lifx.Device
+    , light :: Lifx.LightState
+    , group :: Lifx.StateGroup
+    , productInfo :: Lifx.Product
+    }
+    deriving (Show, Generic)
+
+mkBulbEntry :: (Lifx.Device, Lifx.LightState, Lifx.StateGroup, Lifx.Product) -> BulbEntry
+mkBulbEntry (d, l, g, p) = BulbEntry{device = d, light = l, group = g, productInfo = p}
+
+-- | How we refer to a bulb in logs and errors - the same "group/name" the web app shows.
+describeBulb :: BulbEntry -> Text
+describeBulb b = b.group.label <> "/" <> b.light.label
+
+{- | The bulbs we currently believe in, in a stable, human-meaningful order.
+
+This is the order `NextLight` cycles through, so it wants to match how the lights are laid out in
+the world, rather than e.g. IP address order.
+-}
+sortedBulbs :: Map Lifx.Device BulbEntry -> [BulbEntry]
+sortedBulbs = sortOn (\b -> (b.group.label, b.light.label)) . Map.elems
+
 data AppState = AppState
     { activeLEDs :: Map Int GPIO.Handle
-    , bulbs :: Stream.Stream (Lifx.Device, Lifx.LightState, Lifx.StateGroup, Lifx.Product)
+    , bulbs :: Map Lifx.Device BulbEntry
+    -- ^ Bulbs are removed from here as soon as they fail to answer us (see `sendToLight`), so this
+    -- shrinks over time and only ever grows again on a re-scan.
+    , currentLight :: Maybe Lifx.Device
+    -- ^ Which bulb the physical remote is pointed at. `Nothing` means "not yet chosen, or the
+    -- chosen one has gone away" - in which case we fall back to the first of `sortedBulbs`.
     , httpConnectionManager :: Manager
     , keySendSocket :: Socket
     , lightColourCache :: Maybe HSBK
@@ -70,7 +98,9 @@ data AppState = AppState
     deriving (Generic)
 
 data Event where
-    ActionEvent :: (Show a) => (a -> IO ()) -> (CompoundAction a) -> Event
+    -- | The callback is always invoked exactly once, even when the action fails - otherwise
+    -- anything waiting on it (see `George.Feed.WebServer`) would wait forever.
+    ActionEvent :: (Show a) => (Either Error a -> IO ()) -> (CompoundAction a) -> Event
     LogEvent :: Text -> Event
     ErrorEvent :: Error -> Event
 runEventStream ::
@@ -85,13 +115,17 @@ runEventStream handleError' log' run' =
         ( SF.drainMapM \case
             ErrorEvent e -> handleError' e
             LogEvent t -> log' t
-            ActionEvent f action -> (either handleError' pure <=< runExceptT) $ runM do
+            ActionEvent f action -> do
                 r <-
-                    action & translate \a -> do
-                        lift . log' $ showT a
-                        run' a
-                sendM . lift . log' $ showT r
-                sendM . liftIO $ f r
+                    runExceptT . runM $
+                        action & translate \a -> do
+                            lift . log' $ showT a
+                            run' a
+                -- note that `f` is called on both branches: it's how a caller learns the action is
+                -- over, so skipping it on failure leaves them hanging
+                case r of
+                    Left e -> liftIO (f $ Left e) >> handleError' e
+                    Right x -> log' (showT x) >> liftIO (f $ Right x)
         )
         . S.morphInner liftIO
         . S.concatMap S.fromList
@@ -101,6 +135,12 @@ data Error where
     Error :: (Show a) => {title :: Text, body :: a} -> Error
     SimpleError :: Text -> Error
 deriving instance Show Error
+
+-- | A one-line rendering, for showing to a human (e.g. in an HTTP response body).
+renderError :: Error -> Text
+renderError = \case
+    Error{title, body} -> title <> ": " <> showT body
+    SimpleError t -> t
 
 -- TODO what I really want is just to catch all non-async exceptions
 -- is there no good way to do this? maybe by catching all then re-throwing asyncs?
@@ -195,37 +235,36 @@ runAction opts@ActionOpts{setLED {- TODO GHC doesn't yet support impredicative f
             void
                 . sendTo sock (B.pack [fromIntegral $ fromEnum k, fromIntegral $ fromEnum e])
                 . (SockAddrInet opts.keySendPort . (.unIP))
-    GetCurrentLight -> (\(d, _, _, _) -> d) . Stream.head <$> use #bulbs
-    GetCurrentLightGroup -> (\(_, _, g, _) -> g.group) . Stream.head <$> use #bulbs
-    LightReScan ->
-        maybe
-            (logMessage "No valid LIFX devices found during re-scan - retaining old list")
-            (\ds -> #bulbs .= Stream.cycle ds)
-            . nonEmpty
-            -- TODO these lines are duplicated with startup code
-            -- but then it's probably all changing soon anyway
-            =<< filterM
-                ( \(_, Lifx.LightState{label}, _, _) ->
-                    let good = label `notElem` opts.lifxIgnore
-                     in logMessage ("LIFX device " <> bool "ignored" "found" good <> ": " <> label) >> pure good
-                )
-            =<< discoverLifx
-    NextLight -> #bulbs %= Stream.tail
-    GetLightPower l -> statePowerToBool <$> Lifx.sendMessage l Lifx.GetPower
-    SetLightPower l p -> Lifx.sendMessage l $ Lifx.SetPower p
+    GetCurrentLight -> (.device) <$> currentBulb
+    GetCurrentLightGroup -> (\b -> b.group.group) <$> currentBulb
+    LightReScan -> do
+        ds <- map mkBulbEntry <$> discoverLifxExcept opts.lifxIgnore
+        case ds of
+            [] -> logMessage "No valid LIFX devices found during re-scan - retaining old list"
+            _ -> do
+                let m = Map.fromList $ map (\b -> (b.device, b)) ds
+                #bulbs .= m
+                -- keep pointing at the same bulb if it's still there, else start again from scratch
+                #currentLight %= (>>= \d -> guard (Map.member d m) $> d)
+    NextLight -> do
+        bs <- map (.device) . sortedBulbs <$> use #bulbs
+        cur <- use #currentLight
+        case bs of
+            [] -> throwError noBulbs
+            b0 : _ -> #currentLight ?= maybe b0 (\i -> bs !! ((i + 1) `mod` length bs)) (flip elemIndex bs =<< cur)
+    GetLightPower l -> statePowerToBool <$> sendToLight l Lifx.GetPower
+    SetLightPower l p -> sendToLight l $ Lifx.SetPower p
     UnsetLightColourCache -> #lightColourCache .= Nothing
     GetLightColour useCache l ->
         if useCache
             then maybe (throwError $ SimpleError "Light colour cache is empty") pure =<< use #lightColourCache
-            else (.hsbk) <$> Lifx.sendMessage l Lifx.GetColor
+            else (.hsbk) <$> sendToLight l Lifx.GetColor
     SetLightColour setCache l d c -> do
         when setCache $ #lightColourCache ?= c
-        Lifx.sendMessage l $ Lifx.SetColor c d
-    GetLightState l -> Lifx.sendMessage l Lifx.GetColor
-    GetLightName l -> (.label) <$> Lifx.sendMessage l Lifx.GetColor
-    GetLightsInGroup g -> do
-        l Stream.:> ls <- use #bulbs
-        pure $ (\(d, _, _, _) -> d) <$> filter (\(_, _, sg, _) -> sg.group == g) (l : Stream.takeWhile (/= l) ls)
+        sendToLight l $ Lifx.SetColor c d
+    GetLightState l -> sendToLight l Lifx.GetColor
+    GetLightName l -> (.label) <$> sendToLight l Lifx.GetColor
+    GetLightsInGroup g -> map (.device) . filter (\b -> b.group.group == g) . sortedBulbs <$> use #bulbs
     Mpris cmd -> do
         service <-
             maybe
@@ -265,18 +304,12 @@ runAction opts@ActionOpts{setLED {- TODO GHC doesn't yet support impredicative f
         maybe (throwError $ Error "Key \"output\" not found in HiFi plug response" response) pure $ responseBody response ^? key "output" % _Bool
     SetHifiPlugPower b -> void $ messageHifiPlug "Switch.Set" $ "&on=" <> B8.pack (map toLower $ show b)
     ToggleHifiPlug -> void $ messageHifiPlug "Switch.Toggle" ""
-    -- TODO ha, this is a total hack, but sort of impressive
-    -- same for next pattern
-    -- I guess storing lights as a stream has long outlived its purpose...
-    GetAllLights -> do
-        l Stream.:> ls <- use #bulbs
-        pure $ toBulbInfo <$> (l : Stream.takeWhile (/= l) ls)
-    GetLightByGroupAndName g b -> do
-        l Stream.:> ls <- use #bulbs
-        let allBulbs = l : Stream.takeWhile (/= l) ls
-        case find (\(_, ls', g', _) -> ls'.label == b && g'.label == g) allBulbs of
-            Just (d, _, _, _) -> pure d
-            Nothing -> throwError $ Error "Light not found" (g, b)
+    GetAllLights -> map toBulbInfo . sortedBulbs <$> use #bulbs
+    GetLightByGroupAndName g b ->
+        maybe (throwError $ Error "Light not found" (g, b)) (pure . (.device))
+            . find (\e -> e.light.label == b && e.group.label == g)
+            . sortedBulbs
+            =<< use #bulbs
     SpotifyGetDevices -> do
         -- TODO does filtering for `isActive` make much sense?
         ds <- liftIO Spotify.getAvailableDevices
@@ -314,6 +347,36 @@ runAction opts@ActionOpts{setLED {- TODO GHC doesn't yet support impredicative f
                 . Spotify.startPlayback (Just device) -- ID for this device
                 $ Spotify.StartPlaybackOpts context item Nothing
   where
+    noBulbs = SimpleError "No LIFX devices are known - try a re-scan"
+
+    {- Send a message to a bulb, and drop the bulb if it doesn't answer.
+
+    `lifx-lan` has already retried by the time an error gets here, so a failure means the bulb has
+    been unresponsive for several times the round trip time, and we're better off forgetting about
+    it than making every future request wait for it too. It comes back on the next re-scan.
+
+    Note that this can't fire for the `Set*` messages, which are fire-and-forget and so never fail
+    - only a subsequent `Get` will notice that a bulb has gone. We still route them through here so
+    that this keeps working if that ever changes. -}
+    sendToLight :: Lifx.Device -> Lifx.Message r -> m r
+    sendToLight d msg =
+        Lifx.sendMessage d msg `catch` \(e :: Lifx.LifxError) -> do
+            name <- maybe (showT d) describeBulb . Map.lookup d <$> use #bulbs
+            #bulbs %= Map.delete d
+            #currentLight %= (>>= \c -> guard (c /= d) $> c)
+            throwError . Error "LIFX device unreachable, so dropping it until the next re-scan" $
+                (name, displayException e)
+
+    -- the bulb the physical remote is currently pointed at, defaulting to the first one
+    currentBulb :: m BulbEntry
+    currentBulb = do
+        bs <- use #bulbs
+        use #currentLight >>= \case
+            Just d | Just b <- Map.lookup d bs -> pure b
+            _ -> case sortedBulbs bs of
+                [] -> throwError noBulbs
+                b : _ -> #currentLight ?= b.device >> pure b
+
     -- TODO factor out a module as a prototype library
     -- create a function for each endpoint, with appropriate arguments and response handling
     messageHifiPlug endpoint args = do
@@ -323,12 +386,12 @@ runAction opts@ActionOpts{setLED {- TODO GHC doesn't yet support impredicative f
         logMessage $ "HTTP response status code from HiFi plug: " <> showT (statusCode $ responseStatus response)
         -- TODO something to do with MonoLocalBinds, but I'm not sure _exactly_ why this type app is necessary
         pure @m response
-    toBulbInfo (_, ls, sg, prod) =
+    toBulbInfo b =
         BulbInfo
-            { name = BulbName ls.label
-            , group = BulbGroup sg.label
-            , hasColour = prod.features.color
-            , hasKelvin = case prod.features.temperatureRange of
+            { name = BulbName b.light.label
+            , group = BulbGroup b.group.label
+            , hasColour = b.productInfo.features.color
+            , hasKelvin = case b.productInfo.features.temperatureRange of
                 Just (lo, hi) -> lo /= hi
                 Nothing -> False
             }

@@ -51,7 +51,9 @@ newtype AppState = AppState
     deriving (Generic)
 
 data Event where
-    ActionEvent :: (Show a) => (a -> IO ()) -> CompoundAction a -> Event
+    -- | The callback is always invoked exactly once, even when the action fails - otherwise
+    -- anything waiting on it (see `George.Feed.WebServer`) would wait forever.
+    ActionEvent :: (Show a) => (Either Error a -> IO ()) -> CompoundAction a -> Event
     LogEvent :: Text -> Event
     ErrorEvent :: Error -> Event
 runEventStream ::
@@ -66,13 +68,17 @@ runEventStream handleError log' run' =
         ( SF.drainMapM \case
             ErrorEvent e -> handleError e
             LogEvent t -> log' t
-            ActionEvent f action -> (either handleError pure <=< runExceptT) $ runM do
+            ActionEvent f action -> do
                 r <-
-                    action & translate \a -> do
-                        lift . log' $ showT a
-                        run' a
-                sendM . lift . log' $ showT r
-                sendM . liftIO $ f r
+                    runExceptT . runM $
+                        action & translate \a -> do
+                            lift . log' $ showT a
+                            run' a
+                -- note that `f` is called on both branches: it's how a caller learns the action is
+                -- over, so skipping it on failure leaves them hanging
+                case r of
+                    Left e -> liftIO (f $ Left e) >> handleError e
+                    Right x -> log' (showT x) >> liftIO (f $ Right x)
         )
         . S.concatMap S.fromList
         . S.cons [LogEvent "Starting..."]
@@ -80,6 +86,12 @@ runEventStream handleError log' run' =
 data Error where
     Error :: (Show a) => {title :: Text, body :: a} -> Error
     SimpleError :: Text -> Error
+
+-- | A one-line rendering, for showing to a human (e.g. in an HTTP response body).
+renderError :: Error -> Text
+renderError = \case
+    Error{title, body} -> title <> ": " <> showT body
+    SimpleError t -> t
 
 -- TODO what I really want is just to catch all non-async exceptions
 -- is there no good way to do this? maybe by catching all then re-throwing asyncs?

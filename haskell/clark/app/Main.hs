@@ -43,8 +43,12 @@ data Opts = Opts
     , buttonPin :: Int
     , ledErrorPin :: Int
     , ledOtherPin :: Int
-    , lifxTimeout :: NominalDiffTime
+    , lifxMessageTimeout :: NominalDiffTime
+    -- ^ How long to wait for one bulb to answer, before giving up on that request.
+    , lifxBroadcastTimeout :: NominalDiffTime
+    -- ^ How long to spend collecting responses when scanning for bulbs. Always elapses in full.
     , lifxRetryDelay :: NominalDiffTime
+    -- ^ How long to wait before retrying the initial scan, when we can't find all our lights.
     , lifxPort :: Word16
     , httpPort :: Warp.Port
     , emailPipe :: FilePath
@@ -99,7 +103,8 @@ main = do
         . flip runLoggingT (liftIO . T.putStrLn)
         $ Lifx.runLifxT
             Lifx.defaultLifxConfig
-                { Lifx.timeout = opts.lifxTimeout
+                { Lifx.messageTimeout = opts.lifxMessageTimeout
+                , Lifx.broadcastTimeout = opts.lifxBroadcastTimeout
                 , Lifx.port = Just $ fromIntegral opts.lifxPort
                 }
             do

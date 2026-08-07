@@ -8,11 +8,13 @@ import Control.Concurrent
 import Control.Monad
 import Control.Monad.Freer
 import Control.Monad.IO.Class
+import Data.ByteString.Lazy qualified as BL
 import Data.Foldable
 import Data.Functor
 import Data.Proxy
 import Data.Text (Text)
 import Data.Text qualified as T
+import Data.Text.Encoding (encodeUtf8)
 import Data.Time
 import Data.Word
 import GHC.Generics (Generic)
@@ -105,10 +107,18 @@ feed opts =
                 Servant.WarpLog r s i ->
                     guard (not $ statusIsSuccessful s) $> [ErrorEvent (Error "HTTP error" (r, s, i))]
   where
-    f show' (act :: Event -> IO ()) a = liftIO do
-        m <- newEmptyMVar
-        act $ ActionEvent (putMVar m) a
-        (<> "\n") . show' <$> takeMVar m
+    -- Enqueue the action, then block until the event loop tells us how it went.
+    -- An `Error` has already been logged and lit the error LED by that point, but we still need to
+    -- answer the HTTP request, so we turn it in to a 500 rather than leaving the client hanging.
+    f show' (act :: Event -> IO ()) a = do
+        r <- liftIO do
+            m <- newEmptyMVar
+            act $ ActionEvent (putMVar m) a
+            takeMVar m
+        either
+            (\e -> throwError err500{errBody = BL.fromStrict . encodeUtf8 $ renderError e})
+            (pure . (<> "\n") . show')
+            r
 
 curlDocs :: Int -> Text
 curlDocs port =

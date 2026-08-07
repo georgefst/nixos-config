@@ -9,16 +9,13 @@ import Util.GPIO.Persistent qualified as GPIO
 import Util.Lifx
 
 import Control.Exception (displayException)
-import Control.Monad
 import Control.Monad.Freer
 import Control.Monad.Log (MonadLog, logMessage, runLoggingT)
 import Control.Monad.State.Strict
 import Data.Bool
 import Data.List.Extra
-import Data.List.NonEmpty (nonEmpty)
 import Data.Map qualified as Map
 import Data.Maybe
-import Data.Stream.Infinite qualified as Stream
 import Data.Text qualified as T
 import Data.Text.IO qualified as T
 import Data.Time (NominalDiffTime)
@@ -46,8 +43,14 @@ data Opts = Opts
     , ledSendingModePin :: Int
     , ledNormalModePin :: Int
     , ledTvModePin :: Int
-    , lifxTimeout :: NominalDiffTime
+    , lifxMessageTimeout :: NominalDiffTime
+    -- ^ How long to wait for one bulb to answer. This is on the critical path for every web
+    -- request, so it wants to be just comfortably above the round trip time to a bulb.
+    , lifxBroadcastTimeout :: NominalDiffTime
+    -- ^ How long to spend collecting responses when scanning for bulbs. Always elapses in full,
+    -- so it only affects startup and explicit re-scans, never normal operation.
     , lifxRetryDelay :: NominalDiffTime
+    -- ^ How long to wait before retrying the initial scan, when we can't find any bulbs at all.
     , lifxIgnore :: [Text]
     , lifxPort :: Word16
     , httpPort :: Warp.Port
@@ -109,7 +112,8 @@ main = do
 
         lifxConfig =
             Lifx.defaultLifxConfig
-                { Lifx.timeout = opts.lifxTimeout
+                { Lifx.messageTimeout = opts.lifxMessageTimeout
+                , Lifx.broadcastTimeout = opts.lifxBroadcastTimeout
                 , Lifx.port = Just $ fromIntegral opts.lifxPort
                 }
 
@@ -124,15 +128,11 @@ main = do
                     (logMessage . ("LIFX startup error: " <>) . either id (T.pack . displayException))
                     opts.lifxRetryDelay
                 . Lifx.runLifxT lifxConfig
-                $ maybe (Left "no valid LIFX devices found") (Right . Stream.cycle)
-                    . nonEmpty
-                    <$> ( filterM
-                            ( \(_, Lifx.LightState{label}, _, _) ->
-                                let good = label `notElem` opts.lifxIgnore
-                                 in logMessage ("LIFX device " <> bool "ignored" "found" good <> ": " <> label) >> pure good
-                            )
-                            =<< discoverLifx
-                        )
+                $ ( \case
+                        [] -> Left "no valid LIFX devices found"
+                        ds -> Right . Map.fromList $ map ((\b -> (b.device, b)) . mkBulbEntry) ds
+                  )
+                    <$> discoverLifxExcept opts.lifxIgnore
         uinput <-
             liftIO $
                 Uinput.newDevice
@@ -158,6 +158,7 @@ main = do
         pure
             AppState
                 { activeLEDs = mempty
+                , currentLight = Nothing
                 , lightColourCache = Nothing
                 , ..
                 }

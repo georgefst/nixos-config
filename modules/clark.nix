@@ -105,7 +105,8 @@ in
           --button-pin ${toString button-pin} \
           --led-error-pin ${toString led-error-pin} \
           --led-other-pin ${toString led-other-pin} \
-          --lifx-timeout 10s \
+          --lifx-message-timeout 0.25s \
+          --lifx-broadcast-timeout 2s \
           --lifx-retry-delay 5s \
           --lifx-port ${toString clark-script-lifx-port} \
           --http-port ${toString clark-script-http-port} \

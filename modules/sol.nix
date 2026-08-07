@@ -252,7 +252,8 @@ in
           --led-sending-mode-pin 13 \
           --led-normal-mode-pin 16 \
           --led-tv-mode-pin 6 \
-          --lifx-timeout 10s \
+          --lifx-message-timeout 0.25s \
+          --lifx-broadcast-timeout 2s \
           --lifx-retry-delay 5s \
           --lifx-port ${toString sol-script-lifx-port} \
           --http-port ${toString sol-script-http-port} \

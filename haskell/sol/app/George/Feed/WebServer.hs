@@ -7,8 +7,10 @@ import Control.Concurrent
 import Control.Monad
 import Control.Monad.Freer
 import Control.Monad.IO.Class
+import Data.ByteString.Lazy qualified as BL
 import Data.Functor
 import Data.Text (Text)
+import Data.Text.Encoding (encodeUtf8)
 import Evdev.Codes qualified as Evdev
 import Lifx.Lan hiding (SetLightPower)
 import Network.HTTP.Types
@@ -70,10 +72,15 @@ feed opts =
                     guard (not $ statusIsSuccessful s) $> [ErrorEvent (Error "HTTP error" (r, s, i))]
   where
     noContent () = NoContent
-    f show' (act :: Event -> IO ()) a = liftIO do
-        m <- newEmptyMVar
-        act $ ActionEvent (putMVar m) a
-        show' <$> takeMVar m
+    -- Enqueue the action, then block until the event loop tells us how it went.
+    -- An `Error` has already been logged and lit the error LED by that point, but we still need to
+    -- answer the HTTP request, so we turn it in to a 500 rather than leaving the client hanging.
+    f show' (act :: Event -> IO ()) a = do
+        r <- liftIO do
+            m <- newEmptyMVar
+            act $ ActionEvent (putMVar m) a
+            takeMVar m
+        either (\e -> throwError err500{errBody = BL.fromStrict . encodeUtf8 $ renderError e}) (pure . show') r
 
 toEvdevKey :: API.Key -> Evdev.Key
 toEvdevKey = \case

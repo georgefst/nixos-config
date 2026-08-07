@@ -7,13 +7,15 @@ module Util.Lifx where
 import Lifx.Lan
 
 import Control.Monad (filterM)
-import Control.Monad.Catch (MonadCatch, try)
+import Control.Monad.Catch (MonadCatch, displayException, try)
 import Control.Monad.Log (LoggingT, MonadLog, logMessage)
 import Control.Monad.Trans (MonadIO (liftIO))
 import Data.Bool (bool)
+import Data.Maybe (catMaybes)
 import Data.Text (Text)
+import Data.Text qualified as T
 import Data.Time (NominalDiffTime)
-import Util.Util (threadDelay')
+import Util.Util (showT, threadDelay')
 
 -- I really don't know where these belong - standalone package?
 -- (both are one-liners because each class provides defaults for monad transformers)
@@ -47,8 +49,37 @@ retryUntilSuccess report delay x =
   where
     again e = report e >> liftIO (threadDelay' delay) >> retryUntilSuccess report delay x
 
-discoverLifx :: (MonadLifx m) => m [(Device, LightState, StateGroup, Product)]
+{- | Find all devices on the network, and everything we want to know about each.
+
+Note that this is a broadcast (governed by `broadcastTimeout`) followed by several directed
+messages per device (governed by the much shorter `messageTimeout`). A device which answers the
+broadcast but then fails to answer the follow-ups is skipped, rather than being allowed to abort
+the whole scan - one unresponsive bulb shouldn't stop us finding all the others. This matters more
+than it sounds: `messageTimeout` is deliberately short, so if this threw, a single bulb which is
+switched off at the wall would be enough to make startup discovery fail forever.
+-}
+discoverLifx :: (MonadLifx m, MonadCatch m, MonadLog Text m) => m [(Device, LightState, StateGroup, Product)]
 discoverLifx =
-    traverse
-        (\d -> (d,,,) <$> sendMessage d GetColor <*> sendMessage d GetGroup <*> getProductInfo d)
+    fmap catMaybes
+        . traverse
+            ( \d ->
+                try ((d,,,) <$> sendMessage d GetColor <*> sendMessage d GetGroup <*> getProductInfo d) >>= \case
+                    Right x -> pure $ Just x
+                    Left (e :: LifxError) -> do
+                        logMessage $ "Ignoring LIFX device which didn't respond during scan: " <> showT d <> " - " <> T.pack (displayException e)
+                        pure Nothing
+            )
         =<< discoverDevices Nothing
+
+{- | `discoverLifx`, minus any devices whose label appears in the given list, logging as we go.
+
+Both Sol's startup and its re-scan need exactly this.
+-}
+discoverLifxExcept :: (MonadLifx m, MonadCatch m, MonadLog Text m) => [Text] -> m [(Device, LightState, StateGroup, Product)]
+discoverLifxExcept ignore =
+    filterM
+        ( \(_, LightState{label}, _, _) ->
+            let good = label `notElem` ignore
+             in logMessage ("LIFX device " <> bool "ignored" "found" good <> ": " <> label) >> pure good
+        )
+        =<< discoverLifx

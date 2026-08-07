@@ -46,7 +46,7 @@ main :: IO ()
 main = do
     isGhci <- (== "<interactive>") <$> getProgName
     let baseUrl = getSolBaseUrl isGhci
-    external <- refreshState baseUrl
+    external <- refreshState False baseUrl
     (if isGhci then reload else startApp)
         defaultEvents
         (component Model{..} (updateModel baseUrl) (\() -> viewModel))
@@ -69,15 +69,23 @@ data ExternalState = ExternalState
     -- , spotifyDevices :: [SpotifyDevice]
     }
     deriving stock (Eq, Ord, Show, Generic)
-refreshState :: BaseUrl -> IO ExternalState
-refreshState baseUrl = do
+
+{- | Re-read everything we don't control.
+
+@rescan@ asks the backend to go and look for bulbs again, rather than reusing the list it already
+has. That's much slower (it's a broadcast, which always waits out its full collection window), so
+it's reserved for the explicit rescan button - the backend drops bulbs which stop responding, and
+this is the only way to get them back.
+-}
+refreshState :: Bool -> BaseUrl -> IO ExternalState
+refreshState rescan baseUrl = do
     hifiPower <- f False $ runEndpoint baseUrl routes.getHifiPower
     bulbs <-
         f mempty . runEndpoint baseUrl $
             traverse (traverse \bi -> (bi,) <$> routes.getBulbStatus bi.group bi.name)
                 . Map.fromListWith (<>)
                 . map (\bi -> (bi.group, Map.singleton bi.name bi))
-                =<< routes.getBulbs False
+                =<< routes.getBulbs rescan
     -- spotifyDevices <- f [] $ runEndpoint baseUrl routes.getSpotifyDevices
     pure ExternalState{..}
   where
@@ -89,6 +97,7 @@ logClientError = consoleError . ms . show
 data Action
     = NoOp
     | Refresh
+    | Rescan
     | UpdateExternalState ExternalState
     | UpdateExternalStatePartial (ExternalState -> ExternalState)
     | LogClientError ClientError
@@ -110,8 +119,11 @@ updateModel baseUrl = \case
     -- or even due to the same source - then we don't actually need our ad-hoc updates (`UpdateExternalStatePartial`)
     -- Miso does advertise some sort of SSE support - can we use that?
     Refresh -> do
-        io $ UpdateExternalState <$> refreshState baseUrl
+        io $ UpdateExternalState <$> refreshState False baseUrl
         io_ $ either logClientError (\NoContent -> pure ()) =<< runEndpoint baseUrl routes.resetError
+    -- unlike `Refresh`, this asks the backend to go looking for bulbs again, which is how a bulb
+    -- that was dropped for being unresponsive gets back in to the list
+    Rescan -> io $ UpdateExternalState <$> refreshState True baseUrl
     UpdateExternalState s -> #external .= s
     UpdateExternalStatePartial f -> #external %= f
     LogClientError e -> io_ $ consoleError $ ms $ show e
@@ -253,6 +265,9 @@ viewModel Model{external = ExternalState{..}} =
                     --  apiButton [] False "Transfer" $ SpotifyTransfer _
                     -- ]
                     -- ]
+        , div_
+            [id_ "rescan"]
+            [apiButton [] True "↻" False Rescan]
         ]
   where
     onOrOff = class_ . bool "off" "on"
