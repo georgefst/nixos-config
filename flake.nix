@@ -37,6 +37,7 @@
     browser-wasi-shim = { url = "https://registry.npmjs.org/@bjorn3/browser_wasi_shim/-/browser_wasi_shim-0.3.0.tgz"; flake = false; };
     ws = { url = "https://registry.npmjs.org/ws/-/ws-8.18.0.tgz"; flake = false; };
     simple-http-server = { url = "github:TheWaWaR/simple-http-server/e79ddd3cd12db97062b4a33adc2e436d0022f4be"; flake = false; };
+    ghciwatch = { url = "github:georgefst/ghciwatch/multi-home-unit-show-paths-vibes"; flake = false; }; # https://github.com/MercuryTechnologies/ghciwatch/issues/316
     self.submodules = true;
   };
   outputs = inputs@{ self, nixos-hardware, flake-utils, ... }:
@@ -50,6 +51,22 @@
           nixpkgs-config = {
             allowUnfree = true;
           };
+          # plain Nixpkgs, for packaging things which aren't in it at all, and for overriding
+          # things which are
+          # (`packages.${system}` would be circular, since it's the one we overlay onto)
+          plainPkgs = import inputs.nixpkgs { inherit system; config = nixpkgs-config; };
+          # our fork, needed by `sol-web-watch` for `--enable-multi-repl`
+          # (the `multi-home-unit-show-paths-vibes` commit messages have the details)
+          # deliberately devshell-only: the system-wide `ghciwatch` (`modules/desktop.nix`) stays
+          # on stock Nixpkgs, so `sol-web-watch` can't just take whatever is on `$PATH`
+          ghciwatch-multi-repl = plainPkgs.ghciwatch.overrideAttrs (_: {
+            version = "1.4.2-multi-home-unit-show-paths";
+            src = inputs.ghciwatch;
+            cargoDeps = plainPkgs.rustPlatform.fetchCargoVendor {
+              src = inputs.ghciwatch;
+              hash = "sha256-ysB1BJbMJ8KSCGSQzs9AnOA4SnnRcukC5R/vU45pbRM=";
+            };
+          });
           haskellPkgs = import inputs.nixpkgs-haskell {
             inherit system;
             overlays = [
@@ -83,6 +100,8 @@
                     shell.nativeBuildInputs =
                       [
                         haskellPkgs.simple-http-server
+                        # pinned here rather than relying on the system-wide install - see above
+                        ghciwatch-multi-repl
                         (
                           let
                             wasm-dummy-liblibdl = haskellPkgs.runCommand "liblibdl"
@@ -135,15 +154,36 @@
                           echo "Serving at http://localhost:8002"
                           exec simple-http-server dist --index --nocache --open -p "8002"
                         '')
-                        # TODO we'd really like to add `--enable-multi-repl sol-http-api` (or `all`)
-                        # but GHCIWatch doesn't support that, as we've discovered previously
+                        # `--enable-multi-repl` needs `ghciwatch-multi-repl` (see the top of the `let`)
+                        #
+                        # browser mode is configured by env var rather than `-fghci-browser*` flags:
+                        # the flags only take effect via a snapshot of `DynFlags` taken before the
+                        # `-unit @file` response files are read, and cabal puts `--repl-options` in
+                        # those response files, so under multi-repl they're silently dropped
+                        # (as are `-fexternal-interpreter` and even `-ignore-dot-ghci`)
+                        #
+                        # cabal also leaves the cwd at the project root rather than `haskell/sol`,
+                        # hence the assets dir being repo-relative, and `:main` becoming `Main.main`
+                        #
+                        # `--extra-module-search-path` works around a GHC bug: cabal gives each home
+                        # unit `-working-dir haskell/sol` with `-iweb`/`-iapi` and the target
+                        # `web/Main.hs` relative to *that*, but `showPaths`/`showTargets` report the
+                        # process cwd with those paths un-augmented, so they resolve to `<root>/web`
+                        # and `<root>/api`, which don't exist. they should be applying
+                        # `augmentByWorkingDirectory` the way the rest of the compiler does
                         (haskellPkgs.writeShellScriptBin "sol-web-watch" ''
+                          GHCI_BROWSER=1 \
+                          GHCI_BROWSER_PORT=8001 \
+                          GHCI_BROWSER_ASSETS_DIR=haskell/sol/static \
                           GHCI_BROWSER_OPEN_CMD=xdg-open \
-                          ghciwatch --after-startup-ghci :main --after-reload-ghci :main --watch haskell/sol/web --debounce 50ms \
+                          ghciwatch --after-startup-ghci Main.main --after-reload-ghci Main.main --debounce 50ms \
+                            --watch haskell/sol/web --watch haskell/sol/api \
                             --watch haskell/sol/static --reload-glob '*.css' \
+                            --extra-module-search-path haskell/sol/web \
+                            --extra-module-search-path haskell/sol/api \
                             --command \
-                            'wasm32-unknown-wasi-cabal repl sol-web \
-                            --repl-options="-ignore-dot-ghci -fghci-browser -fghci-browser-port=8001 -fghci-browser-assets-dir=static"'
+                            'wasm32-unknown-wasi-cabal repl --enable-multi-repl sol-web sol-http-api \
+                            --repl-options="-ignore-dot-ghci"'
                         '')
                       ];
                     shell.tools = {
@@ -198,9 +238,7 @@
           extraPackages =
             let
               pkgs-unstable = import inputs.nixpkgs-unstable { inherit system; config = nixpkgs-config; };
-              # plain Nixpkgs, for packaging things which aren't in it at all
-              # (`packages.${system}` would be circular here, since it's the one we overlay this set onto)
-              pkgs = import inputs.nixpkgs { inherit system; config = nixpkgs-config; };
+              pkgs = plainPkgs;
             in
             {
               # frequent updates are desirable

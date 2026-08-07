@@ -276,6 +276,23 @@
         "type": "github"
       }
     },
+    "ghciwatch": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1786112359,
+        "narHash": "sha256-EWsUNYCqNYtYzDO+/Ri5bxB8bZ7fqfmbLLxA3y71fEE=",
+        "owner": "georgefst",
+        "repo": "ghciwatch",
+        "rev": "a9f264f7e1b795f20a71e8ec18411063f5d16ed8",
+        "type": "github"
+      },
+      "original": {
+        "owner": "georgefst",
+        "ref": "multi-home-unit-show-paths-vibes",
+        "repo": "ghciwatch",
+        "type": "github"
+      }
+    },
     "hackage": {
       "flake": false,
       "locked": {
@@ -1063,6 +1080,7 @@
         "browser-wasi-shim": "browser-wasi-shim",
         "evdev-share": "evdev-share",
         "flake-utils": "flake-utils_2",
+        "ghciwatch": "ghciwatch",
         "haskell-nix": "haskell-nix",
         "hls": "hls_2",
         "hs-scripts": "hs-scripts",
