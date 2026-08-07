@@ -133,7 +133,6 @@ main = do
                                                     if i.hasColour
                                                         then
                                                             fromIntegral
-                                                                . pTraceShowId
                                                                 . sum
                                                                 . zipWith (*) (map (* 100) [1 ..])
                                                                 . map ((- fromEnum 'a') . ord . toLower)
