@@ -292,4 +292,15 @@ in
       path = [ pkgs.evdev-share ];
     };
   };
+
+  # TODO how can we specify KDE settings here like we do for Gnome?
+  # there is definitely home-manager support, not sure about NixOS itself
+  # we have stuff in ~/.config/plasmaparc
+  # not clear whether there's an /etc equivalent
+  # there's mention of one here, but this is old
+  # https://askubuntu.com/questions/109382/how-to-configure-kde-default-settings-for-a-new-user-of-a-group
+  # worst case, we could use an activation script to write to config, as with so many other things...
+  # current contents are just:
+  # [General]
+  # AudioFeedback=false
 }
