@@ -185,6 +185,19 @@
                             'wasm32-unknown-wasi-cabal repl --enable-multi-repl sol-web sol-http-api \
                             --repl-options="-ignore-dot-ghci"'
                         '')
+                        (haskellPkgs.writeShellScriptBin "sol-web-watch-single" ''
+                          GHCI_BROWSER=1 \
+                          GHCI_BROWSER_PORT=8001 \
+                          GHCI_BROWSER_ASSETS_DIR=static \
+                          GHCI_BROWSER_OPEN_CMD=xdg-open \
+                          ghciwatch --after-startup-ghci Main.main --after-reload-ghci Main.main --debounce 50ms \
+                            --watch haskell/sol/web \
+                            --watch haskell/sol/static --reload-glob '*.css' \
+                            --extra-module-search-path haskell/sol/web \
+                            --command \
+                            'wasm32-unknown-wasi-cabal repl sol-web \
+                            --repl-options="-ignore-dot-ghci"'
+                        '')
                       ];
                     shell.tools = {
                       cabal = "latest";
