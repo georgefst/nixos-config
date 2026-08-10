@@ -37,6 +37,7 @@
     browser-wasi-shim = { url = "https://registry.npmjs.org/@bjorn3/browser_wasi_shim/-/browser_wasi_shim-0.3.0.tgz"; flake = false; };
     ws = { url = "https://registry.npmjs.org/ws/-/ws-8.18.0.tgz"; flake = false; };
     simple-http-server = { url = "github:TheWaWaR/simple-http-server/e79ddd3cd12db97062b4a33adc2e436d0022f4be"; flake = false; };
+    hifiberry-dsp = { url = "github:hifiberry/hifiberry-dsp"; flake = false; }; # not in Nixpkgs - see `nix/hifiberry-dsp.nix`
     ghciwatch = { url = "github:georgefst/ghciwatch/multi-home-unit-show-paths-vibes"; flake = false; }; # https://github.com/MercuryTechnologies/ghciwatch/issues/316
     self.submodules = true;
   };
@@ -269,6 +270,8 @@
               mandelbrot = inputs.hs-scripts.packages.${system}.mandelbrot;
               lifx-manager = inputs.lifx-manager.packages.${system}.lifx-manager;
               net-evdev = inputs.net-evdev.packages.${system}."net-evdev:exe:net-evdev";
+              # not in Nixpkgs at all, so packaged by us rather than just re-exported
+              hifiberry-dsp = pkgs.callPackage ./nix/hifiberry-dsp.nix { src = inputs.hifiberry-dsp; };
               # developed locally
               clark = haskell.packages."clark:exe:clark";
               magic-mouse = haskell.packages."magic-mouse:exe:magic-mouse";
@@ -404,6 +407,15 @@
               dt-overlays.hifiberry-dacplusdsp.enable = true;
               base-dt-params.audio.enable = lib.mkForce false;
               dt-overlays.vc4-kms-v3d.params.noaudio.enable = true;
+              # `dtparam=spi=on`, for the DAC+DSP's ADAU1451 - see `modules/sol.nix`.
+              # nothing else turns this on: the `hifiberry-dacplusdsp` overlay is pure I2S plumbing
+              # (two `status = "okay"` fragments and a dummy codec, no SPI at all), and the Pi 5's
+              # base device tree only enables BCM2712's `spi10` - which is `/dev/spidev10.0`, and is
+              # *not* the SPI on the 40-pin header, so it can't see the HAT. Without this, GPIO 7-11
+              # are left unmuxed (`pinctrl get 7-11` shows `no`) and there is no `/dev/spidev0.0`.
+              # GPIO 7-11 are otherwise unused here: the Haskell script's pins (see `modules/sol.nix`)
+              # are 5, 6, 12, 13, 15 and 16, and the sound card's are 18-21.
+              base-dt-params.spi = { enable = true; value = "on"; };
             };
           }
         ]

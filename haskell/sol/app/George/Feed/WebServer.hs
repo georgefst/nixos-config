@@ -59,6 +59,10 @@ feed opts =
                         , -- TODO I really don't like this string being duplicated - we need to rethink our IR types
                           toggleTvPower = f noContent act $ send $ SendIR IRTV "KEY_POWER"
                         , doorbell = f noContent act $ send $ PlayAudio opts.doorbellSound -- TODO add desktop notification etc.
+                        , getSpdifVolume = f id act $ send GetSpdifVolume
+                        , setSpdifVolume = f noContent act . send . SetSpdifVolume
+                        , getSpdifMute = f id act $ send GetSpdifMute
+                        , setSpdifMute = f noContent act . send . SetSpdifMute
                         }
                         -- TODO disable cache headers?
                         -- or is there some way we can force a full refresh on mobile Firefox?

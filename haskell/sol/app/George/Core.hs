@@ -47,6 +47,7 @@ import Network.Socket.ByteString hiding (send)
 import Optics
 import Optics.State.Operators
 import Options.Generic
+import SigmaDSP qualified
 import Spotify (MonadSpotify (throwClientError))
 import Spotify qualified
 import Streamly.Data.Fold qualified as SF
@@ -185,6 +186,10 @@ data Action a where
     GetHifiPlugPower :: Action Bool
     SetHifiPlugPower :: Bool -> Action ()
     ToggleHifiPlug :: Action () -- TODO why isn't this just a compound action?
+    GetSpdifVolume :: Action SigmaDSP.Percent
+    SetSpdifVolume :: SigmaDSP.Percent -> Action ()
+    GetSpdifMute :: Action Bool
+    SetSpdifMute :: Bool -> Action ()
     GetAllLights :: Action [BulbInfo]
     GetLightByGroupAndName :: Text -> Text -> Action Lifx.Device
     SpotifyGetDevices :: Action [SpotifyDevice]
@@ -206,6 +211,9 @@ data ActionOpts = ActionOpts
     , lifxIgnore :: [Text]
     , hifiPlugIp :: IP
     , irConfigDir :: Text
+    , dspDevice :: FilePath
+    , spdifVolumeRegister :: SigmaDSP.Address
+    , spdifMuteRegister :: SigmaDSP.Address
     }
 
 runAction ::
@@ -306,6 +314,14 @@ runAction opts@ActionOpts{setLED {- TODO GHC doesn't yet support impredicative f
         maybe (throwError $ Error "Key \"output\" not found in HiFi plug response" response) pure $ responseBody response ^? key "output" % _Bool
     SetHifiPlugPower b -> void $ messageHifiPlug "Switch.Set" $ "&on=" <> B8.pack (map toLower $ show b)
     ToggleHifiPlug -> void $ messageHifiPlug "Switch.Toggle" ""
+    GetSpdifVolume -> withDsp \fd ->
+        -- upstream only clamps the endpoints in `amplification2percent`, leaving the rest to the
+        -- caller - see the note on `SigmaDSP.amplificationToPercent`
+        clampPercent . SigmaDSP.amplificationToPercent <$> SigmaDSP.readGain fd opts.spdifVolumeRegister
+    SetSpdifVolume v -> withDsp \fd ->
+        SigmaDSP.writeGain fd opts.spdifVolumeRegister . SigmaDSP.percentToAmplification $ clampPercent v
+    GetSpdifMute -> withDsp \fd -> (== 0) <$> SigmaDSP.readInt fd opts.spdifMuteRegister
+    SetSpdifMute b -> withDsp \fd -> SigmaDSP.writeInt fd opts.spdifMuteRegister if b then 0 else 1
     GetAllLights -> map toBulbInfo . sortedBulbs <$> use #bulbs
     GetLightByGroupAndName g b ->
         maybe (throwError $ Error "Light not found" (g, b)) (pure . (.device))
@@ -350,6 +366,20 @@ runAction opts@ActionOpts{setLED {- TODO GHC doesn't yet support impredicative f
                 $ Spotify.StartPlaybackOpts context item Nothing
   where
     noBulbs = SimpleError "No LIFX devices are known - try a re-scan"
+
+    {- The DSP: see `SigmaDSP` for the wire protocol, and `modules/sol.nix` for where the register
+    addresses come from and what they mean. `catchActionErrors` turns a missing or unreadable
+    `/dev/spidev0.0` in to an ordinary logged action failure, which is what makes it safe for the
+    x86_64 `vms.sol` build (no SPI device at all) to run this same binary.
+
+    Note the mute register's polarity: it's `InputSelector.MuteSPDIF`, a SigmaStudio `MuteNoSlew`,
+    whose parameter is a pass-through flag, so 1 is *un*muted. (Don't generalise that to other mute
+    registers in this profile: the post-mixer `Mute.Mute` is a `Switch` and runs the other way up.)
+    -}
+    withDsp :: (Fd -> IO x) -> m x
+    withDsp = liftIO . SigmaDSP.withDevice opts.dspDevice
+
+    clampPercent = max 0 . min 100
 
     {- Send a message to a bulb, and drop the bulb if it doesn't answer.
 

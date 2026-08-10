@@ -79,6 +79,79 @@ let
     { id = "ac1b7698-0586-4a19-b630-6b129160b531"; name = "ITVX"; url = "https://www.itv.com/watch"; hostname = "www.itv.com"; icon = ../assets/webapp-icons/itvx.png; }
   ];
   webAppDesktopFile = app: "org.mozilla.firefox.webapp-${app.id}.desktop";
+
+  # The HiFiBerry DAC+ DSP's ADAU1451, as driven by the Haskell script's `SigmaDSP` module.
+  #
+  # ## Why any of this exists
+  #
+  # Sol's Toslink input goes straight into the DSP and out to the DAC without ever touching the Pi,
+  # so ALSA and PipeWire cannot see it, let alone attenuate it. Nor can they: the
+  # `hifiberry-dacplusdsp` overlay is pure I2S plumbing, and the codec driver
+  # (`sound/soc/bcm/hifiberry_dacplusdsp.c`) is a stub which registers no mixer controls whatsoever.
+  # The DSP's own parameter RAM, reached over SPI, is the only volume control there is.
+  #
+  # That's also why `dtparam=spi=on` is set for this host in `flake.nix`, and why `gthomas` is in
+  # the `spi` group above.
+  #
+  # ## The signal chain
+  #
+  # The program flashed in the board's EEPROM is HiFiBerry's `4way-iir-delay-mixer` (identical to
+  # their `dacdsp-default` - same 648-word program, same metadata), and it wires up like this:
+  #
+  #     Pi I2S   -> VolumeLimitPi    (4559) -> MutePi    (4561) -.
+  #     SPDIF in -> VolumeLimitSPDIF (4560) -> MuteSPDIF (4563) -+-> mix -> Balance -> ChannelSelect
+  #     Aux      -> VolumeLimitAux   (4562) -> MuteAux   (4564) -'      -> Volume (4573)
+  #                                                                     -> VolumeLimit (4574)
+  #                                                                     -> EQ -> Filtering -> DAC
+  #
+  # We drive only the SPDIF pair, since attenuating Toslink is the entire point and a per-input gain
+  # does it without disturbing anything else: the Pi's own audio, and so Spotify, PipeWire and
+  # Plasma's volume, are all downstream of a different branch and completely unaffected.
+  #
+  # We deliberately leave the rest alone. `Volume` (4573) does work as a master over everything, but
+  # there's no need for a second system-wide volume control. `VolumeLimit` (4574, at 0.5) is the
+  # profile's own -6dB ceiling. And the post-mixer `Mute.Mute` (4552) turns out not to be usable at
+  # all: it's a `Switch` buried in an automute subsystem (peak envelope, zero-compare, unmute delay,
+  # a register-read of the ASRC lock status, and two muxes), and writing it has no audible effect -
+  # not even via upstream's own `dsptoolkit mute`, which writes that very register. The muxes are
+  # presumably routing around it. The SPDIF mute we do use is a plain `MuteNoSlew`, unrelated.
+  #
+  # All the gain cells are SigmaStudio `SWGain`s, which have a separate slew-rate parameter
+  # (`alpha`) that we likewise don't touch - it's what makes stepping the volume pop-free.
+  #
+  # ## How these addresses were found
+  #
+  # They are properties of the *flashed profile*, not of the hardware, and differ wildly between
+  # profiles (HiFiBerry's newer `dacdsp-v12-1` puts `volumeControlRegister` at 47, not 4573). The
+  # procedure for redoing this is written up in `nix/hifiberry-dsp.nix`; in short, the running
+  # program's MD5 is `16EA9EE2C6A296BDBF4C2C3A55246729`, which identifies the profile, whose
+  # `<beometa>` block then gives the register map. That was corroborated by reading the live
+  # registers, which showed exactly the pattern the map predicts: three consecutive unity gains at
+  # 4559/4560/4562 and three consecutive integer flags at 4561/4563/4564.
+  #
+  # If the profile is ever reflashed, every number here becomes wrong, and silently so. Deriving
+  # them automatically wouldn't really help, because it's the *assumptions* that are profile-shaped
+  # rather than just the addresses - the Haskell takes for granted that there's a per-input SPDIF
+  # `SWGain`, that the mute flag reads 1 for pass, and that volume follows HiFiBerry's 60dB taper,
+  # none of which need hold elsewhere (their newer `dacdsp-v12-1` has an `enableSPDIFRegister` and a
+  # `readSPDIFOnRegister`, i.e. a different model entirely). So a reflash wants human attention, not
+  # more automation. If a cheap guard is ever wanted, the DSP maintains its program length in
+  # register 0xf464 - 648 words for this profile - and reading it costs nothing and disturbs
+  # nothing, unlike the checksum, which requires halting the core and so drops audio.
+  #
+  # ## Volatility
+  #
+  # Parameter RAM is volatile and the board self-boots from EEPROM, so a power cycle reverts
+  # everything to the profile's defaults. Nothing written at runtime can persist by accident
+  # (upstream needs an explicit `dsptoolkit store` for that), which is also why the script sets an
+  # initial volume on startup rather than trusting whatever it finds.
+  dsp = {
+    device = "/dev/spidev0.0";
+    spdifVolumeRegister = 4560; # `InputSelector.VolumeLimitSPDIF`
+    spdifMuteRegister = 4563; # `InputSelector.MuteSPDIF`
+    # Unity gain would be alarmingly loud to boot in to - see "Volatility" above.
+    initialSpdifVolume = 50;
+  };
 in
 {
   # basics
@@ -127,6 +200,9 @@ in
   users.groups.gpio = { members = [ "gthomas" ]; };
   users.groups.lirc = { members = [ "gthomas" ]; };
   users.groups.uinput = { members = [ "gthomas" ]; };
+  # the `spi` group itself, and the udev rule granting it `/dev/spidev*`, both already come from
+  # `nixos-raspberrypi`'s `raspberrypi-udev-rules` (`99-com.rules`), so we only add the member
+  users.groups.spi = { members = [ "gthomas" ]; };
   services.udev.extraRules = ''
     SUBSYSTEM=="gpio", KERNEL=="gpiochip*", GROUP="gpio", MODE="0660"
     SUBSYSTEM=="lirc", GROUP="lirc", MODE="0660"
@@ -184,6 +260,10 @@ in
     # this is sort of a desktop, in that it's not headless
     # but of course it isn't Gnome, and Fry and Crow are meant to be almost identical apart from hardware
     wl-clipboard
+    # HiFiBerry's DSP toolkit. Deliberately not run as a service - it's here as an administrative
+    # tool, for identifying and installing DSP profiles. See `nix/hifiberry-dsp.nix` for the full
+    # story, including the procedure used to discover the register addresses below.
+    hifiberry-dsp
   ]
   # Valve's Raspberry Pi build of Steam Link - see `nix/steamlink.nix`, in particular for why
   # `programs.steam` (the full x86-only Steam client) isn't an option here.
@@ -262,7 +342,11 @@ in
           --key-send-port 56702 \
           --key-send-ips 192.168.178.20 \
           --hifi-plug-ip 192.168.178.28 \
-          --ir-config-dir ${../assets/ir}
+          --ir-config-dir ${../assets/ir} \
+          --dsp-device ${dsp.device} \
+          --spdif-volume-register ${toString dsp.spdifVolumeRegister} \
+          --spdif-mute-register ${toString dsp.spdifMuteRegister} \
+          --initial-spdif-volume ${toString dsp.initialSpdifVolume}
       '';
       description = "main Haskell script";
       path = with pkgs; [ sol dbus kdePackages.qttools libgpiod pipewire v4l-utils ];

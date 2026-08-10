@@ -29,6 +29,9 @@ import Text.Read (readMaybe)
 
 data AppState = AppState
     { hifiPower :: Bool
+    , -- unlike the real service, which always reads these straight back off the DSP
+      spdifVolume :: Int
+    , spdifMute :: Bool
     -- TODO maybe store a `Bulb -> _` function?
     -- oh, but Miso probably needs `Eq` for diffing
     }
@@ -86,6 +89,9 @@ initialState :: AppState
 initialState =
     AppState
         { hifiPower = False
+        , -- matches the `--initial-spdif-volume` the real service is given in `modules/sol.nix`
+          spdifVolume = 50
+        , spdifMute = False
         }
 
 corsPolicy :: CorsResourcePolicy
@@ -166,6 +172,18 @@ main = do
                 , toggleTvPower = f "toggleTvPower" [] NoContent
                 , doorbell = do
                     f "ding!" [] NoContent
+                , getSpdifVolume = do
+                    s <- liftIO $ readTVarIO state
+                    f "getSpdifVolume" [] s.spdifVolume
+                , setSpdifVolume = \v -> do
+                    liftIO . atomically $ modifyTVar' state \s -> s{spdifVolume = v}
+                    f "setSpdifVolume" [T.show v] NoContent
+                , getSpdifMute = do
+                    s <- liftIO $ readTVarIO state
+                    f "getSpdifMute" [] s.spdifMute
+                , setSpdifMute = \b -> do
+                    liftIO . atomically $ modifyTVar' state \s -> s{spdifMute = b}
+                    f "setSpdifMute" [T.show b] NoContent
                 }
 
 -- TODO bit of a mess - we split this up when we realised that `getBulbStatus` needed to be able to fail

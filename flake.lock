@@ -396,6 +396,22 @@
         "type": "github"
       }
     },
+    "hifiberry-dsp": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1786100845,
+        "narHash": "sha256-UoQUqwuMzimstvRC9KeBtFA3vTaVd7ubXRNGBWV2o7Y=",
+        "owner": "hifiberry",
+        "repo": "hifiberry-dsp",
+        "rev": "e62f25d9cbaa788257e5af3f41554760a79185df",
+        "type": "github"
+      },
+      "original": {
+        "owner": "hifiberry",
+        "repo": "hifiberry-dsp",
+        "type": "github"
+      }
+    },
     "hls": {
       "flake": false,
       "locked": {
@@ -1082,6 +1098,7 @@
         "flake-utils": "flake-utils_2",
         "ghciwatch": "ghciwatch",
         "haskell-nix": "haskell-nix",
+        "hifiberry-dsp": "hifiberry-dsp",
         "hls": "hls_2",
         "hs-scripts": "hs-scripts",
         "lifx-manager": "lifx-manager",

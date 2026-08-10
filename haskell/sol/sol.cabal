@@ -69,6 +69,7 @@ executable sol
         George.Core
         George.Feed.Keyboard
         George.Feed.WebServer
+        SigmaDSP
     build-depends:
         sol-http-api,
         utils,

@@ -31,6 +31,13 @@ data Routes mode = Routes
     , setHifiPower :: mode :- "hifi" :> Capture "power" Bool :> PutNoContent
     , toggleTvPower :: mode :- "tv" :> PutNoContent
     , doorbell :: mode :- "doorbell" :> GetNoContent -- has to be a GET due to Shelly button limitations
+    , -- The DSP's gain stage for the SPDIF (Toslink) input, which is the only way to attenuate it:
+      -- that signal never reaches the Pi, so no amount of ALSA or PipeWire can touch it. See
+      -- `modules/sol.nix`. Volume is a whole percentage in [0, 100].
+      getSpdifVolume :: mode :- "spdif" :> "volume" :> Get '[JSON] Int
+    , setSpdifVolume :: mode :- "spdif" :> "volume" :> Capture "percent" Int :> PutNoContent
+    , getSpdifMute :: mode :- "spdif" :> "mute" :> Get '[JSON] Bool
+    , setSpdifMute :: mode :- "spdif" :> "mute" :> Capture "muted" Bool :> PutNoContent
     }
     deriving (Generic)
 

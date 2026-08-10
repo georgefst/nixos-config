@@ -113,6 +113,13 @@ dispatchKeys opts = wrap \case
         Idle -> pure ()
         Quiet -> pure ()
         Normal -> case k of
+            -- Ctrl diverts the volume keys to the DSP's gain stage for the SPDIF (Toslink) input,
+            -- which is the only way to attenuate it - see `modules/sol.nix`. Unmodified, they stay
+            -- on MPRIS, driving spotifyd's own volume: a completely separate concern, and one the
+            -- SPDIF gain deliberately doesn't disturb.
+            KeyVolumeup | ctrl -> spdifVolume e spdifVolumeStep
+            KeyVolumedown | ctrl -> spdifVolume e (negate spdifVolumeStep)
+            KeyMute | ctrl -> whenPressed e . act $ send . SetSpdifMute . not =<< send GetSpdifMute
             KeyVolumeup -> simpleAct $ Mpris "VolumeUp"
             KeyVolumedown -> simpleAct $ Mpris "VolumeDown"
             KeyLeft -> modifyLight $ #hue %~ subtract hueInterval
@@ -270,6 +277,22 @@ dispatchKeys opts = wrap \case
             ]
     simpleAct = act . send
     act = evs . pure . ActionEvent mempty
+    whenPressed e x = case e of
+        Pressed -> x
+        _ -> pure ()
+    {- Percentage points per key event. Unlike `irHold` we act on every repeat rather than every
+    sixth, because writing a register is cheap and the DSP's gain cells are `SWGain`, i.e. slewed in
+    hardware - which is why stepping the volume is inaudibly smooth rather than zippery. At a
+    typical ~30Hz repeat rate this traverses the full range in about a second and a half. -}
+    spdifVolumeStep = 2
+    {- Read-modify-write as a compound action, rather than a dedicated one. There's no race to worry
+    about: every `ActionEvent`, from here or from the web server, is drained by the single fold in
+    `runEventStream`, and a compound action runs to completion within one step of it. -}
+    spdifVolume e d = whenNotReleased e . act $ send . SetSpdifVolume . (+ d) =<< send GetSpdifVolume
+      where
+        whenNotReleased = \case
+            Released -> const $ pure ()
+            _ -> id
     irOnce = simpleAct .: SendIR
     irHold = \case
         Pressed -> irOnce

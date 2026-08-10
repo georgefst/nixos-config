@@ -29,6 +29,7 @@ import Network.Wai.Handler.Warp qualified as Warp
 import Optics
 import Options.Applicative qualified
 import Options.Generic
+import SigmaDSP qualified
 import Streamly.Data.Stream.Prelude qualified as S
 import System.IO
 import System.OsString.Posix (PosixString, encodeUtf)
@@ -60,6 +61,14 @@ data Opts = Opts
     , keySendIps :: [IP]
     , hifiPlugIp :: IP
     , irConfigDir :: Text
+    , dspDevice :: FilePath
+    -- ^ The `spidev` node for the DAC+ DSP's ADAU1451.
+    , spdifVolumeRegister :: SigmaDSP.Address
+    , spdifMuteRegister :: SigmaDSP.Address
+    -- ^ Both specific to the DSP profile flashed in the board's EEPROM - see `modules/sol.nix`,
+    -- which is where they're set and where the discovery is written up.
+    , initialSpdifVolume :: SigmaDSP.Percent
+    -- ^ See the startup actions in `main`.
     }
     deriving (Show, Generic)
 newtype PosixStringWrapped = PosixStringWrapped {unwrap :: PosixString}
@@ -179,6 +188,14 @@ main = do
                     (mapMaybe modeLED enumerate <> [opts.ledErrorPin])
                     <> [Sleep 0.5]
                     <> maybe mempty (pure . flip SetLED True) (modeLED initialMode)
+                    -- The DSP's parameter RAM is volatile: the board self-boots its profile from an
+                    -- onboard EEPROM, so after a power cycle the SPDIF gain is back at whatever the
+                    -- profile ships (unity, for ours - i.e. startlingly loud). So we pick a sane
+                    -- level ourselves. Note this deliberately covers only the DSP, not the system
+                    -- volume, which PipeWire/Plasma already persist across reboots.
+                    -- Caveat: it also fires on a mere service restart, so a manually-chosen level
+                    -- doesn't survive one.
+                    <> [SetSpdifVolume opts.initialSpdifVolume]
             )
         $ S.parList
             id
