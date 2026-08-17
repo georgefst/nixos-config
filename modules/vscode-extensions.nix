@@ -11,6 +11,7 @@ exts: with exts; [
   janw4ld.lambda-black
   jnoortheen.nix-ide
   jsynowiec.vscode-insertdatestring
+  ms-python.vscode-pylance
   ms-vsliveshare.vsliveshare
   rioj7.select-by
   rust-lang.rust-analyzer
