@@ -312,6 +312,7 @@ in
     in
     [
       agenix
+      claude-code
       crosspipe
       dhall-lsp-server
       discord
