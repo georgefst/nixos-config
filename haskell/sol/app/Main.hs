@@ -183,7 +183,7 @@ main = do
         $ S.parList
             id
             [ Keyboard.feed Keyboard.Opts{..}
-            , WebServer.feed WebServer.Opts{port = opts.httpPort, curlDocsCallback = T.putStrLn, webRoot = opts.webRoot}
+            , WebServer.feed WebServer.Opts{port = opts.httpPort, curlDocsCallback = T.putStrLn, webRoot = opts.webRoot, doorbellSound = "/home/gthomas/doorbell.wav"} -- TODO temporary doorbell sound location for testing - should ultimately be a Nix store path
             -- TODO disabled until logging is better
             -- it's easier to see events when monitoring through a separate script
             -- , GPIO.feed (opts & \Opts{..} -> GPIO.Opts{..})

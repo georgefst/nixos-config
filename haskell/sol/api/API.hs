@@ -30,6 +30,7 @@ data Routes mode = Routes
     , getHifiPower :: mode :- "hifi" :> Get '[JSON] Bool
     , setHifiPower :: mode :- "hifi" :> Capture "power" Bool :> PutNoContent
     , toggleTvPower :: mode :- "tv" :> PutNoContent
+    , doorbell :: mode :- "doorbell" :> GetNoContent -- has to be a GET due to Shelly button limitations
     }
     deriving (Generic)
 

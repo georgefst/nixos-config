@@ -165,6 +165,7 @@ data Action a where
     SetLED :: Int -> Bool -> Action ()
     SetSystemLEDs :: Bool -> Action ()
     LaunchProgram :: FilePath -> Action ProcessID
+    PlayAudio :: FilePath -> Action ()
     PressKey :: Key -> Action ()
     SendKey :: Key -> KeyEvent -> Action ()
     GetCurrentLight :: Action Lifx.Device
@@ -225,6 +226,7 @@ runAction opts@ActionOpts{setLED {- TODO GHC doesn't yet support impredicative f
             (\(l, v) -> liftIO $ readProcess "sudo" ["tee", "/sys/class/leds/" <> l <> "/trigger"] (v <> "\n"))
             (if b then [("ACT", "mmc0"), ("PWR", "default-on")] else [("ACT", "none"), ("PWR", "none")])
     LaunchProgram p -> liftIO $ forkProcess $ executeFile p True [] Nothing
+    PlayAudio p -> liftIO $ callProcess "pw-play" [p]
     PressKey k -> do
         d <- use #uinput
         liftIO $ Uinput.writeBatch d [KeyEvent k Pressed, KeyEvent k Released]

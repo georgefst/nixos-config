@@ -164,6 +164,8 @@ main = do
                     liftIO . atomically $ modifyTVar' state (\s -> s{hifiPower = power})
                     f "setHifiPower" [T.show power] NoContent
                 , toggleTvPower = f "toggleTvPower" [] NoContent
+                , doorbell = do
+                    f "ding!" [] NoContent
                 }
 
 -- TODO bit of a mess - we split this up when we realised that `getBulbStatus` needed to be able to fail

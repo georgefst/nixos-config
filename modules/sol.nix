@@ -265,7 +265,7 @@ in
           --ir-config-dir ${../assets/ir}
       '';
       description = "main Haskell script";
-      path = with pkgs; [ sol dbus kdePackages.qttools libgpiod v4l-utils ];
+      path = with pkgs; [ sol dbus kdePackages.qttools libgpiod pipewire v4l-utils ];
     };
     spotifyd = mkService { } {
       description = "Spotify daemon";

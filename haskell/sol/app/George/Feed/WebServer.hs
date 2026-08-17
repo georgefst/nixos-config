@@ -24,6 +24,7 @@ data Opts = Opts
     { port :: Warp.Port
     , curlDocsCallback :: Text -> IO ()
     , webRoot :: FilePath
+    , doorbellSound :: FilePath
     }
 
 feed :: Opts -> S.Stream IO [Event]
@@ -57,6 +58,7 @@ feed opts =
                         , setHifiPower = f noContent act . send . SetHifiPlugPower
                         , -- TODO I really don't like this string being duplicated - we need to rethink our IR types
                           toggleTvPower = f noContent act $ send $ SendIR IRTV "KEY_POWER"
+                        , doorbell = f noContent act $ send $ PlayAudio opts.doorbellSound -- TODO add desktop notification etc.
                         }
                         -- TODO disable cache headers?
                         -- or is there some way we can force a full refresh on mobile Firefox?
