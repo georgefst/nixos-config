@@ -69,6 +69,7 @@
             let pkgs-unstable = import inputs.nixpkgs-unstable { inherit system; config = nixpkgs-config; };
             in {
               # frequent updates are desirable
+              claude-code = pkgs-unstable.claude-code;
               nixd = pkgs-unstable.nixd;
               opencode = pkgs-unstable.opencode;
               spotify = pkgs-unstable.spotify;
