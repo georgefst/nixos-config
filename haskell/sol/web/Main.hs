@@ -163,9 +163,17 @@ viewModel Model{external = ExternalState{..}} =
             , div_
                 []
                 [ apiButton [class_ "tv"] True "📺" False $ runRequest_ routes.toggleTvPower --   TODO maybe the backend should try to retain a best guess of things live TV power statee
-                , apiButton [class_ "hifi", onOrOff hifiPower] True (if hifiPower then "🔊" else "🔈") False . RunRequest $
+                , apiButton [] False "1" False $ runRequest_ $ routes.irSwitcher "KEY_1" -- TODO repetition from keyboard module (same below) - make more strongly typed (and use TH?)
+                , apiButton [] False "2" False $ runRequest_ $ routes.irSwitcher "KEY_2"
+                , apiButton [] False "3" False $ runRequest_ $ routes.irSwitcher "KEY_3"
+                ]
+            , div_
+                []
+                [ apiButton [class_ "hifi", onOrOff hifiPower] True (if hifiPower then "🔊" else "🔈") False . RunRequest $
                     let newPower = not hifiPower
                      in routes.setHifiPower newPower <&> \NoContent -> UpdateExternalStatePartial $ #hifiPower .~ newPower
+                , apiButton [] True "-" False $ runRequest_ $ routes.decrementSpdifVolume
+                , apiButton [] True "+" False $ runRequest_ $ routes.incrementSpdifVolume
                 ]
             ]
         , div_

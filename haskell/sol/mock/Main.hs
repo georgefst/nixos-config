@@ -178,12 +178,19 @@ main = do
                 , setSpdifVolume = \v -> do
                     liftIO . atomically $ modifyTVar' state \s -> s{spdifVolume = v}
                     f "setSpdifVolume" [T.show v] NoContent
+                , incrementSpdifVolume = do
+                    liftIO . atomically $ modifyTVar' state \s -> s{spdifVolume = s.spdifVolume + 5}
+                    f "setSpdifVolume" [] NoContent
+                , decrementSpdifVolume = do
+                    liftIO . atomically $ modifyTVar' state \s -> s{spdifVolume = s.spdifVolume - 5}
+                    f "setSpdifVolume" [] NoContent
                 , getSpdifMute = do
                     s <- liftIO $ readTVarIO state
                     f "getSpdifMute" [] s.spdifMute
                 , setSpdifMute = \b -> do
                     liftIO . atomically $ modifyTVar' state \s -> s{spdifMute = b}
                     f "setSpdifMute" [T.show b] NoContent
+                , irSwitcher = \k -> f "irSwitcher" [k] NoContent
                 }
 
 -- TODO bit of a mess - we split this up when we realised that `getBulbStatus` needed to be able to fail

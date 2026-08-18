@@ -36,8 +36,11 @@ data Routes mode = Routes
       -- `modules/sol.nix`. Volume is a whole percentage in [0, 100].
       getSpdifVolume :: mode :- "spdif" :> "volume" :> Get '[JSON] Int
     , setSpdifVolume :: mode :- "spdif" :> "volume" :> Capture "percent" Int :> PutNoContent
+    , incrementSpdifVolume :: mode :- "spdif" :> "up" :> PutNoContent
+    , decrementSpdifVolume :: mode :- "spdif" :> "down" :> PutNoContent
     , getSpdifMute :: mode :- "spdif" :> "mute" :> Get '[JSON] Bool
     , setSpdifMute :: mode :- "spdif" :> "mute" :> Capture "muted" Bool :> PutNoContent
+    , irSwitcher :: mode :- "ir" :> "switcher" :> Capture "key" Text :> PutNoContent
     }
     deriving (Generic)
 
