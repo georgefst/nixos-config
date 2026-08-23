@@ -29,6 +29,7 @@ executable sol
         evdev >= 2.3,
         exceptions >= 0.10,
         extra >= 1.7.10,
+        filepath >= 1.4,
         filepath-bytestring >= 1.4.2,
         freer-simple >= 1.2.1.2,
         hinotify >= 0.4.1,
