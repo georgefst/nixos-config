@@ -53,6 +53,7 @@ import Spotify qualified
 import Streamly.Data.Fold qualified as SF
 import Streamly.Data.Stream.Prelude qualified as S
 import System.Exit
+import System.FilePath
 import System.Posix
 import System.Process.Extra
 import Util.GPIO.Persistent qualified as GPIO
@@ -297,17 +298,14 @@ runAction opts@ActionOpts{setLED {- TODO GHC doesn't yet support impredicative f
         liftIO . void $
             readProcess
                 "ir-ctl"
-                ( map
-                    T.unpack
-                    [ "-k"
-                    , ((opts.irConfigDir <> "/") <>) $ (<> ".toml") case dev of
-                        IRTV -> "tv"
-                        IRSwitcher -> "switcher"
-                        IRFan -> "fan"
-                    , "-K"
-                    , cmd
-                    ]
-                )
+                [ "-k"
+                , (T.unpack opts.irConfigDir </>) $ (<> ".toml") case dev of
+                    IRTV -> "tv"
+                    IRSwitcher -> "switcher"
+                    IRFan -> "fan"
+                , "-K"
+                , T.unpack cmd
+                ]
                 ""
     GetHifiPlugPower -> do
         response <- messageHifiPlug "Switch.GetStatus" ""
