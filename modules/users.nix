@@ -8,7 +8,6 @@
       root = { };
       gthomas = {
         isNormalUser = true;
-        linger = true;
         createHome = true;
         home = "/home/gthomas";
         group = "gthomas";
