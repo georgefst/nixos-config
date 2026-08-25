@@ -1,6 +1,9 @@
 {- HLINT ignore "Use <=<" -}
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 module Main (main) where
 
+import API (Percentage)
 import George.Core
 import George.Feed.Keyboard qualified as Keyboard
 import George.Feed.WebServer qualified as WebServer
@@ -62,13 +65,9 @@ data Opts = Opts
     , hifiPlugIp :: IP
     , irConfigDir :: Text
     , dspDevice :: FilePath
-    -- ^ The `spidev` node for the DAC+ DSP's ADAU1451.
     , spdifVolumeRegister :: SigmaDSP.Address
     , spdifMuteRegister :: SigmaDSP.Address
-    -- ^ Both specific to the DSP profile flashed in the board's EEPROM - see `modules/sol.nix`,
-    -- which is where they're set and where the discovery is written up.
-    , initialSpdifVolume :: SigmaDSP.Percent
-    -- ^ See the startup actions in `main`.
+    , spdifVolumeStep :: Percentage
     }
     deriving (Show, Generic)
 newtype PosixStringWrapped = PosixStringWrapped {unwrap :: PosixString}
@@ -78,7 +77,15 @@ instance ParseRecord PosixStringWrapped where
 instance ParseField PosixStringWrapped where
     readField = maybe (fail "decode error") (pure . PosixStringWrapped) . encodeUtf =<< Options.Applicative.str
     metavar _ = "PATH"
+instance ParseRecord Percentage where
+    parseRecord = getOnly <$> parseRecord
+instance ParseField Percentage
 instance ParseFields PosixStringWrapped
+instance ParseFields Percentage
+instance ParseRecord SigmaDSP.Address where
+    parseRecord = getOnly <$> parseRecord
+instance ParseField SigmaDSP.Address
+instance ParseFields SigmaDSP.Address
 instance ParseRecord Opts where
     parseRecord = parseRecordWithModifiers defaultModifiers{fieldNameModifier = fieldNameModifier lispCaseModifiers}
 
@@ -188,18 +195,10 @@ main = do
                     (mapMaybe modeLED enumerate <> [opts.ledErrorPin])
                     <> [Sleep 0.5]
                     <> maybe mempty (pure . flip SetLED True) (modeLED initialMode)
-                    -- The DSP's parameter RAM is volatile: the board self-boots its profile from an
-                    -- onboard EEPROM, so after a power cycle the SPDIF gain is back at whatever the
-                    -- profile ships (unity, for ours - i.e. startlingly loud). So we pick a sane
-                    -- level ourselves. Note this deliberately covers only the DSP, not the system
-                    -- volume, which PipeWire/Plasma already persist across reboots.
-                    -- Caveat: it also fires on a mere service restart, so a manually-chosen level
-                    -- doesn't survive one.
-                    <> [SetSpdifVolume opts.initialSpdifVolume]
             )
         $ S.parList
             id
-            [ Keyboard.feed Keyboard.Opts{..}
+            [ let Opts{spdifVolumeStep} = opts in Keyboard.feed Keyboard.Opts{..}
             , WebServer.feed WebServer.Opts{port = opts.httpPort, curlDocsCallback = T.putStrLn, webRoot = opts.webRoot, doorbellSound = "/home/gthomas/doorbell.wav"} -- TODO temporary doorbell sound location for testing - should ultimately be a Nix store path
             -- TODO disabled until logging is better
             -- it's easier to see events when monitoring through a separate script

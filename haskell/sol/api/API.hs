@@ -1,10 +1,13 @@
 {-# LANGUAGE DerivingVia #-}
 
+-- TODO a lot of these types should go in some utils module or elsewhere
+-- though that requires a bit of project dependency shuffling
 module API where
 
 import Control.Monad
-import Data.Aeson (FromJSON, ToJSON)
+import Data.Aeson (FromJSON (parseJSON), ToJSON (toJSON))
 import Data.Bifunctor
+import Data.Ord
 import Data.String (IsString)
 import Data.Text (Text)
 import Data.Text qualified as T
@@ -31,11 +34,8 @@ data Routes mode = Routes
     , setHifiPower :: mode :- "hifi" :> Capture "power" Bool :> PutNoContent
     , toggleTvPower :: mode :- "tv" :> PutNoContent
     , doorbell :: mode :- "doorbell" :> GetNoContent -- has to be a GET due to Shelly button limitations
-    , -- The DSP's gain stage for the SPDIF (Toslink) input, which is the only way to attenuate it:
-      -- that signal never reaches the Pi, so no amount of ALSA or PipeWire can touch it. See
-      -- `modules/sol.nix`. Volume is a whole percentage in [0, 100].
-      getSpdifVolume :: mode :- "spdif" :> "volume" :> Get '[JSON] Int
-    , setSpdifVolume :: mode :- "spdif" :> "volume" :> Capture "percent" Int :> PutNoContent
+    , getSpdifVolume :: mode :- "spdif" :> "volume" :> Get '[JSON] Percentage
+    , setSpdifVolume :: mode :- "spdif" :> "volume" :> Capture "percent" Percentage :> PutNoContent
     , incrementSpdifVolume :: mode :- "spdif" :> "up" :> PutNoContent
     , decrementSpdifVolume :: mode :- "spdif" :> "down" :> PutNoContent
     , getSpdifMute :: mode :- "spdif" :> "mute" :> Get '[JSON] Bool
@@ -102,9 +102,67 @@ data SpotifyDevice = SpotifyDevice
     deriving stock (Eq, Ord, Show, Generic)
     deriving anyclass (ToJSON, FromJSON)
 
--- TODO move to some utility module?
 newtype HttpShow a = HttpShow a
 instance (Show a) => ToHttpApiData (HttpShow a) where
     toUrlPiece = T.pack . show . \(HttpShow x) -> x
 instance (Read a) => FromHttpApiData (HttpShow a) where
     parseUrlPiece = bimap T.pack HttpShow . readEither <=< parseUrlPiece
+
+-- TODO we could consider adding '%' for `Read`/`Show`, but then that would break `HttpShow`
+newtype Percentage = Percentage Word8
+    deriving newtype (Eq, Ord, Show)
+    deriving (ToHttpApiData, FromHttpApiData) via HttpShow Percentage
+instance Bounded Percentage where
+    minBound = Percentage 0
+    maxBound = Percentage 100
+instance Read Percentage where
+    readPrec = maybe (fail "out of range") pure . percentage =<< readPrec
+instance ToJSON Percentage where
+    toJSON (Percentage p) = toJSON p
+instance FromJSON Percentage where
+    parseJSON v = maybe (fail "out of range") pure . percentage =<< parseJSON v
+percentage :: Word8 -> Maybe Percentage
+percentage n = Percentage (fromIntegral n) <$ guard (n >= 0 && n <= 100)
+percentageClamped :: Word8 -> Percentage
+percentageClamped = Percentage . fromIntegral . clamp (0, 100)
+fromPercentage :: (Num a) => Percentage -> a
+fromPercentage (Percentage n) = fromIntegral n
+addPercentageClamped :: Percentage -> Percentage -> Percentage
+addPercentageClamped x y = percentageClamped $ fromPercentage x + fromPercentage y
+subtractPercentageClamped :: Percentage -> Percentage -> Percentage
+subtractPercentageClamped x y = percentageClamped $ fromPercentage x - fromPercentage y
+
+-- TODO ideally this would be a thinner wrapper around a bounded integer type, but we can't
+-- newtype Percentage = Percentage (Finite 101) -- or `Data.Finite.Integral.Finite Word8 101`
+--     deriving newtype (Eq, Ord)
+--     deriving (ToHttpApiData, FromHttpApiData) via HttpShow Percentage
+-- instance Show Percentage where
+--     show (Percentage p) = show $ toInteger p
+-- instance Read Percentage where
+--     readPrec = maybe (fail "out of range") pure . percentage =<< readPrec
+-- instance ToJSON Percentage where
+--     toJSON (Percentage p) = toJSON $ toInteger p
+-- instance FromJSON Percentage where
+--     parseJSON v = maybe (fail "out of range") pure . percentage =<< parseJSON v
+-- percentage :: Int -> Maybe Percentage
+-- percentage n = Percentage <$> packFinite (fromIntegral n)
+-- percentageClamped :: Int -> Percentage
+-- percentageClamped n = Percentage $ packFiniteClamped $ fromIntegral n
+-- fromPercentage :: (Num a) => Percentage -> a
+-- fromPercentage (Percentage n) = fromInteger $ toInteger n
+-- addPercentageClamped :: Percentage -> Percentage -> Percentage
+-- addPercentageClamped (Percentage x) (Percentage y) = Percentage $ clampFinite $ Finite.add x y
+-- subtractPercentageClamped :: Percentage -> Percentage -> Percentage
+-- subtractPercentageClamped (Percentage x) (Percentage y) =
+--     Percentage
+--         . either (const minBound) clampFinite
+--         $ Finite.sub x y
+-- -- TODO https://github.com/mniip/finite-typelits/issues/32
+-- packFiniteClamped :: (KnownNat n) => Integer -> Finite n
+-- packFiniteClamped x = r
+--   where
+--     r = finite $ clamp (toInteger l, toInteger u) x
+--     l = minBound `asTypeOf` r
+--     u = maxBound `asTypeOf` r
+-- clampFinite :: (KnownNat m) => Finite n -> Finite m
+-- clampFinite = packFiniteClamped . getFinite

@@ -19,7 +19,6 @@ writing the register ourselves is both simpler and immediate.
 -}
 module SigmaDSP (
     Address,
-    Percent,
     withDevice,
     readMemory,
     writeMemory,
@@ -31,6 +30,7 @@ module SigmaDSP (
     amplificationToPercent,
 ) where
 
+import API (Percentage, fromPercentage, percentageClamped)
 import Control.Exception (bracket)
 import Control.Monad (void)
 import Data.Bits (shiftL, shiftR, (.&.), (.|.))
@@ -43,16 +43,8 @@ import System.Posix.IO (OpenMode (ReadWrite), closeFd, defaultFileFlags, openFd)
 import System.Posix.Types (Fd (Fd))
 
 -- | A DSP memory address. Parameter RAM is 0x0000-0xdfff; hardware registers start at 0xf000.
-type Address = Word16
-
-{- | A volume, as a whole percentage in [0, 100].
-
-Integral rather than fractional because that is what upstream uses throughout - see
-'amplificationToPercent', which mirrors a Python function returning @int@.
--}
-type Percent = Int
-
--- $spi
+newtype Address = Address Word16
+    deriving newtype (Eq, Ord, Show, Read)
 
 {- | @SPI_IOC_MESSAGE(1)@.
 
@@ -138,7 +130,7 @@ writeMemory :: Fd -> Address -> ByteString -> IO ()
 writeMemory fd addr d = void . transfer fd $ header 0 addr <> B.unpack d
 
 header :: Word8 -> Address -> [Word8]
-header rw addr = [rw, fromIntegral (addr `shiftR` 8), fromIntegral (addr .&. 0xff)]
+header rw (Address addr) = [rw, fromIntegral (addr `shiftR` 8), fromIntegral (addr .&. 0xff)]
 
 {- | Read a parameter RAM cell as a fixed point number.
 
@@ -176,45 +168,14 @@ writeInt :: Fd -> Address -> Word32 -> IO ()
 writeInt fd addr w =
     writeMemory fd addr . B.pack $ [fromIntegral (w `shiftR` s) | s <- [24, 16, 8, 0]]
 
-{- | Convert a volume percentage to a linear amplification factor, on a logarithmic taper.
-
-Mirrors @percent2amplification@
-(<https://github.com/hifiberry/hifiberry-dsp/blob/e62f25d9cbaa788257e5af3f41554760a79185df/src/hifiberrydsp/filtering/volume.py#L61-L66>),
-i.e. @a * exp(b * percent / 100)@.
-
-The coefficients are the @dbrange <= 60@ row of @log_coefficients@
-(<https://github.com/hifiberry/hifiberry-dsp/blob/e62f25d9cbaa788257e5af3f41554760a79185df/src/hifiberrydsp/filtering/volume.py#L37-L58>),
-60dB being the default that both @dsptoolkit@ and the ALSA sync thread use. A profile can override
-it with @volumeControlRangeDb@ metadata, but ours does not set that, so the range is fixed here
-rather than made configurable.
-
-Matching upstream's curve exactly is deliberate: it means @dsptoolkit get-volume@ and the
-@/tmp/dsp@-style helpers agree with us about what a given register value means.
-
-Zero is special-cased to true silence, since the curve itself bottoms out at 'taperA' (-60dB)
-rather than at nothing.
--}
-percentToAmplification :: Percent -> Double
-percentToAmplification p
-    | p <= 0 = 0
-    | otherwise = taperA * exp (taperB * fromIntegral p / 100)
-
-{- | The inverse of 'percentToAmplification'.
-
-Mirrors @amplification2percent@
-(<https://github.com/hifiberry/hifiberry-dsp/blob/e62f25d9cbaa788257e5af3f41554760a79185df/src/hifiberrydsp/filtering/volume.py#L69-L78>).
-Both Python's @round@ and Haskell's 'round' break ties to even, so this agrees to the last unit.
-
-Only the two endpoints are clamped, exactly as upstream: an amplification below 'taperA' yields a
-negative percentage, and it is the caller's job to clamp (as the ALSA sync thread does at
-<https://github.com/hifiberry/hifiberry-dsp/blob/e62f25d9cbaa788257e5af3f41554760a79185df/src/hifiberrydsp/alsa/alsasync.py#L185-L191>).
--}
-amplificationToPercent :: Double -> Percent
-amplificationToPercent amp
-    | amp <= 0 = 0
-    | amp >= 1 = 100
-    | otherwise = round $ (log (amp / taperA) / taperB) * 100
-
--- | Coefficients for a 60dB range - see 'percentToAmplification'.
-taperA, taperB :: Double
-(taperA, taperB) = (0.001, 6.908)
+-- https://github.com/hifiberry/hifiberry-dsp/blob/e62f25d9cbaa788257e5af3f41554760a79185df/src/hifiberrydsp/filtering/volume.py#L61-L78
+percentToAmplification :: Percentage -> Double
+amplificationToPercent :: Double -> Percentage
+(percentToAmplification, amplificationToPercent) =
+    ( \p -> if p == percentageClamped 0 then 0 else a * exp (b * fromPercentage p / 100)
+    , \amp -> percentageClamped . round $ (log @Double (amp / a) / b) * 100
+    )
+  where
+    -- https://github.com/hifiberry/hifiberry-dsp/blob/e62f25d9cbaa788257e5af3f41554760a79185df/src/hifiberrydsp/filtering/volume.py#L42-L44
+    a, b :: Double
+    (a, b) = (0.001, 6.908)

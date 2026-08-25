@@ -187,8 +187,8 @@ data Action a where
     GetHifiPlugPower :: Action Bool
     SetHifiPlugPower :: Bool -> Action ()
     ToggleHifiPlug :: Action () -- TODO why isn't this just a compound action?
-    GetSpdifVolume :: Action SigmaDSP.Percent
-    SetSpdifVolume :: SigmaDSP.Percent -> Action ()
+    GetSpdifVolume :: Action Percentage
+    SetSpdifVolume :: Percentage -> Action ()
     GetSpdifMute :: Action Bool
     SetSpdifMute :: Bool -> Action ()
     GetAllLights :: Action [BulbInfo]
@@ -315,9 +315,9 @@ runAction opts@ActionOpts{setLED {- TODO GHC doesn't yet support impredicative f
     GetSpdifVolume -> withDsp \fd ->
         -- upstream only clamps the endpoints in `amplification2percent`, leaving the rest to the
         -- caller - see the note on `SigmaDSP.amplificationToPercent`
-        clampPercent . SigmaDSP.amplificationToPercent <$> SigmaDSP.readGain fd opts.spdifVolumeRegister
+        SigmaDSP.amplificationToPercent <$> SigmaDSP.readGain fd opts.spdifVolumeRegister
     SetSpdifVolume v -> withDsp \fd ->
-        SigmaDSP.writeGain fd opts.spdifVolumeRegister . SigmaDSP.percentToAmplification $ clampPercent v
+        SigmaDSP.writeGain fd opts.spdifVolumeRegister $ SigmaDSP.percentToAmplification v
     GetSpdifMute -> withDsp \fd -> (== 0) <$> SigmaDSP.readInt fd opts.spdifMuteRegister
     SetSpdifMute b -> withDsp \fd -> SigmaDSP.writeInt fd opts.spdifMuteRegister if b then 0 else 1
     GetAllLights -> map toBulbInfo . sortedBulbs <$> use #bulbs
@@ -376,8 +376,6 @@ runAction opts@ActionOpts{setLED {- TODO GHC doesn't yet support impredicative f
     -}
     withDsp :: (Fd -> IO x) -> m x
     withDsp = liftIO . SigmaDSP.withDevice opts.dspDevice
-
-    clampPercent = max 0 . min 100
 
     {- Send a message to a bulb, and drop the bulb if it doesn't answer.
 

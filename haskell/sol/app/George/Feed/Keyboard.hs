@@ -4,6 +4,7 @@ module George.Feed.Keyboard (feed, Opts (..), Mode (..)) where
 import George.Core
 import Util
 
+import API (Percentage, addPercentageClamped, subtractPercentageClamped)
 import Control.Concurrent
 import Control.Monad
 import Control.Monad.Except
@@ -39,6 +40,7 @@ data Opts = Opts
     { initialMode :: Mode
     , modeLED :: Mode -> Maybe Int
     , isKeyboardName :: Text -> Bool
+    , spdifVolumeStep :: Percentage
     }
     deriving (Generic)
 
@@ -113,13 +115,8 @@ dispatchKeys opts = wrap \case
         Idle -> pure ()
         Quiet -> pure ()
         Normal -> case k of
-            -- Ctrl diverts the volume keys to the DSP's gain stage for the SPDIF (Toslink) input,
-            -- which is the only way to attenuate it - see `modules/sol.nix`. Unmodified, they stay
-            -- on MPRIS, driving spotifyd's own volume: a completely separate concern, and one the
-            -- SPDIF gain deliberately doesn't disturb.
-            KeyVolumeup | ctrl -> spdifVolume e spdifVolumeStep
-            KeyVolumedown | ctrl -> spdifVolume e (negate spdifVolumeStep)
-            KeyMute | ctrl -> whenPressed e . act $ send . SetSpdifMute . not =<< send GetSpdifMute
+            KeyVolumeup | ctrl -> spdifVolume e $ addPercentageClamped opts.spdifVolumeStep
+            KeyVolumedown | ctrl -> spdifVolume e $ flip subtractPercentageClamped opts.spdifVolumeStep
             KeyVolumeup -> simpleAct $ Mpris "VolumeUp"
             KeyVolumedown -> simpleAct $ Mpris "VolumeDown"
             KeyLeft -> modifyLight $ #hue %~ subtract hueInterval
@@ -136,6 +133,7 @@ dispatchKeys opts = wrap \case
                     KeyEsc | ctrl, shift -> simpleAct Reboot
                     KeyEsc | ctrl -> simpleAct Exit
                     KeyR | ctrl -> simpleAct ResetError
+                    KeyMute | ctrl -> act $ send . SetSpdifMute . not =<< send GetSpdifMute
                     KeyL | ctrl, shift -> startTyping $ TypingSpotifySearch Spotify.AlbumSearch
                     KeyA | ctrl, shift -> startTyping $ TypingSpotifySearch Spotify.ArtistSearch
                     KeyP | ctrl, shift -> startTyping $ TypingSpotifySearch Spotify.PlaylistSearch
@@ -277,22 +275,7 @@ dispatchKeys opts = wrap \case
             ]
     simpleAct = act . send
     act = evs . pure . ActionEvent mempty
-    whenPressed e x = case e of
-        Pressed -> x
-        _ -> pure ()
-    {- Percentage points per key event. Unlike `irHold` we act on every repeat rather than every
-    sixth, because writing a register is cheap and the DSP's gain cells are `SWGain`, i.e. slewed in
-    hardware - which is why stepping the volume is inaudibly smooth rather than zippery. At a
-    typical ~30Hz repeat rate this traverses the full range in about a second and a half. -}
-    spdifVolumeStep = 2
-    {- Read-modify-write as a compound action, rather than a dedicated one. There's no race to worry
-    about: every `ActionEvent`, from here or from the web server, is drained by the single fold in
-    `runEventStream`, and a compound action runs to completion within one step of it. -}
-    spdifVolume e d = whenNotReleased e . act $ send . SetSpdifVolume . (+ d) =<< send GetSpdifVolume
-      where
-        whenNotReleased = \case
-            Released -> const $ pure ()
-            _ -> id
+    spdifVolume e f = when (e /= Released) . act $ send . SetSpdifVolume . f =<< send GetSpdifVolume
     irOnce = simpleAct .: SendIR
     irHold = \case
         Pressed -> irOnce

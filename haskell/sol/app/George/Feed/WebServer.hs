@@ -63,8 +63,8 @@ feed opts =
                         , doorbell = f noContent act $ send $ PlayAudio opts.doorbellSound -- TODO add desktop notification etc.
                         , getSpdifVolume = f id act $ send GetSpdifVolume
                         , setSpdifVolume = f noContent act . send . SetSpdifVolume
-                        , incrementSpdifVolume = f noContent act $ send . SetSpdifVolume . (+ 5) =<< send GetSpdifVolume
-                        , decrementSpdifVolume = f noContent act $ send . SetSpdifVolume . (- 5) =<< send GetSpdifVolume
+                        , incrementSpdifVolume = f noContent act $ send . SetSpdifVolume . addPercentageClamped (percentageClamped 5) =<< send GetSpdifVolume
+                        , decrementSpdifVolume = f noContent act $ send . SetSpdifVolume . flip subtractPercentageClamped (percentageClamped 5) =<< send GetSpdifVolume
                         , getSpdifMute = f id act $ send GetSpdifMute
                         , setSpdifMute = f noContent act . send . SetSpdifMute
                         , irSwitcher = f noContent act . send . SendIR IRSwitcher
